@@ -1,0 +1,596 @@
+[
+  {
+    "id": "GB-DISC-001",
+    "title": "Live Host Discovered",
+    "severity": "INFO",
+    "category": "Network Discovery",
+    "description": "A live host was discovered on the test network via nmap host discovery (ping sweep / ARP). The host responded to ICMP, TCP SYN, or ARP probes. Documented for inventory and attack surface mapping.",
+    "remediation": "Review all discovered hosts against the expected device inventory. Any unexpected hosts warrant further investigation.",
+    "references": []
+  },
+  {
+    "id": "GB-DISC-002",
+    "title": "Open TCP/UDP Port Identified",
+    "severity": "INFO",
+    "category": "Network Discovery",
+    "description": "An open TCP or UDP port was identified during port scanning. Service/version detection was performed to characterise the listening daemon.",
+    "remediation": "Disable or firewall any ports not required for the device's intended function. Apply the principle of least exposure.",
+    "references": ["CWE-200"]
+  },
+  {
+    "id": "GB-DISC-003",
+    "title": "Service Version Identified",
+    "severity": "INFO",
+    "category": "Network Discovery",
+    "description": "A specific software version was identified from a service banner or nmap version detection. This information can be cross-referenced against CVE databases to identify known vulnerabilities.",
+    "remediation": "Suppress version information where possible. Keep all identified services up to date.",
+    "references": ["CWE-200"]
+  },
+  {
+    "id": "GB-DISC-004",
+    "title": "DHCP Lease Assigned to Device",
+    "severity": "INFO",
+    "category": "Network Discovery",
+    "description": "The device successfully obtained a DHCP lease from the gearbox DHCP server. The assigned IP address and MAC address are documented for the assessment.",
+    "remediation": "No action required; informational record.",
+    "references": []
+  },
+  {
+    "id": "GB-DISC-005",
+    "title": "LLMNR Query Observed (Potential Poisoning Vector)",
+    "severity": "HIGH",
+    "category": "Network Protocol",
+    "description": "Link-Local Multicast Name Resolution (LLMNR) broadcast queries were observed from the device. An attacker on the same segment can send poisoned LLMNR responses to redirect the device to a malicious host and capture NTLMv2 challenge-response hashes.",
+    "remediation": "Disable LLMNR via Group Policy or OS configuration. On Linux, disable avahi mDNS if not required. Implement network segmentation to contain broadcast domains.",
+    "references": ["CVE-2020-1206", "CWE-345", "OWASP-A07:2021"]
+  },
+  {
+    "id": "GB-DISC-006",
+    "title": "NBT-NS Query Observed (Potential Poisoning Vector)",
+    "severity": "HIGH",
+    "category": "Network Protocol",
+    "description": "NetBIOS Name Service (NBT-NS) broadcast queries were captured from the device. Responder can reply with a forged response to capture NTLM hashes for offline cracking.",
+    "remediation": "Disable NetBIOS over TCP/IP via network adapter settings or Group Policy. Consider deploying LAPS for local account management.",
+    "references": ["CWE-345"]
+  },
+  {
+    "id": "GB-CRED-001",
+    "title": "NTLM Hash Captured via Responder",
+    "severity": "CRITICAL",
+    "category": "Credential Exposure",
+    "description": "Responder successfully captured an NTLMv1 or NTLMv2 challenge-response hash in response to a poisoned LLMNR/NBT-NS reply. The captured hash can be subjected to offline dictionary or brute-force cracking or used directly in NTLM relay attacks.",
+    "remediation": "Disable LLMNR and NBT-NS as described in GB-DISC-005/006. Enforce SMB signing. Implement network segmentation. Use strong, unique passwords resistant to offline cracking.",
+    "references": ["CVE-2021-36942", "CWE-522", "OWASP-A07:2021"]
+  },
+  {
+    "id": "GB-CRED-002",
+    "title": "Cleartext Credentials in Traffic Capture",
+    "severity": "CRITICAL",
+    "category": "Credential Exposure",
+    "description": "Cleartext credentials (username/password) were observed in captured network traffic. The device transmitted authentication information over an unencrypted protocol (e.g., HTTP Basic Auth, FTP, Telnet, SNMP v1/v2c).",
+    "remediation": "Replace all cleartext authentication protocols with encrypted equivalents. Use TLS for web, SSH for remote management, SNMPv3 for SNMP.",
+    "references": ["CWE-319", "CWE-522", "OWASP-A02:2021"]
+  },
+  {
+    "id": "GB-CRED-003",
+    "title": "Default Credentials Accepted",
+    "severity": "CRITICAL",
+    "category": "Credential Exposure",
+    "description": "The device or service accepted default manufacturer credentials (e.g., admin/admin, admin/password, guest/guest). Default credentials are publicly documented and routinely tested by automated scanners.",
+    "remediation": "Force credential change on first-use or during factory provisioning. Implement a policy preventing default credential deployment in production. Audit all devices for retained default credentials.",
+    "references": ["CWE-1188", "CWE-798", "OWASP-A07:2021"]
+  },
+  {
+    "id": "GB-VULN-001",
+    "title": "Nessus Critical Vulnerability",
+    "severity": "CRITICAL",
+    "category": "Vulnerability Assessment",
+    "description": "Nessus Professional identified a critical severity vulnerability (CVSS ≥ 9.0). This typically represents unauthenticated remote code execution, authentication bypass with full system impact, or a well-known exploit with active weaponisation.",
+    "remediation": "Apply vendor patch immediately. If no patch is available, implement network isolation and document as an accepted risk with a defined remediation timeline.",
+    "references": ["OWASP-A06:2021"]
+  },
+  {
+    "id": "GB-VULN-002",
+    "title": "Nessus High Vulnerability",
+    "severity": "HIGH",
+    "category": "Vulnerability Assessment",
+    "description": "Nessus Professional identified a high severity vulnerability (CVSS 7.0–8.9). Often exploitable by local or adjacent attackers with limited prerequisites.",
+    "remediation": "Patch within the defined SLA for high-severity findings. Apply compensating controls if immediate patching is not feasible.",
+    "references": ["OWASP-A06:2021"]
+  },
+  {
+    "id": "GB-VULN-003",
+    "title": "Nessus Medium Vulnerability",
+    "severity": "MEDIUM",
+    "category": "Vulnerability Assessment",
+    "description": "Nessus Professional identified a medium severity vulnerability (CVSS 4.0–6.9). May require special conditions to exploit but presents meaningful risk.",
+    "remediation": "Schedule remediation within the standard patch cycle.",
+    "references": ["OWASP-A06:2021"]
+  },
+  {
+    "id": "GB-VULN-004",
+    "title": "Nessus Low / Informational Finding",
+    "severity": "LOW",
+    "category": "Vulnerability Assessment",
+    "description": "Nessus Professional identified a low-severity or informational finding. May represent configuration observations or version disclosures without direct exploitability.",
+    "remediation": "Include in routine hardening backlog.",
+    "references": []
+  },
+  {
+    "id": "GB-VULN-005",
+    "title": "CVE-Matched Service Banner",
+    "severity": "HIGH",
+    "category": "Vulnerability Assessment",
+    "description": "The service banner matched a known CVE in the NVD or OSV.dev database. The software version identified in the banner is listed as affected by a publicly disclosed vulnerability with an available CVSS score.",
+    "remediation": "Update the affected software to a patched version. Cross-reference the specific CVE for vendor-recommended mitigations.",
+    "references": ["OWASP-A06:2021"]
+  },
+  {
+    "id": "GB-VULN-006",
+    "title": "End-of-Life Software Detected",
+    "severity": "HIGH",
+    "category": "Vulnerability Assessment",
+    "description": "A service banner or version string indicates software that has passed its vendor end-of-life date. No further security patches will be issued, and any future vulnerabilities will be permanently unaddressed.",
+    "remediation": "Upgrade to a supported version. If upgrade is constrained, apply network isolation and create a formal remediation plan.",
+    "references": ["OWASP-A06:2021", "CWE-1104"]
+  },
+  {
+    "id": "GB-VULN-007",
+    "title": "End-of-Life Operating System Detected",
+    "severity": "HIGH",
+    "category": "Vulnerability Assessment",
+    "description": "The operating system identified from banners or Nessus output has passed its vendor support end-of-life date. The OS will not receive security patches for newly discovered vulnerabilities.",
+    "remediation": "Upgrade to a supported OS version. If the device cannot be upgraded, implement network isolation as a compensating control.",
+    "references": ["OWASP-A06:2021", "CWE-1104"]
+  },
+  {
+    "id": "GB-VULN-008",
+    "title": "Nuclei Template Match — CVE",
+    "severity": "HIGH",
+    "category": "Vulnerability Assessment",
+    "description": "Nuclei matched a CVE-tagged template against the target. The response pattern confirms the service is exhibiting behaviour consistent with the disclosed vulnerability.",
+    "remediation": "Apply the vendor patch for the matched CVE. Verify remediation by re-running the nuclei scan.",
+    "references": ["OWASP-A06:2021"]
+  },
+  {
+    "id": "GB-VULN-009",
+    "title": "Nuclei Template Match — Misconfiguration",
+    "severity": "MEDIUM",
+    "category": "Vulnerability Assessment",
+    "description": "Nuclei identified a security misconfiguration (exposed admin panel, default path, misconfigured CORS, insecure HTTP method, etc.).",
+    "remediation": "Correct the specific misconfiguration. Harden the service configuration against the ProjectDiscovery misconfiguration template library.",
+    "references": ["OWASP-A05:2021"]
+  },
+  {
+    "id": "GB-VULN-010",
+    "title": "Nuclei Template Match — Exposed Panel",
+    "severity": "HIGH",
+    "category": "Web Application",
+    "description": "Nuclei identified an exposed administrative or management panel accessible without prior authentication (e.g., Grafana, Jenkins, Kibana, phpMyAdmin, device management UI).",
+    "remediation": "Restrict access to administrative panels by IP allowlist, VPN, or disable public access entirely.",
+    "references": ["OWASP-A01:2021", "CWE-284"]
+  },
+  {
+    "id": "GB-TLS-001",
+    "title": "SSL/TLS — Expired Certificate",
+    "severity": "MEDIUM",
+    "category": "Cryptography",
+    "description": "The TLS certificate presented by the service has passed its notAfter date. Certificate validation will fail for properly configured clients.",
+    "remediation": "Renew the certificate. Implement automated renewal with alerts at 30 and 14 days before expiry.",
+    "references": ["CWE-298"]
+  },
+  {
+    "id": "GB-TLS-002",
+    "title": "SSL/TLS — Self-Signed Certificate",
+    "severity": "MEDIUM",
+    "category": "Cryptography",
+    "description": "A self-signed certificate is presented. No trust chain to a CA is available, enabling trivial MITM attacks.",
+    "remediation": "Issue a certificate from a trusted CA (internal PKI or public CA). Distribute the CA trust anchor to all clients.",
+    "references": ["CWE-295"]
+  },
+  {
+    "id": "GB-TLS-003",
+    "title": "SSL/TLS — Protocol Version Below TLS 1.2",
+    "severity": "HIGH",
+    "category": "Cryptography",
+    "description": "TLS 1.0 or TLS 1.1 is accepted. These protocol versions are deprecated by RFC 8996 and vulnerable to BEAST, POODLE, and RC4 downgrade attacks.",
+    "remediation": "Disable TLS 1.0, TLS 1.1, and all SSL versions. Accept only TLS 1.2 and TLS 1.3.",
+    "references": ["CVE-2014-3566", "RFC-8996", "CWE-326", "OWASP-A02:2021"]
+  },
+  {
+    "id": "GB-TLS-004",
+    "title": "SSL/TLS — Weak Cipher Suite Accepted",
+    "severity": "MEDIUM",
+    "category": "Cryptography",
+    "description": "The TLS server accepts cipher suites providing less than 128-bit security, null encryption, or anonymous key exchange.",
+    "remediation": "Configure the server to accept only AEAD cipher suites with forward secrecy (ECDHE-ECDSA-AES256-GCM-SHA384, TLS_CHACHA20_POLY1305_SHA256, etc.).",
+    "references": ["CWE-327"]
+  },
+  {
+    "id": "GB-TLS-005",
+    "title": "SSL/TLS — CRIME / BEAST / LUCKY13 Vulnerability",
+    "severity": "MEDIUM",
+    "category": "Cryptography",
+    "description": "The TLS configuration is susceptible to a compression-based oracle (CRIME), cipher-block chaining attack (BEAST), or timing side-channel (LUCKY13). Specific vulnerability depends on testssl.sh output.",
+    "remediation": "Disable TLS compression. Migrate to TLS 1.2+ with AES-GCM-only cipher suites. Apply server-side BEAST mitigation (RC4 disabled, prefer AES-GCM).",
+    "references": ["CVE-2012-4929", "CVE-2011-3389", "CVE-2013-0169"]
+  },
+  {
+    "id": "GB-TLS-006",
+    "title": "SSL/TLS — Missing HSTS Header",
+    "severity": "LOW",
+    "category": "Web Application",
+    "description": "The HTTPS service does not return a Strict-Transport-Security header. Clients may be susceptible to SSL stripping attacks.",
+    "remediation": "Add Strict-Transport-Security: max-age=31536000; includeSubDomains; preload to all HTTPS responses.",
+    "references": ["CWE-523"]
+  },
+  {
+    "id": "GB-TLS-007",
+    "title": "SSL/TLS — Weak Certificate Signature Algorithm",
+    "severity": "MEDIUM",
+    "category": "Cryptography",
+    "description": "The TLS certificate is signed with a deprecated algorithm such as MD5 or SHA-1. These algorithms are vulnerable to collision attacks that could allow certificate forgery.",
+    "remediation": "Reissue the certificate using SHA-256 or SHA-384 as the signature algorithm.",
+    "references": ["CVE-2004-2761", "CWE-327"]
+  },
+  {
+    "id": "GB-TLS-008",
+    "title": "SSL/TLS — Certificate Hostname Mismatch",
+    "severity": "MEDIUM",
+    "category": "Cryptography",
+    "description": "The Common Name or Subject Alternative Names in the TLS certificate do not match the host being connected to. Clients will receive a certificate warning or reject the connection.",
+    "remediation": "Reissue the certificate with the correct Subject Alternative Names matching all DNS names and IP addresses used to access the service.",
+    "references": ["CWE-297"]
+  },
+  {
+    "id": "GB-SSH-001",
+    "title": "SSH — Weak Cipher or MAC Algorithm",
+    "severity": "MEDIUM",
+    "category": "Cryptography",
+    "description": "The SSH server accepts weak or deprecated ciphers (arcfour, 3des-cbc, blowfish) or MAC algorithms (hmac-md5, hmac-sha1). These are susceptible to cryptanalytic attacks.",
+    "remediation": "Disable deprecated algorithms in sshd_config. Use only chacha20-poly1305, aes256-gcm, aes128-gcm ciphers and hmac-sha2-256-etm, hmac-sha2-512-etm MACs.",
+    "references": ["CVE-2023-38408", "CWE-327"]
+  },
+  {
+    "id": "GB-SSH-002",
+    "title": "SSH — Protocol Version 1 Supported",
+    "severity": "HIGH",
+    "category": "Network Services",
+    "description": "The SSH server accepts SSH protocol version 1. SSHv1 has known cryptographic weaknesses and should be considered broken.",
+    "remediation": "Set Protocol 2 in sshd_config. Disable SSHv1 entirely.",
+    "references": ["CVE-2001-0144", "CWE-327"]
+  },
+  {
+    "id": "GB-SSH-003",
+    "title": "SSH — Weak Key Exchange Algorithm",
+    "severity": "MEDIUM",
+    "category": "Cryptography",
+    "description": "The SSH server accepts weak key exchange algorithms (diffie-hellman-group1-sha1, diffie-hellman-group14-sha1). These are insufficient against well-resourced adversaries.",
+    "remediation": "Enable only curve25519-sha256 and diffie-hellman-group16-sha512 or stronger key exchange algorithms.",
+    "references": ["CWE-327"]
+  },
+  {
+    "id": "GB-SSH-004",
+    "title": "SSH — Root Login Permitted",
+    "severity": "MEDIUM",
+    "category": "Network Services",
+    "description": "Direct root login over SSH is permitted (PermitRootLogin yes). This increases the brute-force attack surface for the highest-privilege account.",
+    "remediation": "Set PermitRootLogin no or PermitRootLogin prohibit-password in sshd_config.",
+    "references": ["CWE-250"]
+  },
+  {
+    "id": "GB-SSH-005",
+    "title": "SSH — Password Authentication Enabled",
+    "severity": "LOW",
+    "category": "Network Services",
+    "description": "Password-based SSH authentication is accepted. Susceptible to brute-force and credential stuffing attacks.",
+    "remediation": "Set PasswordAuthentication no and enforce key-based authentication only.",
+    "references": ["CWE-521"]
+  },
+  {
+    "id": "GB-SMB-001",
+    "title": "SMB — Signing Disabled or Not Required",
+    "severity": "MEDIUM",
+    "category": "Network Protocol",
+    "description": "SMB message signing is not enforced. An attacker in a man-in-the-middle position can relay NTLM authentication or modify SMB messages in transit.",
+    "remediation": "Enable and mandate SMB signing via Group Policy or smb.conf (server signing = mandatory).",
+    "references": ["CVE-2015-0005", "CWE-353"]
+  },
+  {
+    "id": "GB-SMB-002",
+    "title": "SMB — Null Session Permitted",
+    "severity": "HIGH",
+    "category": "Network Services",
+    "description": "The SMB service accepts anonymous (null session) authentication. This allows enumeration of shares, users, and group memberships without credentials.",
+    "remediation": "Disable null sessions (RestrictAnonymous = 2 or Samba restrict anonymous = 2).",
+    "references": ["CVE-2000-1200", "CWE-284"]
+  },
+  {
+    "id": "GB-SMB-003",
+    "title": "SMB — World-Readable Share Discovered",
+    "severity": "HIGH",
+    "category": "Network Services",
+    "description": "An SMB share is accessible without authentication, exposing its contents to any host on the network. Sensitive files may be readable or writable.",
+    "remediation": "Restrict share access to authorised user accounts. Remove read/write access for EVERYONE or unauthenticated users.",
+    "references": ["CWE-284"]
+  },
+  {
+    "id": "GB-WEB-001",
+    "title": "Web — Default Credentials Accepted",
+    "severity": "CRITICAL",
+    "category": "Web Application",
+    "description": "The web management interface accepted default manufacturer credentials. An attacker can gain full administrative access without any reconnaissance.",
+    "remediation": "Enforce mandatory credential change on first boot or provisioning. Implement account lockout after failed attempts.",
+    "references": ["CWE-1188", "OWASP-A07:2021"]
+  },
+  {
+    "id": "GB-WEB-002",
+    "title": "Web — Directory Listing Enabled",
+    "severity": "MEDIUM",
+    "category": "Web Application",
+    "description": "The web server returns a directory listing for one or more paths, exposing the file and directory structure to unauthenticated users.",
+    "remediation": "Disable directory indexing/listing in the web server configuration (Options -Indexes in Apache, autoindex off in nginx).",
+    "references": ["CWE-548"]
+  },
+  {
+    "id": "GB-WEB-003",
+    "title": "Web — Missing Security Headers",
+    "severity": "LOW",
+    "category": "Web Application",
+    "description": "One or more recommended HTTP security headers are absent: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.",
+    "remediation": "Add all recommended security headers to HTTP responses. Review shcheck output for the specific missing headers.",
+    "references": ["OWASP-A05:2021"]
+  },
+  {
+    "id": "GB-WEB-004",
+    "title": "Web — Server Version Disclosure",
+    "severity": "LOW",
+    "category": "Web Application",
+    "description": "The Server or X-Powered-By HTTP response header discloses the web server or framework version, enabling targeted exploitation.",
+    "remediation": "Suppress the Server header (ServerTokens Prod / server_tokens off). Remove X-Powered-By and X-AspNet-Version headers.",
+    "references": ["CWE-200"]
+  },
+  {
+    "id": "GB-WEB-005",
+    "title": "Web — HTTP Exposed (No HTTPS Redirect)",
+    "severity": "MEDIUM",
+    "category": "Web Application",
+    "description": "The web application is accessible over plaintext HTTP and does not redirect to HTTPS. Credentials and session tokens transmitted over HTTP are observable to network attackers.",
+    "remediation": "Redirect all HTTP traffic to HTTPS. Enable HSTS to prevent downgrade attacks.",
+    "references": ["CWE-319", "OWASP-A02:2021"]
+  },
+  {
+    "id": "GB-WEB-006",
+    "title": "Web — Insecure Cookie Attributes",
+    "severity": "MEDIUM",
+    "category": "Web Application",
+    "description": "Session or authentication cookies are missing the Secure, HttpOnly, or SameSite attributes. This exposes them to theft via JavaScript, plaintext transmission, or CSRF.",
+    "remediation": "Set Secure, HttpOnly, and SameSite=Strict (or Lax) attributes on all authentication and session cookies.",
+    "references": ["CWE-614", "CWE-1004", "OWASP-A02:2021"]
+  },
+  {
+    "id": "GB-NET-001",
+    "title": "Telnet Service Enabled",
+    "severity": "HIGH",
+    "category": "Network Services",
+    "description": "A Telnet service (typically TCP/23) was identified. Telnet transmits all data including credentials in cleartext.",
+    "remediation": "Disable Telnet. Replace with SSH v2 with key-based authentication.",
+    "references": ["CVE-1999-0619", "CWE-319", "OWASP-A02:2021"]
+  },
+  {
+    "id": "GB-NET-002",
+    "title": "SNMP Default Community String",
+    "severity": "HIGH",
+    "category": "Network Services",
+    "description": "The device accepts SNMP queries using the default community string ('public' or 'private'), providing unauthenticated access to system information and potentially write access to device configuration.",
+    "remediation": "Disable SNMPv1/v2c. Migrate to SNMPv3 authPriv mode with unique high-entropy credentials. Apply ACLs restricting SNMP to the management network.",
+    "references": ["CVE-1999-0517", "CWE-1188", "OWASP-A05:2021"]
+  },
+  {
+    "id": "GB-NET-003",
+    "title": "FTP Anonymous Login Permitted",
+    "severity": "HIGH",
+    "category": "Network Services",
+    "description": "The FTP service permits anonymous authentication, allowing unauthenticated users to browse and potentially download or upload files.",
+    "remediation": "Disable anonymous FTP. Use SFTP or FTPS for file transfers. Restrict access to authenticated users only.",
+    "references": ["CWE-284", "OWASP-A07:2021"]
+  },
+  {
+    "id": "GB-NET-004",
+    "title": "NFS World-Readable Export",
+    "severity": "HIGH",
+    "category": "Network Services",
+    "description": "An NFS export is accessible to all hosts (wildcard * or 0.0.0.0/0 in /etc/exports). Any host on the network can mount and read the exported filesystem.",
+    "remediation": "Restrict NFS exports by client IP. Use root_squash and nosuid mount options. Disable NFS if not required.",
+    "references": ["CWE-284"]
+  },
+  {
+    "id": "GB-NET-005",
+    "title": "Deprecated or Weak Protocol in Use",
+    "severity": "MEDIUM",
+    "category": "Network Protocol",
+    "description": "A deprecated or inherently weak network protocol was identified (e.g., RPC portmapper, rsh, rlogin, finger, X11 without auth, TFTP). These protocols provide no confidentiality or authentication.",
+    "remediation": "Disable deprecated protocol services. Replace with modern, authenticated, encrypted equivalents.",
+    "references": ["CWE-319", "CWE-311"]
+  },
+  {
+    "id": "GB-NET-006",
+    "title": "mDNS / Bonjour Service Announcement",
+    "severity": "LOW",
+    "category": "Network Discovery",
+    "description": "The device is broadcasting mDNS (Multicast DNS / Bonjour / Avahi) service announcements. These expose device capabilities, hostname, model information, and available services to all hosts on the local segment.",
+    "remediation": "Disable mDNS service announcement on production devices if not required for operation. Apply network segmentation to prevent mDNS traffic crossing boundaries.",
+    "references": ["CWE-200"]
+  },
+  {
+    "id": "GB-RFID-001",
+    "title": "RFID Card UID Captured",
+    "severity": "HIGH",
+    "category": "Physical / Hardware",
+    "description": "Proxmark3 successfully read the UID of an RFID credential within range of the device reader. Systems relying solely on UID for access control are vulnerable to cloning attacks.",
+    "remediation": "Implement mutual authentication (MIFARE DESFire EV2/EV3 with AES). Do not rely on UID alone.",
+    "references": ["CWE-287"]
+  },
+  {
+    "id": "GB-RFID-002",
+    "title": "RFID Card Data Payload Read",
+    "severity": "HIGH",
+    "category": "Physical / Hardware",
+    "description": "The RFID card data blocks were successfully read without authentication. Sensitive data stored in card memory (employee ID, access level, personal data) may be exposed.",
+    "remediation": "Enable sector access conditions on MIFARE Classic cards. Migrate to DESFire with application-level encryption.",
+    "references": ["CWE-287", "CWE-311"]
+  },
+  {
+    "id": "GB-RFID-003",
+    "title": "RFID Replay Attack Successful",
+    "severity": "CRITICAL",
+    "category": "Physical / Hardware",
+    "description": "A captured RFID credential was successfully replayed to the reader and accepted. No anti-replay protection is in place.",
+    "remediation": "Replace credential infrastructure with challenge-response or rolling code systems. Audit physical access logs for anomalous events.",
+    "references": ["CWE-294", "CWE-287"]
+  },
+  {
+    "id": "GB-USB-001",
+    "title": "USB HID Keyboard Injection Accepted",
+    "severity": "HIGH",
+    "category": "Physical / Hardware",
+    "description": "The device accepted keystroke injection from an emulated HID keyboard without any restriction or rate-limiting. A pre-programmed HID device can execute OS-level commands on device insertion.",
+    "remediation": "Implement USB HID device allowlisting. Disable USB HID enumeration on production devices where not required.",
+    "references": ["CWE-749", "CWE-284"]
+  },
+  {
+    "id": "GB-USB-002",
+    "title": "USB Bash Bunny Payload Executed",
+    "severity": "HIGH",
+    "category": "Physical / Hardware",
+    "description": "A Bash Bunny HID payload was executed by the device. The injected keystrokes were processed without restriction.",
+    "remediation": "Apply USB device policy and application whitelisting. Review autorun and HID handling in the OS.",
+    "references": ["CWE-749"]
+  },
+  {
+    "id": "GB-USB-003",
+    "title": "USB Abnormal Power Draw",
+    "severity": "MEDIUM",
+    "category": "Physical / Hardware",
+    "description": "Abnormal USB power characteristics were detected, potentially indicating a rogue charging cable or peripheral with embedded circuitry.",
+    "remediation": "Deploy USB power-only data-blockers on charging ports. Restrict USB host mode to known-good peripherals.",
+    "references": ["CWE-749"]
+  },
+  {
+    "id": "GB-HW-001",
+    "title": "HDMI CEC Command Injection Accepted",
+    "severity": "MEDIUM",
+    "category": "Physical / Hardware",
+    "description": "Injected HDMI CEC commands were accepted and processed. An attacker with HDMI port access can issue remote control commands or exploit CEC stack vulnerabilities.",
+    "remediation": "Disable CEC in firmware if not required. Apply command filtering to reject unauthorised CEC commands.",
+    "references": ["CWE-749"]
+  },
+  {
+    "id": "GB-HW-002",
+    "title": "HDMI HDCP Not Enforced",
+    "severity": "MEDIUM",
+    "category": "Physical / Hardware",
+    "description": "HDCP content protection is not enforced on the HDMI interface. Video/audio streams can be captured in cleartext.",
+    "remediation": "Enable HDCP enforcement in device firmware.",
+    "references": ["CWE-311"]
+  },
+  {
+    "id": "GB-HW-003",
+    "title": "HDMI DDC-CI Unauthorised Control",
+    "severity": "MEDIUM",
+    "category": "Physical / Hardware",
+    "description": "DDC-CI commands accepted over HDMI allow monitor control (brightness, OSD) without physical interaction with the display.",
+    "remediation": "Disable DDC-CI in display firmware if remote monitor control is not required.",
+    "references": []
+  },
+  {
+    "id": "GB-HW-004",
+    "title": "EDID Information Disclosure",
+    "severity": "INFO",
+    "category": "Physical / Hardware",
+    "description": "EDID data was successfully read, disclosing monitor model, serial number, manufacturer, and capabilities.",
+    "remediation": "No action required if EDID is functioning normally. Consider custom EDID for high-security deployments.",
+    "references": []
+  },
+  {
+    "id": "GB-SERIAL-001",
+    "title": "Unauthenticated Serial Console",
+    "severity": "HIGH",
+    "category": "Physical / Hardware",
+    "description": "A serial console (UART, RS-232) provided an interactive unauthenticated shell or bootloader prompt on connection.",
+    "remediation": "Password-protect the serial console in firmware. Disable UART console in production builds.",
+    "references": ["CWE-284", "CWE-1191"]
+  },
+  {
+    "id": "GB-SERIAL-002",
+    "title": "Serial Console Baud Rate Identified",
+    "severity": "INFO",
+    "category": "Physical / Hardware",
+    "description": "The serial port baud rate was auto-detected. The presence and configuration of a serial console is documented.",
+    "remediation": "Review whether the console is accessible in production and restrict access if appropriate.",
+    "references": []
+  },
+  {
+    "id": "GB-CAN-001",
+    "title": "CAN Bus Frame Captured",
+    "severity": "INFO",
+    "category": "Physical / Hardware",
+    "description": "CAN bus frames were captured from the device. Frame IDs and data payloads are documented for replay and fuzzing analysis.",
+    "remediation": "Ensure CAN bus access is physically restricted. Document observed frame IDs against expected device behaviour.",
+    "references": []
+  },
+  {
+    "id": "GB-CAN-002",
+    "title": "CAN Bus Injected Frame Accepted",
+    "severity": "HIGH",
+    "category": "Physical / Hardware",
+    "description": "An injected CAN frame was accepted and processed by the device. CAN has no built-in authentication; any node on the bus can transmit arbitrary messages.",
+    "remediation": "Implement a CAN firewall or gateway. Consider SecOC (ISO 21434) for safety-critical systems. Apply physical access controls to CAN connectors.",
+    "references": ["CWE-74", "CWE-284"]
+  },
+  {
+    "id": "GB-ZIGBEE-001",
+    "title": "Zigbee Traffic Captured",
+    "severity": "HIGH",
+    "category": "Wireless / RF",
+    "description": "Zigbee frames were captured from the device. Depending on the security profile, payloads may disclose network keys, sensor data, or command traffic.",
+    "remediation": "Enable Zigbee AES-128 network and link layer encryption (Zigbee 3.0). Rotate network keys periodically.",
+    "references": ["CWE-311", "CWE-326"]
+  },
+  {
+    "id": "GB-ZIGBEE-002",
+    "title": "Zigbee Flooding / Denial of Service",
+    "severity": "MEDIUM",
+    "category": "Wireless / RF",
+    "description": "The Zigbee network showed signs of packet flooding tolerance (or lack thereof). Injection of excessive frames caused degraded responsiveness.",
+    "remediation": "Implement rate-limiting on Zigbee join and message handling. Apply Zigbee channel scanning and jamming detection.",
+    "references": ["CWE-400"]
+  },
+  {
+    "id": "GB-CONF-001",
+    "title": "ARP / DHCP Traffic Reveals Network Configuration",
+    "severity": "INFO",
+    "category": "Network Discovery",
+    "description": "Passive ARP or DHCP traffic captured during the ConfigDiscovery phase revealed network configuration details: default gateway, DNS servers, existing DHCP leases, and VLAN membership.",
+    "remediation": "Informational — expected behaviour. Review whether observed network configuration aligns with intended design.",
+    "references": []
+  },
+  {
+    "id": "GB-CONF-002",
+    "title": "Plaintext Protocol in Boot Traffic",
+    "severity": "MEDIUM",
+    "category": "Cryptography",
+    "description": "Traffic captured during device boot revealed cleartext protocols (Telnet, HTTP, FTP, TFTP) carrying potentially sensitive data including configuration pulls or update checks.",
+    "remediation": "Replace plaintext boot-time protocols with TLS-protected equivalents. Use HTTPS for firmware update checks, SFTP for configuration retrieval.",
+    "references": ["CWE-319"]
+  },
+  {
+    "id": "GB-CONF-003",
+    "title": "Plaintext Protocol in Shutdown Traffic",
+    "severity": "MEDIUM",
+    "category": "Cryptography",
+    "description": "Traffic captured during device shutdown contained plaintext protocol traffic, potentially including final state synchronisation or credential exchange.",
+    "remediation": "Review and encrypt all shutdown-phase network communication.",
+    "references": ["CWE-319"]
+  }
+]

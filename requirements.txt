@@ -1,0 +1,14 @@
+# gearbox — requirements.txt
+# Device Security Assessment Orchestrator
+#
+# Required
+pyyaml>=6.0.1
+
+# Recommended — degraded-mode if absent but heavily used
+requests>=2.31.0
+qrcode[pil]>=7.4.2
+Pillow>=10.0.0
+
+# Optional — specific interface/feature support
+pyserial>=3.5
+cryptography>=41.0.0

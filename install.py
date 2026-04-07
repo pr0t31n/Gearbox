@@ -1,24 +1,10 @@
 #!/usr/bin/env python3
-"""
-install.py — Gearbox installer
-================================
-Installs all Python packages and system/external tools required by gearbox.py.
-
-Platform handling:
-  Linux (Debian/Ubuntu/Kali) — apt-get for system tools
-  macOS                      — Homebrew for system tools
-  Both platforms             — go install for Go-based tools, git clone for
-                               GitHub-only tools, pip for Python packages
-
-GitHub-based tools are cloned to /opt/<toolname>/.
-
-Usage:
-  python3 install.py [--skip-pip] [--skip-system] [--skip-go] [--skip-git]
-"""
-
-from __future__ import annotations
+# install.py — Gearbox Device Security Assessment Orchestrator
+# VERSION: referenced from /opt/pr0t31n/Gearbox/VERSION
+# Installs all dependencies for gearbox.py and configures the system.
 
 import argparse
+import importlib.util
 import os
 import platform
 import shutil
@@ -26,402 +12,657 @@ import subprocess
 import sys
 from pathlib import Path
 
-VERSION = "1.0.0"
-
-_SYSTEM = platform.system()
-_IS_KALI = False
-if _SYSTEM == "Linux":
-    try:
-        with open("/etc/os-release") as _f:
-            _IS_KALI = "kali" in _f.read().lower()
-    except Exception:
-        pass
-
 # ---------------------------------------------------------------------------
-# Python packages
+# ANSI colour helpers
 # ---------------------------------------------------------------------------
-_PIP_PACKAGES = [
-    # (pip_spec, import_name, required, description)
-    ("pyyaml>=6.0.1",       "yaml",        True,  "YAML project config parsing — PyYAML team (https://pyyaml.org)"),
-    ("requests>=2.31.0",    "requests",    False, "Nessus REST API + NVD/OSV CVE lookups — Python Requests (https://docs.python-requests.org)"),
-    ("qrcode[pil]>=7.4.2",  "qrcode",      False, "QR code generation for photo upload prompts — Lincoln Loop (https://github.com/lincolnloop/python-qrcode)"),
-    ("Pillow>=10.0.0",      "PIL",         False, "Image processing required by qrcode[pil] — Pillow contributors (https://github.com/python-pillow/Pillow)"),
-    ("pyserial>=3.5",       "serial",      False, "DB9 serial port auto-detection — Chris Liechti (https://github.com/pyserial/pyserial)"),
-    ("cryptography>=41.0.0","cryptography",False, "Fernet encryption for Nessus credentials — PyCA team (https://cryptography.io)"),
-]
+RESET   = "\033[0m"
+BOLD    = "\033[1m"
+RED     = "\033[91m"
+GREEN   = "\033[92m"
+YELLOW  = "\033[93m"
+CYAN    = "\033[96m"
+BLUE    = "\033[94m"
+MAGENTA = "\033[95m"
 
-# ---------------------------------------------------------------------------
-# System tool definitions
-# ---------------------------------------------------------------------------
-# Each dict:
-#   bin          — executable to look for on PATH
-#   apt          — apt-get package name (Linux)
-#   kali_apt     — override apt name on Kali (None = not in Kali apt)
-#   brew         — Homebrew formula name (macOS, None = not available)
-#   go_pkg       — 'go install' package spec (None = not Go-based)
-#   git_repo     — GitHub URL for git-clone fallback (None = not git-based)
-#   git_dest     — clone destination under /opt/ (e.g. "testssl.sh")
-#   required     — bool
-#   description  — human-readable purpose
-# ---------------------------------------------------------------------------
-_SYSTEM_TOOLS = [
-    {
-        "bin": "nmap", "apt": "nmap", "kali_apt": "nmap", "brew": "nmap",
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": True,
-        "description": "Host discovery + port scanning — Gordon Lyon @Fyodor (https://nmap.org)",
-    },
-    {
-        "bin": "tcpdump", "apt": "tcpdump", "kali_apt": "tcpdump", "brew": "tcpdump",
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": True,
-        "description": "Packet capture — tcpdump / libpcap team (https://www.tcpdump.org)",
-    },
-    {
-        "bin": "ethtool", "apt": "ethtool", "kali_apt": "ethtool", "brew": None,
-        "go_pkg": None,
-        "git_repo": "https://github.com/sigma-1/ethtool.git", "git_dest": "ethtool",
-        "required": True,
-        "description": "Ethernet link-status detection — kernel.org / sigma-1 (https://github.com/sigma-1/ethtool)",
-    },
-    {
-        "bin": "sslscan", "apt": "sslscan", "kali_apt": "sslscan", "brew": "sslscan",
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "TLS cipher + certificate analysis — rbsec (https://github.com/rbsec/sslscan)",
-    },
-    {
-        "bin": "testssl.sh", "apt": None, "kali_apt": "testssl.sh", "brew": "testssl",
-        "go_pkg": None,
-        "git_repo": "https://github.com/drwetter/testssl.sh.git", "git_dest": "testssl.sh",
-        "required": False,
-        "description": "Comprehensive TLS testing — Dirk Wetter @drwetter (https://github.com/drwetter/testssl.sh)",
-    },
-    {
-        "bin": "nuclei", "apt": None, "kali_apt": "nuclei", "brew": "nuclei",
-        "go_pkg": "github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest",
-        "git_repo": None, "git_dest": None, "required": False,
-        "description": "Template-based CVE scanning — ProjectDiscovery @projectdiscovery (https://github.com/projectdiscovery/nuclei)",
-    },
-    {
-        "bin": "gowitness", "apt": "gowitness", "kali_apt": "gowitness", "brew": None,
-        "go_pkg": "github.com/sensepost/gowitness/v3/cmd/gowitness@latest",
-        "git_repo": None, "git_dest": None, "required": False,
-        "description": "Web screenshots — SensePost @sensepost (https://github.com/sensepost/gowitness)",
-    },
-    {
-        "bin": "ssh-audit", "apt": "ssh-audit", "kali_apt": "ssh-audit", "brew": None,
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "SSH algorithm enumeration — Joe Testa @jtesta (https://github.com/jtesta/ssh-audit)",
-    },
-    {
-        "bin": "responder", "apt": "responder", "kali_apt": "responder", "brew": None,
-        "go_pkg": None,
-        "git_repo": "https://github.com/lgandx/Responder.git", "git_dest": "Responder",
-        "required": False,
-        "description": "LLMNR/NBT-NS credential capture — Laurent Gaffie @lgandx (https://github.com/lgandx/Responder)",
-    },
-    {
-        "bin": "smbmap", "apt": "smbmap", "kali_apt": "smbmap", "brew": None,
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "SMB share enumeration — ShawnDEvans (https://github.com/ShawnDEvans/smbmap)",
-    },
-    {
-        "bin": "dnsmasq", "apt": "dnsmasq", "kali_apt": "dnsmasq", "brew": "dnsmasq",
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "DHCP server for test interface — Simon Kelley (https://www.thekelleys.org.uk/dnsmasq)",
-    },
-    {
-        "bin": "curl", "apt": "curl", "kali_apt": "curl", "brew": "curl",
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "HTTP client — Daniel Stenberg @bagder (https://curl.se)",
-    },
-    {
-        "bin": "openssl", "apt": "openssl", "kali_apt": "openssl", "brew": "openssl",
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "TLS certificate inspection — OpenSSL project (https://openssl.org)",
-    },
-    {
-        "bin": "cec-client", "apt": "cec-utils", "kali_apt": "cec-utils", "brew": None,
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "HDMI CEC command testing — Pulse-Eight (https://github.com/Pulse-Eight/libcec)",
-    },
-    {
-        "bin": "ddcutil", "apt": "ddcutil", "kali_apt": "ddcutil", "brew": None,
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "DDC-CI HDMI monitor control — Sanford Rockowitz (https://www.ddcutil.com)",
-    },
-    {
-        "bin": "get-edid", "apt": "read-edid", "kali_apt": "read-edid", "brew": None,
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "HDMI EDID reading — Matthew Kern (https://github.com/groeck/read-edid)",
-    },
-    {
-        "bin": "edid-decode", "apt": "edid-decode", "kali_apt": "edid-decode", "brew": None,
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "EDID data decoding — Hans Verkuil (https://git.linuxtv.org/edid-decode.git)",
-    },
-    {
-        "bin": "candump", "apt": "can-utils", "kali_apt": "can-utils", "brew": None,
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "CAN bus frame capture — SocketCAN / can-utils team (https://github.com/linux-can/can-utils)",
-    },
-    {
-        "bin": "minicom", "apt": "minicom", "kali_apt": "minicom", "brew": "minicom",
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "Serial terminal emulator — Miquel van Smoorenburg / Adam Lackorzynski",
-    },
-    {
-        "bin": "pm3", "apt": None, "kali_apt": "proxmark3", "brew": None,
-        "go_pkg": None,
-        "git_repo": "https://github.com/RfidResearchGroup/proxmark3.git", "git_dest": "proxmark3",
-        "required": False,
-        "description": "Proxmark3 RFID/NFC tool — RfidResearchGroup (https://github.com/RfidResearchGroup/proxmark3)",
-    },
-    {
-        "bin": "git", "apt": "git", "kali_apt": "git", "brew": "git",
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "Version control (required for git-based tool installs)",
-    },
-    {
-        "bin": "shcheck.py", "apt": None, "kali_apt": None, "brew": None,
-        "go_pkg": None,
-        "git_repo": "https://github.com/santoru/shcheck.git", "git_dest": "shcheck",
-        "required": False,
-        "description": "HTTP security header checker — santoru (https://github.com/santoru/shcheck)",
-    },
-    {
-        "bin": "lsusb", "apt": "usbutils", "kali_apt": "usbutils", "brew": None,
-        "go_pkg": None, "git_repo": None, "git_dest": None, "required": False,
-        "description": "USB device enumeration (Linux only) — usbutils team",
-    },
-]
+def cprint(msg: str, colour: str = RESET, bold: bool = False) -> None:
+    prefix = BOLD if bold else ""
+    print(f"{prefix}{colour}{msg}{RESET}")
 
-_OPT_DIR = Path("/opt")
-
-
-def _banner() -> None:
-    print("=" * 60)
-    print(f"  Gearbox {VERSION} — Installer")
-    print("  Device Security Assessment Orchestrator")
-    print("=" * 60)
+def phase_header(title: str) -> None:
+    bar = "=" * 60
     print()
+    cprint(bar, CYAN, bold=True)
+    cprint(f"  {title}", CYAN, bold=True)
+    cprint(bar, CYAN, bold=True)
+
+def info(msg: str)    -> None: cprint(f"  [*] {msg}", BLUE)
+def success(msg: str) -> None: cprint(f"  [+] {msg}", GREEN)
+def warn(msg: str)    -> None: cprint(f"  [!] {msg}", YELLOW)
+def error(msg: str)   -> None: cprint(f"  [-] {msg}", RED)
+
+# ---------------------------------------------------------------------------
+# OS detection
+# ---------------------------------------------------------------------------
+
+def detect_os() -> str:
+    """Return one of: macos | kali | ubuntu | rhel | suse | windows | unknown"""
+    system = platform.system()
+    if system == "Windows":
+        return "windows"
+    if system == "Darwin":
+        return "macos"
+    if system == "Linux":
+        release_files = ["/etc/os-release", "/usr/lib/os-release"]
+        release_info = {}
+        for rf in release_files:
+            if os.path.exists(rf):
+                with open(rf) as fh:
+                    for line in fh:
+                        line = line.strip()
+                        if "=" in line:
+                            k, _, v = line.partition("=")
+                            release_info[k] = v.strip('"').lower()
+                break
+        name = release_info.get("ID", "")
+        like = release_info.get("ID_LIKE", "")
+        if "kali" in name:
+            return "kali"
+        if "ubuntu" in name or "ubuntu" in like:
+            return "ubuntu"
+        if name in ("rhel", "centos", "rocky", "almalinux", "fedora") or "rhel" in like or "fedora" in like:
+            return "rhel"
+        if name in ("opensuse", "sles", "suse") or "suse" in like:
+            return "suse"
+        if "debian" in name or "debian" in like:
+            return "ubuntu"
+    return "unknown"
+
+# ---------------------------------------------------------------------------
+# Command runner
+# ---------------------------------------------------------------------------
+
+def run(cmd: list, check: bool = False, dry_run: bool = False,
+        env: dict = None, cwd: str = None) -> int:
+    """Run a command; return exit code. If dry_run, just print and return 0."""
+    display = " ".join(str(c) for c in cmd)
+    if dry_run:
+        cprint(f"    [DRY-RUN] {display}", MAGENTA)
+        return 0
+    info(f"Running: {display}")
+    try:
+        result = subprocess.run(
+            cmd,
+            env={**os.environ, **(env or {})},
+            cwd=cwd,
+        )
+        if check and result.returncode != 0:
+            error(f"Command failed (exit {result.returncode}): {display}")
+        return result.returncode
+    except FileNotFoundError:
+        error(f"Executable not found for command: {display}")
+        return 127
+    except Exception as exc:
+        error(f"Unexpected error running {display}: {exc}")
+        return 1
+
+# ---------------------------------------------------------------------------
+# Privilege helpers
+# ---------------------------------------------------------------------------
+
+def is_root() -> bool:
+    return hasattr(os, "getuid") and os.getuid() == 0
+
+def require_root() -> None:
+    if not is_root():
+        error("This installer must be run as root (or with sudo) on Linux.")
+        sys.exit(1)
+
+# ---------------------------------------------------------------------------
+# Package lists
+# ---------------------------------------------------------------------------
+
+APT_PACKAGES = [
+    "nmap", "tcpdump",
+    "curl", "openssl", "sslscan", "tshark", "can-utils", "minicom",
+    "usbutils", "cec-utils", "ddcutil", "read-edid", "edid-decode",
+    "dnsmasq", "isc-dhcp-client", "iputils-ping",
+    # Build
+    "python3-pip", "python3-dev", "git", "build-essential", "cmake", "automake",
+]
+
+DNF_PACKAGES = [
+    "nmap", "tcpdump",
+    "curl", "openssl", "sslscan", "wireshark-cli", "can-utils", "minicom",
+    "usbutils", "dnsmasq", "dhclient", "iputils",
+    # Build
+    "python3-pip", "python3-devel", "git", "gcc", "cmake", "automake",
+]
+
+ZYPPER_PACKAGES = [
+    "nmap", "tcpdump",
+    "curl", "openssl", "sslscan", "wireshark", "can-utils", "minicom",
+    "usbutils", "dnsmasq", "dhcp-client", "iputils",
+    # Build
+    "python3-pip", "python3-devel", "git", "gcc", "cmake", "automake",
+]
+
+BREW_PACKAGES = [
+    "nmap", "tcpdump",
+    "curl", "openssl", "sslscan", "minicom", "dnsmasq",
+    # Build
+    "git", "cmake", "automake",
+]
+
+PIP_PACKAGES = [
+    "pyyaml>=6.0.1",
+    "requests>=2.31.0",
+    "qrcode[pil]>=7.4.2",
+    "Pillow>=10.0.0",
+    "pyserial>=3.5",
+    "cryptography>=41.0.0",
+]
+
+# ---------------------------------------------------------------------------
+# Phase 1 — System packages
+# ---------------------------------------------------------------------------
+
+def phase_apt(dry_run: bool) -> None:
+    phase_header("PHASE 1 — System Packages (apt)")
+    require_root()
+    info("Updating package lists…")
+    run(["apt-get", "update", "-y"], check=True, dry_run=dry_run)
+    info("Upgrading installed packages…")
+    run(["apt-get", "upgrade", "-y"], check=True, dry_run=dry_run)
+    info(f"Installing packages…")
+    run(["apt-get", "install", "-y"] + APT_PACKAGES, check=True, dry_run=dry_run)
+    info("Note: ethtool will be installed from git source if not available via apt.")
 
 
-def _parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Gearbox dependency installer")
-    p.add_argument("--skip-pip",    action="store_true", help="Skip Python pip installs")
-    p.add_argument("--skip-system", action="store_true", help="Skip system package installs (apt/brew)")
-    p.add_argument("--skip-go",     action="store_true", help="Skip Go-based tool installs")
-    p.add_argument("--skip-git",    action="store_true", help="Skip git-clone based tool installs")
+def phase_dnf(dry_run: bool) -> None:
+    phase_header("PHASE 1 — System Packages (dnf)")
+    require_root()
+    run(["dnf", "upgrade", "-y"], dry_run=dry_run)
+    info(f"Installing packages…")
+    run(["dnf", "install", "-y"] + DNF_PACKAGES, check=True, dry_run=dry_run)
+    info("cec-utils, ddcutil, read-edid, edid-decode may not be "
+         "available in standard RHEL repos — add EPEL if needed.")
+
+
+def phase_zypper(dry_run: bool) -> None:
+    phase_header("PHASE 1 — System Packages (zypper)")
+    require_root()
+    run(["zypper", "refresh"], dry_run=dry_run)
+    run(["zypper", "update", "-y"], dry_run=dry_run)
+    info(f"Installing packages…")
+    run(["zypper", "install", "-y"] + ZYPPER_PACKAGES, check=True, dry_run=dry_run)
+
+
+def phase_brew(dry_run: bool) -> None:
+    phase_header("PHASE 1 — System Packages (Homebrew / macOS)")
+
+    brew_bin = shutil.which("brew")
+    if not brew_bin:
+        error("Homebrew not found. Install from https://brew.sh and re-run.")
+        return
+
+    if is_root():
+        sudo_user = os.environ.get("SUDO_USER", "")
+        if not sudo_user:
+            warn("Running as root but SUDO_USER is not set — skipping brew install "
+                 "to avoid corrupting Homebrew. Re-run as your normal user.")
+            return
+        base_cmd = ["sudo", "-u", sudo_user, brew_bin]
+    else:
+        base_cmd = [brew_bin]
+
+    info(f"Installing brew packages: {' '.join(BREW_PACKAGES)}")
+    run(base_cmd + ["install"] + BREW_PACKAGES, dry_run=dry_run)
+    warn("Some Linux-specific tools (can-utils, cec-utils, ddcutil, ethtool) are not "
+         "available on macOS.")
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 — Pip
+# ---------------------------------------------------------------------------
+
+def find_pip() -> list:
+    """Return pip command as a list."""
+    for candidate in ("pip3", "pip"):
+        if shutil.which(candidate):
+            return [candidate]
+    if shutil.which("python3"):
+        return ["python3", "-m", "pip"]
+    return ["pip3"]
+
+
+def phase_pip(dry_run: bool) -> None:
+    phase_header("PHASE 2 — Python Packages (pip)")
+    base_cmd = find_pip()
+    for pkg in PIP_PACKAGES:
+        info(f"Installing: {pkg}")
+        run(base_cmd + ["install", "--break-system-packages", pkg],
+            check=True, dry_run=dry_run)
+    success("Pip phase complete.")
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 — Go tools
+# ---------------------------------------------------------------------------
+
+GO_TOOLS = [
+    {
+        "pkg":   "github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest",
+        "label": "nuclei",
+    },
+    {
+        "pkg":   "github.com/sensepost/gowitness/v3/cmd/gowitness@latest",
+        "label": "gowitness",
+    },
+]
+
+
+def phase_go(os_id: str, dry_run: bool) -> None:
+    phase_header("PHASE 3 — Go Tools")
+
+    go_bin = shutil.which("go")
+    if not go_bin:
+        warn("Go not found in PATH. Skipping Go tool installation.")
+        warn("Install Go from https://go.dev/dl/ then re-run with --skip-apt --skip-pip.")
+        return
+
+    # Determine GOPATH / install destination
+    gopath = os.environ.get("GOPATH", str(Path.home() / "go"))
+    go_install_bin = str(Path(gopath) / "bin")
+    info(f"Go found: {go_bin}")
+    info(f"Tools will be installed to: {go_install_bin}")
+
+    for tool in GO_TOOLS:
+        info(f"Installing {tool['label']} ({tool['pkg']})…")
+        rc = run(["go", "install", tool["pkg"]], dry_run=dry_run)
+        if rc == 0:
+            tool_path = shutil.which(tool["label"]) or str(Path(go_install_bin) / tool["label"])
+            if not dry_run:
+                # Create symlink in /usr/local/bin if not already on PATH
+                link = Path("/usr/local/bin") / tool["label"]
+                installed_bin = Path(go_install_bin) / tool["label"]
+                if installed_bin.exists() and not link.exists():
+                    try:
+                        link.symlink_to(installed_bin)
+                        success(f"Symlinked {tool['label']} → {link}")
+                    except OSError as exc:
+                        warn(f"Could not symlink {tool['label']}: {exc}")
+        else:
+            warn(f"{tool['label']}: installation failed — check go output above.")
+
+    success("Go phase complete.")
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — Git repositories
+# ---------------------------------------------------------------------------
+
+GIT_REPOS_ALL = [
+    {
+        "url":        "https://github.com/drwetter/testssl.sh.git",
+        "dest":       "/opt/testssl.sh",
+        "label":      "testssl.sh",
+        "linux_only": False,
+        "post_cmds":  [],
+    },
+    {
+        "url":        "https://github.com/lgandx/Responder.git",
+        "dest":       "/opt/Responder",
+        "label":      "Responder",
+        "linux_only": False,
+        "post_cmds":  [],
+    },
+    {
+        "url":        "https://github.com/RfidResearchGroup/proxmark3.git",
+        "dest":       "/opt/proxmark3",
+        "label":      "proxmark3",
+        "linux_only": False,
+        # Build only on Linux
+        "post_cmds":  ["linux_build"],
+    },
+    {
+        "url":        "https://github.com/santoru/shcheck.git",
+        "dest":       "/opt/shcheck",
+        "label":      "shcheck",
+        "linux_only": False,
+        "post_cmds":  [],
+    },
+    {
+        "url":        "https://github.com/sigma-1/ethtool.git",
+        "dest":       "/opt/ethtool",
+        "label":      "ethtool (from source)",
+        "linux_only": True,
+        "post_cmds":  ["ethtool_build"],
+    },
+]
+
+
+def _build_proxmark3(dry_run: bool) -> None:
+    info("Building proxmark3 (make clean && make -j4)…")
+    run(["make", "clean"], cwd="/opt/proxmark3", dry_run=dry_run)
+    run(["make", "-j4"], cwd="/opt/proxmark3", dry_run=dry_run)
+
+
+def _build_ethtool(dry_run: bool) -> None:
+    info("Building ethtool from source…")
+    run(["./autogen.sh"], cwd="/opt/ethtool", dry_run=dry_run)
+    run(["./configure"], cwd="/opt/ethtool", dry_run=dry_run)
+    run(["make"], cwd="/opt/ethtool", dry_run=dry_run)
+    run(["make", "install"], cwd="/opt/ethtool", dry_run=dry_run)
+
+
+def clone_or_update(repo: dict, os_id: str, dry_run: bool) -> None:
+    url   = repo["url"]
+    dest  = repo["dest"]
+    label = repo["label"]
+
+    if repo.get("linux_only") and os_id == "macos":
+        info(f"Skipping {label} — Linux only.")
+        return
+
+    dest_path = Path(dest)
+    if dest_path.exists():
+        info(f"{label}: directory exists — pulling latest changes…")
+        rc = run(["git", "-C", dest, "pull", "--ff-only"], dry_run=dry_run)
+        if rc != 0:
+            warn(f"{label}: git pull failed — continuing with existing clone.")
+    else:
+        info(f"{label}: cloning {url} → {dest}")
+        rc = run(["git", "clone", "--depth=1", url, dest], check=True, dry_run=dry_run)
+        if rc != 0:
+            error(f"{label}: clone failed — skipping post-install steps.")
+            return
+
+    for post in repo.get("post_cmds", []):
+        is_linux = os_id not in ("macos", "windows")
+        if post == "linux_build" and is_linux:
+            _build_proxmark3(dry_run)
+        elif post == "linux_build" and not is_linux:
+            warn(f"{label}: skipping Linux build on {os_id}.")
+        elif post == "ethtool_build":
+            _build_ethtool(dry_run)
+
+
+def phase_git(os_id: str, dry_run: bool) -> None:
+    phase_header("PHASE 4 — Git Repositories")
+    for repo in GIT_REPOS_ALL:
+        clone_or_update(repo, os_id, dry_run)
+    success("Git phase complete.")
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 — Symlinks
+# ---------------------------------------------------------------------------
+
+SYMLINKS = {
+    "/usr/local/bin/gearbox": "/opt/pr0t31n/Gearbox/gearbox.py",
+}
+
+
+def phase_symlinks(dry_run: bool) -> None:
+    phase_header("PHASE 5 — Symlinks")
+    for link, target in SYMLINKS.items():
+        target_path = Path(target)
+        link_path   = Path(link)
+        if not target_path.exists():
+            warn(f"Target not found: {target} — symlink will be created anyway.")
+        if link_path.is_symlink() or link_path.exists():
+            info(f"Removing existing: {link}")
+            if not dry_run:
+                try:
+                    link_path.unlink()
+                except OSError as exc:
+                    error(f"Could not remove {link}: {exc}")
+                    continue
+        info(f"Creating symlink: {link} → {target}")
+        if not dry_run:
+            try:
+                link_path.symlink_to(target)
+                if target_path.exists():
+                    target_path.chmod(0o755)
+                success(f"Symlink created: {link}")
+            except OSError as exc:
+                error(f"Could not create symlink {link}: {exc}")
+        else:
+            cprint(f"    [DRY-RUN] ln -s {target} {link}", MAGENTA)
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 — Service installation
+# ---------------------------------------------------------------------------
+
+SYSTEMD_UNIT = """\
+[Unit]
+Description=Gearbox Device Security Assessment Orchestrator
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /opt/pr0t31n/Gearbox/gearbox.py
+WorkingDirectory=/opt/pr0t31n/Gearbox
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+"""
+
+LAUNCHD_PLIST = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.pr0t31n.gearbox</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/opt/pr0t31n/Gearbox/gearbox.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/opt/pr0t31n/Gearbox</string>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>KeepAlive</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>/var/log/gearbox.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/gearbox.err</string>
+</dict>
+</plist>
+"""
+
+
+def phase_service(os_id: str, dry_run: bool) -> None:
+    phase_header("PHASE 6 — Service Installation")
+    if os_id in ("kali", "ubuntu", "rhel", "suse"):
+        service_path = Path("/etc/systemd/system/pr0t31n-gearbox.service")
+        info(f"Writing systemd unit: {service_path}")
+        if not dry_run:
+            try:
+                service_path.write_text(SYSTEMD_UNIT)
+                run(["systemctl", "daemon-reload"], dry_run=dry_run)
+                run(["systemctl", "enable", "pr0t31n-gearbox"], dry_run=dry_run)
+                success(f"Systemd service installed and enabled: {service_path}")
+            except OSError as exc:
+                error(f"Failed to write service file: {exc}")
+        else:
+            cprint(f"    [DRY-RUN] Would write {service_path}", MAGENTA)
+            cprint(f"    [DRY-RUN] systemctl daemon-reload && systemctl enable pr0t31n-gearbox", MAGENTA)
+
+    elif os_id == "macos":
+        plist_path = Path("/Library/LaunchDaemons/com.pr0t31n.gearbox.plist")
+        info(f"Writing launchd plist: {plist_path}")
+        if not dry_run:
+            try:
+                plist_path.write_text(LAUNCHD_PLIST)
+                run(["launchctl", "load", str(plist_path)], dry_run=dry_run)
+                success(f"Launchd plist installed: {plist_path}")
+            except OSError as exc:
+                error(f"Failed to write plist: {exc}")
+        else:
+            cprint(f"    [DRY-RUN] Would write {plist_path}", MAGENTA)
+    else:
+        warn(f"Service installation skipped for OS: {os_id}")
+
+
+# ---------------------------------------------------------------------------
+# Post-install verification
+# ---------------------------------------------------------------------------
+
+VERIFY_TOOLS = [
+    "nmap", "tcpdump", "curl", "openssl", "sslscan", "nuclei", "gowitness",
+]
+
+VERIFY_PY_MODULES = [
+    ("yaml",        "yaml"),
+    ("requests",    "requests"),
+    ("qrcode",      "qrcode"),
+    ("PIL",         "PIL"),
+    ("serial",      "serial"),
+    ("cryptography","cryptography"),
+]
+
+
+def phase_verify() -> None:
+    phase_header("POST-INSTALL SUMMARY")
+    all_ok = True
+
+    cprint("  System tools:", BOLD)
+    for tool in VERIFY_TOOLS:
+        found = shutil.which(tool)
+        if found:
+            success(f"  {tool:25s} found at {found}")
+        else:
+            warn(f"  {tool:25s} NOT FOUND")
+            all_ok = False
+
+    print()
+    cprint("  Python modules:", BOLD)
+    for display_name, import_name in VERIFY_PY_MODULES:
+        spec = importlib.util.find_spec(import_name)
+        if spec is not None:
+            success(f"  {display_name:20s} importable")
+        else:
+            warn(f"  {display_name:20s} NOT FOUND — pip install --break-system-packages {display_name}")
+            all_ok = False
+
+    print()
+    cprint("  Git tools:", BOLD)
+    for repo in GIT_REPOS_ALL:
+        dest = Path(repo["dest"])
+        if dest.exists():
+            success(f"  {repo['label']:30s} cloned at {repo['dest']}")
+        else:
+            warn(f"  {repo['label']:30s} NOT FOUND at {repo['dest']}")
+            all_ok = False
+
+    print()
+    if all_ok:
+        success("All required tools verified successfully.")
+    else:
+        warn("Some required tools are missing. Review warnings above.")
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        description="Gearbox installer — Device Security Assessment Orchestrator",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("--skip-apt",  action="store_true", help="Skip system package installation")
+    p.add_argument("--skip-pip",  action="store_true", help="Skip pip package installation")
+    p.add_argument("--skip-go",   action="store_true", help="Skip Go tool installation")
+    p.add_argument("--skip-git",  action="store_true", help="Skip git repository cloning")
+    p.add_argument("--check",     action="store_true", help="Dry-run — print commands without executing")
     return p.parse_args()
 
 
-def _check_python() -> None:
-    print("[*] Checking Python version...")
-    major, minor = sys.version_info[:2]
-    if (major, minor) < (3, 9):
-        print(f"[!] Python 3.9+ required; found {major}.{minor}. Please upgrade.")
-        sys.exit(1)
-    print(f"    Python {major}.{minor} — OK")
-    print()
-
-
-def _install_pip(skip: bool) -> None:
-    if skip:
-        print("[*] Skipping pip installs (--skip-pip).")
-        print()
-        return
-
-    print("[*] Installing Python packages...")
-    req_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt")
-    if os.path.exists(req_file):
-        print(f"    Using: {req_file}")
-        result = subprocess.run(
-            [sys.executable, "-m", "pip", "install", "--break-system-packages", "-r", req_file],
-            capture_output=False,
-        )
-        if result.returncode != 0:
-            print("[!] pip install returned non-zero. Check output above.")
-    else:
-        for pkg_spec, import_name, required, description in _PIP_PACKAGES:
-            label = pkg_spec.split(">=")[0].split("==")[0]
-            marker = "[required]" if required else "[optional]"
-            print(f"    {marker}  {label}  — {description.split(' — ')[0]}")
-            subprocess.run([sys.executable, "-m", "pip", "install", "--break-system-packages", pkg_spec], check=False)
-    print()
-
-
-def _ensure_go() -> bool:
-    """Return True if 'go' is available on PATH (install it if missing on Linux)."""
-    if shutil.which("go"):
-        return True
-    print("[*] Go toolchain not found. Attempting to install...")
-    if _SYSTEM == "Linux":
-        if shutil.which("apt-get"):
-            subprocess.run(["sudo", "apt-get", "install", "-y", "golang-go"], check=False)
-        return bool(shutil.which("go"))
-    elif _SYSTEM == "Darwin":
-        if shutil.which("brew"):
-            _brew_user = os.environ.get("SUDO_USER", "")
-            _brew_pfx  = ["sudo", "-u", _brew_user] if _brew_user and _brew_user != "root" else []
-            subprocess.run(_brew_pfx + ["brew", "install", "go"], check=False)
-        return bool(shutil.which("go"))
-    return False
-
-
-def _git_clone_to_opt(repo_url: str, dest_name: str) -> bool:
-    """Clone repo to /opt/<dest_name> if not already present."""
-    dest = _OPT_DIR / dest_name
-    if dest.exists():
-        print(f"    [EXISTS]  /opt/{dest_name} — skipping clone")
-        return True
-    print(f"    Cloning {repo_url} → /opt/{dest_name}")
-    result = subprocess.run(
-        ["sudo", "git", "clone", "--depth", "1", repo_url, str(dest)],
-        capture_output=False,
-    )
-    return result.returncode == 0
-
-
-def _install_system_tools(skip_system: bool, skip_go: bool, skip_git: bool) -> None:
-    print("[*] Checking / installing system tools...")
-    missing_apt:  list[str] = []
-    missing_brew: list[str] = []
-
-    for tool in _SYSTEM_TOOLS:
-        bin_name = tool["bin"]
-        found    = bool(shutil.which(bin_name))
-        label    = "[OK]" if found else ("[required]" if tool["required"] else "[optional]")
-        print(f"    {label:<12} {bin_name:<20}  {tool['description'].split(' — ')[0]}")
-
-        if found:
-            continue
-
-        # Determine install strategy
-        if _SYSTEM == "Linux" and not skip_system:
-            apt_name = tool.get("kali_apt") if _IS_KALI else tool.get("apt")
-            if apt_name:
-                missing_apt.append(apt_name)
-
-        elif _SYSTEM == "Darwin" and not skip_system:
-            brew_name = tool.get("brew")
-            if brew_name:
-                missing_brew.append(brew_name)
-
-        # Go install
-        if not found and tool.get("go_pkg") and not skip_go:
-            if _ensure_go():
-                print(f"    [go install] {tool['go_pkg']}")
-                env = os.environ.copy()
-                env["PATH"] = env.get("PATH", "") + ":" + str(Path.home() / "go" / "bin")
-                subprocess.run(["go", "install", tool["go_pkg"]], env=env, check=False)
-
-        # Git clone fallback
-        if not found and tool.get("git_repo") and not skip_git:
-            if shutil.which("git"):
-                _git_clone_to_opt(tool["git_repo"], tool["git_dest"])
-            else:
-                print(f"    [!] git not found — cannot clone {tool['git_repo']}")
-
-    print()
-
-    # Batch install system packages
-    if missing_apt and not skip_system:
-        unique_apt = list(dict.fromkeys(missing_apt))
-        print(f"[*] Installing {len(unique_apt)} apt package(s)...")
-        subprocess.run(["sudo", "apt-get", "update", "-qq"], check=False)
-        subprocess.run(
-            ["sudo", "apt-get", "install", "-y"] + unique_apt,
-            capture_output=False,
-        )
-        print()
-
-    if missing_brew and not skip_system:
-        if shutil.which("brew"):
-            unique_brew = list(dict.fromkeys(missing_brew))
-            print(f"[*] Installing {len(unique_brew)} Homebrew package(s)...")
-            _brew_user = os.environ.get("SUDO_USER", "")
-            _brew_pfx  = ["sudo", "-u", _brew_user] if _brew_user and _brew_user != "root" else []
-            for pkg in unique_brew:
-                subprocess.run(_brew_pfx + ["brew", "install", pkg], check=False)
-            print()
-        else:
-            print("[!] Homebrew not found. Install from https://brew.sh then re-run.")
-            print()
-
-
-def _verify() -> None:
-    print("[*] Verification summary...")
-    import importlib
-    for pkg_spec, import_name, required, description in _PIP_PACKAGES:
-        label = pkg_spec.split(">=")[0]
-        try:
-            importlib.import_module(import_name)
-            print(f"    [OK]  {label}")
-        except ImportError:
-            marker = "[MISSING]" if required else "[OK-optional-missing]"
-            print(f"    {marker}  {label}")
-
-    print()
-    for tool in _SYSTEM_TOOLS:
-        if shutil.which(tool["bin"]):
-            print(f"    [OK]  {tool['bin']}")
-        else:
-            marker = "[MISSING]" if tool["required"] else "[--]"
-            print(f"    {marker}  {tool['bin']} (optional)" if not tool["required"] else f"    {marker}  {tool['bin']}")
-    print()
-
-
-def _install_symlinks() -> None:
-    """Create /usr/local/bin symlinks for all-user access (including root)."""
-    from pathlib import Path as _Path
-    import stat as _stat
-    app_dir = _Path(__file__).parent.resolve()
-    bin_dir = _Path("/usr/local/bin")
-
-    # (script_relative_to_app_dir, symlink_name_in_bin_dir)
-    LINKS = [
-        ("gearbox.py", "gearbox"),
-    ]
-
-    try:
-        bin_dir.mkdir(parents=True, exist_ok=True)
-    except PermissionError:
-        print("[!] Cannot access /usr/local/bin — run as root to install symlinks.")
-        return
-
-    for script_rel, link_name in LINKS:
-        script = app_dir / script_rel
-        link   = bin_dir / link_name
-        if not script.exists():
-            print(f"[~] Script not found, skipping symlink: {script}")
-            continue
-        # Make script executable
-        current = script.stat().st_mode
-        script.chmod(current | _stat.S_IXUSR | _stat.S_IXGRP | _stat.S_IXOTH)
-        # Ensure shebang
-        try:
-            text = script.read_text(encoding="utf-8", errors="ignore")
-            if not text.startswith("#!"):
-                script.write_text("#!/usr/bin/env python3\n" + text, encoding="utf-8")
-        except Exception:
-            pass
-        # Create/replace symlink
-        if link.exists() or link.is_symlink():
-            link.unlink()
-        link.symlink_to(script)
-        print(f"[+] Symlink installed: {link}  →  {script}")
-
-
 def main() -> None:
-    _banner()
-    args = _parse_args()
-    _check_python()
-    _install_pip(args.skip_pip)
-    _install_system_tools(args.skip_system, args.skip_go, args.skip_git)
-    _verify()
-    _install_symlinks()
-    print("[+] Gearbox installation complete.")
-    print("    Run:  sudo python3 gearbox.py project.yaml")
+    args = parse_args()
+    dry_run = args.check
+
+    cprint("\n" + "=" * 60, GREEN, bold=True)
+    cprint("  Gearbox Installer", GREEN, bold=True)
+    cprint("  Device Security Assessment Orchestrator", GREEN, bold=True)
+    cprint("=" * 60 + "\n", GREEN, bold=True)
+
+    if dry_run:
+        warn("DRY-RUN MODE — no changes will be made to this system.\n")
+
+    os_id = detect_os()
+    info(f"Detected OS: {os_id}")
+
+    if os_id == "windows":
+        warn("Windows detected.")
+        warn("Many Gearbox tools require Linux. Limited functionality is available.")
+        warn("Install Python dependencies manually:")
+        warn("  pip install pyyaml requests qrcode[pil] Pillow pyserial cryptography")
+        warn("Then run:  python gearbox.py")
+        sys.exit(0)
+
+    # Phase 1 — system packages
+    if not args.skip_apt:
+        if os_id in ("kali", "ubuntu"):
+            phase_apt(dry_run)
+        elif os_id == "rhel":
+            phase_dnf(dry_run)
+        elif os_id == "suse":
+            phase_zypper(dry_run)
+        elif os_id == "macos":
+            phase_brew(dry_run)
+        else:
+            warn(f"Unknown OS '{os_id}' — skipping system package phase.")
+    else:
+        info("Skipping system package phase (--skip-apt).")
+
+    # Phase 2 — pip
+    if not args.skip_pip:
+        phase_pip(dry_run)
+    else:
+        info("Skipping pip phase (--skip-pip).")
+
+    # Phase 3 — Go
+    if not args.skip_go:
+        phase_go(os_id, dry_run)
+    else:
+        info("Skipping Go phase (--skip-go).")
+
+    # Phase 4 — Git
+    if not args.skip_git:
+        phase_git(os_id, dry_run)
+    else:
+        info("Skipping git phase (--skip-git).")
+
+    # Phase 5 — Symlinks
+    if is_root() or dry_run:
+        phase_symlinks(dry_run)
+    else:
+        warn("Not running as root — skipping symlink creation.")
+
+    # Phase 6 — Service
+    if is_root() or dry_run:
+        phase_service(os_id, dry_run)
+    else:
+        warn("Not running as root — skipping service installation.")
+
+    # Verify
+    phase_verify()
+
     print()
+    cprint("  Gearbox installation complete.", GREEN, bold=True)
+    cprint("  Run:  gearbox --help  to get started.\n", CYAN)
 
 
 if __name__ == "__main__":

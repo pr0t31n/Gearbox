@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.0.0"
+VERSION = "1.0.2"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -17,6 +17,7 @@ import ipaddress        # stdlib — CIDR / IP address validation
 import json             # stdlib — findings JSONL, protocol tokens, NVD API responses
 import logging          # stdlib — internal diagnostic logging
 import os               # stdlib — environment variables, path helpers
+import platform         # stdlib — OS detection for clients base directory
 import re               # stdlib — banner / version string parsing, protocol token extraction
 import shutil           # stdlib — tool PATH lookups, file operations
 import signal           # stdlib — SIGINT/SIGTERM graceful shutdown handler
@@ -32,6 +33,53 @@ from dataclasses import dataclass, field  # stdlib — ModuleContext and finding
 from datetime import datetime           # stdlib — timestamps in findings and logs
 from pathlib import Path                # stdlib — cross-platform output directory management
 from typing import Any, Optional        # stdlib — type hints
+
+
+def _clients_base() -> Path:
+    """Return the OS-appropriate default parent directory for client project folders."""
+    system = platform.system()
+    if system == "Windows":
+        base = Path("C:/clients")
+    elif system == "Darwin":
+        base = Path("/Users/Shared/clients")
+    else:
+        base = Path("/clients")
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+def _build_project_dir(client_short: str, start_date: str, tool_name: str) -> Path:
+    """
+    Build a structured project directory:
+      <clients_base>/<client_short>/<year>/<tool_name>/<client_short>_<datetime>/
+    """
+    import re as _re
+    slug = _re.sub(r'[^\w-]', '_', (client_short or 'client').strip().lower()).strip('_') or 'client'
+    year = (start_date[:4] if start_date and len(start_date) >= 4 and start_date[:4].isdigit()
+            else datetime.now().strftime('%Y'))
+    dt_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+    path = _clients_base() / slug / year / tool_name / f"{slug}_{dt_str}"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _write_project_meta(project_dir: Path, tool: str, client_short: str,
+                        year: str, version: str) -> None:
+    """Write project_meta.json so Flask apps can discover this project."""
+    try:
+        (project_dir / "project_meta.json").write_text(
+            json.dumps({
+                "tool":         tool,
+                "client_short": client_short,
+                "year":         year,
+                "created_at":   datetime.now().isoformat(),
+                "version":      version,
+            }, indent=2),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+
 
 # ---------------------------------------------------------------------------
 # Python Package Registry  (checked / installed before anything else runs)
@@ -12899,14 +12947,25 @@ def main() -> None:
     # ----- Project directory -----------------------------------------------
     # Priority:
     #   1. Explicit --project-dir CLI arg
-    #   2. Directory containing the YAML file  (user-designated folder)
-    # Always resolve to an absolute path so all sub-paths are correct
-    # regardless of the working directory gearbox was launched from.
+    #   2. Structured path from YAML config fields client_short + start_date
+    #   3. Fallback: clients_base / YAML filename stem
     if args.project_dir:
         project_dir = Path(args.project_dir).resolve()
     else:
-        project_dir = Path(config_path).resolve().parent
-    project_dir.mkdir(parents=True, exist_ok=True)
+        _cs = (config.get("client_short") or "").strip()
+        _sd = (config.get("start_date") or "").strip()
+        if _cs:
+            project_dir = _build_project_dir(_cs, _sd, "gearbox")
+        else:
+            project_dir = _clients_base() / Path(config_path).resolve().stem
+            project_dir.mkdir(parents=True, exist_ok=True)
+    _write_project_meta(
+        project_dir,
+        tool="gearbox",
+        client_short=(config.get("client_short") or ""),
+        year=((config.get("start_date") or "")[:4] or datetime.now().strftime("%Y")),
+        version=VERSION,
+    )
     console.log(f"Project output directory: {project_dir}", "INFO")
 
     # Expose local IP for QR / join URL generation

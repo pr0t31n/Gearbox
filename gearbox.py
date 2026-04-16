@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.0.2"
+VERSION = "1.2.0"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -2934,6 +2934,39 @@ _HARDCODED_RISKS: dict[str, str] = {
 }
 
 # ---------------------------------------------------------------------------
+# Nessus plugin title → pr0t31n standard title normalisation map
+# Applied when ingesting Nessus XML/CSV to align overlapping finding names
+# with the cross-tool standard defined in the finding overlap analysis.
+# ---------------------------------------------------------------------------
+_NESSUS_TITLE_NORM: dict[str, str] = {
+    "Default Credentials Accepted":         "Weak or Default Credentials Accepted",
+    "Default Credentials":                   "Weak or Default Credentials Accepted",
+    "SNMP Default Community String":         "SNMP Default Community String Accepted",
+    "SNMP Agent Default Community Name (public)": "SNMP Default Community String Accepted",
+    "Web Server Version Disclosure":         "Header Data Leakage: Server",
+    "Web — Server Version Disclosure":       "Header Data Leakage: Server",
+    "Web — Directory Listing Enabled":       "Directory Listing Enabled",
+    "Open TCP/UDP Port Identified":          "Open Port Discovered",
+    "Live Host Discovered":                  "Live Host Discovered",
+    "SSL/TLS — Expired Certificate":         "SSL/TLS Certificate: Expired",
+    "SSL/TLS — Self-Signed Certificate":     "SSL/TLS Certificate: Self-Signed",
+    "SSL/TLS — Missing HSTS Header":         "Missing Security Header: Strict-Transport-Security",
+    "SSL/TLS — Certificate Hostname Mismatch": "SSL/TLS Certificate: Hostname Mismatch",
+    "SSL/TLS — Weak Certificate Signature Algorithm": "SSL/TLS Certificate: Weak Signature Algorithm",
+    "SMB — World-Readable Share Discovered": "SMB Share Accessible Without Authentication",
+    "SMB — Null Session Permitted":          "SMB Share Accessible Without Authentication",
+    "SMB — Signing Disabled or Not Required": "SMB Signing Disabled or Not Required",
+    "SSH — Weak Cipher or MAC Algorithm":    "SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
+    "SSH — Protocol Version 1 Supported":   "SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
+    "SSH — Root Login Permitted":            "SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
+    "SSH — Password Authentication Enabled": "SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
+    "FTP Anonymous Login Permitted":         "FTP Anonymous Login Permitted",
+    "NFS World-Readable Export":             "NFS World-Readable Export",
+    "LLMNR Query Observed":                  "LLMNR/NBT-NS Broadcast Poisoning Possible",
+    "NBT-NS Query Observed":                 "LLMNR/NBT-NS Broadcast Poisoning Possible",
+}
+
+# ---------------------------------------------------------------------------
 # CVE rename map — well-known CVEs given descriptive titles
 # ---------------------------------------------------------------------------
 _CVE_RENAME_MAP: dict[str, str] = {
@@ -5319,9 +5352,11 @@ class NmapLiveModule(BaseModule):
 
             if live_ips:
                 self._observe(
-                    title=f"Live Hosts Discovered — {self.ctx.instance_key}",
-                    description=f"Nmap ping sweep found {len(live_ips)} live host(s): "
+                    title="Live Host Discovered",
+                    description=f"A host was confirmed active on the network by responding to one or more probe types (ICMP, TCP SYN, ARP, or UDP), expanding the known attack surface. "
+                                f"Nmap ping sweep found {len(live_ips)} live host(s): "
                                 f"{', '.join(live_ips)}",
+                    remediation="Reconcile all discovered hosts against the authorised asset inventory and investigate any unexpected or unregistered hosts.",
                     tool="nmap",
                     output_file=str(txt_file),
                     output_text=", ".join(live_ips),
@@ -6030,6 +6065,8 @@ class NessusModule(BaseModule):
 
                     # Build a clean, professional title
                     title = plugin_name or f"Nessus Plugin {plugin_id}"
+                    # Normalise overlapping Nessus plugin titles to pr0t31n standard
+                    title = _NESSUS_TITLE_NORM.get(title, title)
 
                     self.ctx.findings.create(
                         ctx=self.ctx,
@@ -6067,7 +6104,7 @@ class NessusModule(BaseModule):
                     _csv_port = (row.get("Port") or "").strip()
                     self.ctx.findings.create(
                         ctx=self.ctx,
-                        title=row.get("Name", "Nessus Finding"),
+                        title=_NESSUS_TITLE_NORM.get(row.get("Name", ""), row.get("Name", "Nessus Finding")),
                         description=row.get("Description", ""),
                         tool="nessus",
                         tool_risk=risk,
@@ -6734,8 +6771,9 @@ class NmapPortModule(BaseModule):
 
         if open_ports:
             self._observe(
-                title=f"Open Ports — {ip}",
-                description=f"{len(open_ports)} open port(s) found on {ip}: "
+                title="Open Port Discovered",
+                description=f"A TCP or UDP port was confirmed open on the target host, indicating an exposed service that contributes to the overall network attack surface. "
+                            f"{len(open_ports)} open port(s) found on {ip}: "
                             + ", ".join(open_ports[:20])
                             + (" …" if len(open_ports) > 20 else ""),
                 tool="nmap",
@@ -6774,22 +6812,37 @@ class NmapPortModule(BaseModule):
                         _portid = int(_port_el.get("portid", 0))
                         if _portid in UNENCRYPTED:
                             _proto_name = UNENCRYPTED[_portid]
-                            self.ctx.findings.create(
-                                ctx=self.ctx,
-                                title=f"Unencrypted Protocol Detected: {_proto_name} — {_hip}:{_portid}",
-                                description=(
-                                    f"The {_proto_name} service on {_hip}:{_portid} transmits "
-                                    f"data in cleartext. Credentials, session data, and "
-                                    f"sensitive information are vulnerable to interception "
-                                    f"by an attacker with network access."),
-                                tool="nmap",
-                                raw_output=f"port {_portid}/{_proto_name} open",
-                                source_type="primary",
-                                force_risk="Medium",
-                                ip=_hip,
-                                port=str(_portid),
-                                output_file=str(xml_file),
-                            )
+                            if _portid == 23:
+                                self.ctx.findings.create(
+                                    ctx=self.ctx,
+                                    title="Unencrypted Service: Telnet",
+                                    description="A Telnet service is accessible on the network, transmitting all data including authentication credentials in cleartext, enabling passive interception or active MITM attacks.",
+                                    remediation="Disable the Telnet daemon and replace it with SSH for all remote administration; block port 23 at the network perimeter.",
+                                    tool="nmap",
+                                    raw_output=f"port {_portid}/{_proto_name} open",
+                                    source_type="primary",
+                                    force_risk="High",
+                                    ip=_hip,
+                                    port=str(_portid),
+                                    output_file=str(xml_file),
+                                )
+                            else:
+                                self.ctx.findings.create(
+                                    ctx=self.ctx,
+                                    title=f"Unencrypted Protocol Detected: {_proto_name} — {_hip}:{_portid}",
+                                    description=(
+                                        f"The {_proto_name} service on {_hip}:{_portid} transmits "
+                                        f"data in cleartext. Credentials, session data, and "
+                                        f"sensitive information are vulnerable to interception "
+                                        f"by an attacker with network access."),
+                                    tool="nmap",
+                                    raw_output=f"port {_portid}/{_proto_name} open",
+                                    source_type="primary",
+                                    force_risk="Medium",
+                                    ip=_hip,
+                                    port=str(_portid),
+                                    output_file=str(xml_file),
+                                )
         except Exception:
             pass
 
@@ -7165,24 +7218,97 @@ class WebModule(BaseModule):
                     if sw_ver:
                         self.ctx.findings.create(
                             ctx=self.ctx,
-                            title=_fix_acronyms(
-                                f"Service Version Identified — "
-                                f"{sw_name} {sw_ver} ({ip}:{port})"),
-                            description=(
-                                f"The HTTP Server response header at {url} "
-                                f"discloses the server software version: "
-                                f"\"{server_val}\". This information assists "
-                                f"targeted exploitation of known vulnerabilities."),
+                            title="Header Data Leakage: Server",
+                            description="The HTTP Server response header reveals the web server software name and version, reducing the attacker's reconnaissance effort needed to identify version-specific vulnerabilities.",
+                            remediation="Remove or genericise the Server response header in the web server configuration (e.g., ServerTokens Prod in Apache; server_tokens off in nginx).",
                             tool="curl",
                             raw_output=f"Server: {server_val}",
                             source_type="primary",
-                            force_risk="Informational",
+                            force_risk="Low",
                             affected_component=f"HTTP Server on {ip}:{port}",
                             affected_version=sw_ver,
                             ip=ip,
                             port=str(port),
                             output_file=str(headers_file),
                         )
+            except Exception:
+                pass
+
+        # Check cookie attributes from curl response headers
+        if headers_file.exists():
+            try:
+                _hdr_text = headers_file.read_text(encoding="utf-8", errors="replace")
+                _sc_lines = [
+                    ln.split(":", 1)[1].strip()
+                    for ln in _hdr_text.splitlines()
+                    if re.match(r'set-cookie\s*:', ln, re.I)
+                ]
+                for _sc in _sc_lines:
+                    _sc_lo  = _sc.lower()
+                    _cname  = (_sc.split("=")[0].strip() if "=" in _sc
+                               else _sc.split(";")[0].strip())
+                    _sc_out = f"Set-Cookie: {_sc[:300]}"
+                    if "httponly" not in _sc_lo:
+                        self.ctx.findings.create(
+                            ctx=self.ctx,
+                            title="Missing Secure Cookie Attribute: HttpOnly",
+                            description=(
+                                f"Cookie '{_cname}' does not have the HttpOnly attribute. "
+                                "Without HttpOnly, the cookie is accessible to JavaScript, "
+                                "exposing it to XSS-based theft."),
+                            tool="curl", raw_output=_sc_out,
+                            source_type="primary", force_risk="Low",
+                            ip=ip, port=str(port), output_file=str(headers_file),
+                        )
+                    if is_https and "secure" not in _sc_lo:
+                        self.ctx.findings.create(
+                            ctx=self.ctx,
+                            title="Missing Secure Cookie Attribute: Secure",
+                            description=(
+                                f"Cookie '{_cname}' does not have the Secure attribute on an "
+                                "HTTPS site. Without Secure, the cookie can be transmitted "
+                                "over unencrypted HTTP connections."),
+                            tool="curl", raw_output=_sc_out,
+                            source_type="primary", force_risk="Low",
+                            ip=ip, port=str(port), output_file=str(headers_file),
+                        )
+                    _ss_m = re.search(r'samesite\s*=\s*([^\s;,]+)', _sc_lo)
+                    if not _ss_m:
+                        self.ctx.findings.create(
+                            ctx=self.ctx,
+                            title="Missing Secure Cookie Attribute: SameSite",
+                            description=(
+                                f"Cookie '{_cname}' does not have the SameSite attribute. "
+                                "Without SameSite, the cookie is sent with cross-site requests, "
+                                "increasing CSRF risk."),
+                            tool="curl", raw_output=_sc_out,
+                            source_type="primary", force_risk="Low",
+                            ip=ip, port=str(port), output_file=str(headers_file),
+                        )
+                    else:
+                        _ss_val = _ss_m.group(1).strip()
+                        if _ss_val not in ("strict", "lax", "none"):
+                            self.ctx.findings.create(
+                                ctx=self.ctx,
+                                title="Misconfigured Secure Cookie Attribute: SameSite",
+                                description=(
+                                    f"Cookie '{_cname}' has SameSite set to an unrecognised "
+                                    f"value '{_ss_val}'. Browsers treat it as SameSite=None."),
+                                tool="curl", raw_output=_sc_out,
+                                source_type="primary", force_risk="Low",
+                                ip=ip, port=str(port), output_file=str(headers_file),
+                            )
+                        elif _ss_val == "none" and "secure" not in _sc_lo:
+                            self.ctx.findings.create(
+                                ctx=self.ctx,
+                                title="Misconfigured Secure Cookie Attribute: SameSite",
+                                description=(
+                                    f"Cookie '{_cname}' has SameSite=None without the Secure "
+                                    "attribute. Browsers reject or block such cookies."),
+                                tool="curl", raw_output=_sc_out,
+                                source_type="primary", force_risk="Low",
+                                ip=ip, port=str(port), output_file=str(headers_file),
+                            )
             except Exception:
                 pass
 
@@ -7300,9 +7426,9 @@ class WebModule(BaseModule):
                     if days_left < 0:
                         self.ctx.findings.create(
                             ctx=self.ctx,
-                            title=f"SSL/TLS — Expired Certificate ({url})",
-                            description=(f"The TLS certificate at {url} expired "
-                                         f"{abs(days_left)} day(s) ago ({exp_str})."),
+                            title="SSL/TLS Certificate: Expired",
+                            description="The server's TLS certificate has passed its expiry date, causing browser trust errors and indicating a breakdown in certificate lifecycle management.",
+                            remediation="Renew the certificate immediately and implement automated renewal (e.g., ACME/Let's Encrypt) to prevent future expiry.",
                             tool="openssl", raw_output=dates,
                             source_type="primary", force_risk="High",
                             ip=ip, port=str(port),
@@ -7311,7 +7437,7 @@ class WebModule(BaseModule):
                     elif days_left < 30:
                         self.ctx.findings.create(
                             ctx=self.ctx,
-                            title=f"SSL/TLS — Certificate Expiring Soon ({url})",
+                            title="SSL/TLS Certificate: Expiring Soon",
                             description=(f"The TLS certificate at {url} expires in "
                                          f"{days_left} day(s) ({exp_str})."),
                             tool="openssl", raw_output=dates,
@@ -7325,12 +7451,11 @@ class WebModule(BaseModule):
                 if sub_m and issuer_m and sub_m.group(1).strip() == issuer_m.group(1).strip():
                     self.ctx.findings.create(
                         ctx=self.ctx,
-                        title=f"SSL/TLS — Self-Signed Certificate ({url})",
-                        description=f"The TLS certificate at {url} is self-signed. "
-                                    f"Self-signed certificates cannot be validated by "
-                                    f"a trusted third party.",
+                        title="SSL/TLS Certificate: Self-Signed",
+                        description="The server presented a self-signed TLS certificate that is not anchored to a publicly trusted CA, preventing clients from verifying the server's identity and enabling trivial MITM attacks.",
+                        remediation="Replace self-signed certificates with certificates issued by a trusted CA; use ACME/Let's Encrypt for cost-free automation.",
                         tool="openssl", raw_output=dates,
-                        source_type="primary", force_risk="Low",
+                        source_type="primary", force_risk="Medium",
                         ip=ip, port=str(port),
                         output_file=str(info_file),
                     )
@@ -7566,21 +7691,36 @@ class WebModule(BaseModule):
         _dp_ip, _dp_port = self.ctx.findings._extract_ip_port_from_url(url)
         for pattern, label in self._DEFAULT_PAGE_SIGS:
             if re.search(pattern, content, re.IGNORECASE):
-                self.ctx.findings.create(
-                    ctx=self.ctx,
-                    title=f"Default/Test Page Exposed — {label} at {url}",
-                    description=(
-                        f"The web server at {url} is serving a default or test page "
-                        f"({label}), indicating it may not be properly configured "
-                        f"for production use."),
-                    tool="curl",
-                    raw_output=content[:500],
-                    source_type="primary",
-                    force_risk="Low",
-                    ip=_dp_ip,
-                    port=_dp_port,
-                    output_file=str(html_file),
-                )
+                if "directory listing" in label.lower():
+                    self.ctx.findings.create(
+                        ctx=self.ctx,
+                        title="Directory Listing Enabled",
+                        description="The web server is configured to display a browsable directory index, exposing file structure and potentially sensitive files to unauthenticated users.",
+                        remediation="Disable directory indexing (e.g., Options -Indexes in Apache; autoindex off in nginx) and ensure every directory contains an explicit index document.",
+                        tool="curl",
+                        raw_output=content[:500],
+                        source_type="primary",
+                        force_risk="Medium",
+                        ip=_dp_ip,
+                        port=_dp_port,
+                        output_file=str(html_file),
+                    )
+                else:
+                    self.ctx.findings.create(
+                        ctx=self.ctx,
+                        title=f"Default/Test Page Exposed — {label} at {url}",
+                        description=(
+                            f"The web server at {url} is serving a default or test page "
+                            f"({label}), indicating it may not be properly configured "
+                            f"for production use."),
+                        tool="curl",
+                        raw_output=content[:500],
+                        source_type="primary",
+                        force_risk="Low",
+                        ip=_dp_ip,
+                        port=_dp_port,
+                        output_file=str(html_file),
+                    )
                 self._observe(
                     title=f"Default Page Detected — {label} ({url})",
                     description=f"Pattern matched: {label}",
@@ -7697,12 +7837,18 @@ class WebModule(BaseModule):
             # Default / test pages
             for pattern, label in DEFAULT_SIGS:
                 if re.search(pattern, content, re.I | re.S):
-                    _finding(
-                        f"Default/Test Page Exposed — {label}",
-                        (f"The web service at {url} serves a default or test "
-                         f"page ({label}). This may indicate the application "
-                         f"is unconfigured or a placeholder was not removed."),
-                        "Informational", html_file, label)
+                    if "directory listing" in label.lower():
+                        _finding(
+                            "Directory Listing Enabled",
+                            "The web server is configured to display a browsable directory index, exposing file structure and potentially sensitive files to unauthenticated users.",
+                            "Medium", html_file, label)
+                    else:
+                        _finding(
+                            f"Default/Test Page Exposed — {label}",
+                            (f"The web service at {url} serves a default or test "
+                             f"page ({label}). This may indicate the application "
+                             f"is unconfigured or a placeholder was not removed."),
+                            "Informational", html_file, label)
 
             # Forms
             for m in re.finditer(r'<form[^>]*action=["\']?([^"\'>\s]*)',
@@ -7829,13 +7975,13 @@ class SSHModule(BaseModule):
             if "password" in content.lower() and "ssh-auth-methods" in content.lower():
                 self.ctx.findings.create(
                     ctx=self.ctx,
-                    title=f"SSH Password Authentication Enabled — {ip}:{port}",
-                    description=(f"SSH on {ip}:{port} accepts password authentication. "
-                                 f"This enables brute-force and credential-stuffing attacks."),
+                    title="SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
+                    description="The SSH service is configured with one or more weaknesses including weak ciphers/MACs, SSHv1 support, permitted root login, or password-based authentication, increasing exposure to brute-force and protocol-level attacks.",
+                    remediation="Harden sshd_config to disable SSHv1, restrict ciphers and MACs to strong algorithms, disable root login, disable password authentication, and require public-key authentication only.",
                     tool="nmap-ssh",
                     raw_output=content[:500],
                     source_type="primary",
-                    force_risk="Low",
+                    force_risk="Medium",
                     ip=ip,
                     port=str(port),
                     output_file=str(nmap_out),
@@ -7946,11 +8092,9 @@ class SSHModule(BaseModule):
         for algo, section_name, risk in found_weak:
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=f"SSH Weak Algorithm — {ip}:{port}",
-                description=(
-                    f"The SSH service on {ip}:{port} supports the weak or deprecated "
-                    f"{section_name} algorithm '{algo}'. Weak algorithms can be exploited "
-                    f"to decrypt or forge SSH traffic."),
+                title="SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
+                description="The SSH service is configured with one or more weaknesses including weak ciphers/MACs, SSHv1 support, permitted root login, or password-based authentication, increasing exposure to brute-force and protocol-level attacks.",
+                remediation="Harden sshd_config to disable SSHv1, restrict ciphers and MACs to strong algorithms, disable root login, disable password authentication, and require public-key authentication only.",
                 tool="nmap-ssh",
                 raw_output=algo,
                 source_type="primary",
@@ -8024,18 +8168,7 @@ class SSHModule(BaseModule):
             if risk == "Informational":
                 continue
             cves  = [c.upper() for c in CVE_RE.findall(desc)]
-            # Build title
-            if WEAK_ALGO_RE.search(desc):
-                title = f"SSH Weak Algorithm — {ip}:{port}"
-            elif "cve" in desc.lower():
-                cve_id = cves[0] if cves else ""
-                title  = f"SSH {cve_id} — {ip}:{port}" if cve_id else f"SSH CVE — {ip}:{port}"
-            elif "password" in desc.lower() or "auth" in desc.lower():
-                title  = f"SSH Authentication Weakness — {ip}:{port}"
-            elif "key" in desc.lower():
-                title  = f"SSH Host Key Issue — {ip}:{port}"
-            else:
-                title  = f"SSH Configuration Issue — {ip}:{port}"
+            title = "SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)"
             dedup = (title, desc[:60])
             if dedup in emitted:
                 continue
@@ -8043,7 +8176,8 @@ class SSHModule(BaseModule):
             self.ctx.findings.create(
                 ctx=self.ctx,
                 title=title,
-                description=f"ssh-audit: {desc}",
+                description="The SSH service is configured with one or more weaknesses including weak ciphers/MACs, SSHv1 support, permitted root login, or password-based authentication, increasing exposure to brute-force and protocol-level attacks.",
+                remediation="Harden sshd_config to disable SSHv1, restrict ciphers and MACs to strong algorithms, disable root login, disable password authentication, and require public-key authentication only.",
                 tool="ssh-audit",
                 raw_output=line.strip(),
                 source_type="primary",
@@ -8253,18 +8387,22 @@ class NucleiModule(BaseModule):
             # ── SSL self-signed / expired / mismatch ─────────────────────
             if re.search(r'ssl.*self.*sign|self.*sign.*ssl', template_id, re.I):
                 self.ctx.findings.create(
-                    ctx=self.ctx, title=f"Self-Signed Certificate ({fip}:{fprt})",
-                    description=f"nuclei: {line[:300]}", tool="nuclei",
+                    ctx=self.ctx, title="SSL/TLS Certificate: Self-Signed",
+                    description="The server presented a self-signed TLS certificate that is not anchored to a publicly trusted CA, preventing clients from verifying the server's identity and enabling trivial MITM attacks.",
+                    remediation="Replace self-signed certificates with certificates issued by a trusted CA; use ACME/Let's Encrypt for cost-free automation.",
+                    tool="nuclei",
                     raw_output=line[:500], source_type="primary",
-                    force_risk="Low", cve_ids=cves,
+                    force_risk="Medium", cve_ids=cves,
                     ip=fip, port=fprt, output_file=str(out_file))
                 continue
             if re.search(r'ssl.*expire|expire.*ssl|cert.*expir', template_id, re.I):
                 self.ctx.findings.create(
-                    ctx=self.ctx, title=f"Expired Certificate ({fip}:{fprt})",
-                    description=f"nuclei: {line[:300]}", tool="nuclei",
+                    ctx=self.ctx, title="SSL/TLS Certificate: Expired",
+                    description="The server's TLS certificate has passed its expiry date, causing browser trust errors and indicating a breakdown in certificate lifecycle management.",
+                    remediation="Renew the certificate immediately and implement automated renewal (e.g., ACME/Let's Encrypt) to prevent future expiry.",
+                    tool="nuclei",
                     raw_output=line[:500], source_type="primary",
-                    force_risk="Medium", cve_ids=cves,
+                    force_risk="High", cve_ids=cves,
                     ip=fip, port=fprt, output_file=str(out_file))
                 continue
             if re.search(r'ssl.*mismatch|mismatch.*ssl|hostname.*mismatch', template_id, re.I):
@@ -8580,22 +8718,27 @@ class SSLModule(BaseModule):
                 self._parse_response_headers(url, hdr_file, headers_dir, safe)
 
     def _parse_shcheck_output(self, url: str, output: str, out_file: Path) -> None:
-        """Parse shcheck output and create findings for missing/weak headers."""
+        """Parse shcheck output and create per-header findings for missing security headers."""
         missing  = re.findall(r'\[!\]\s*(.+?) is not set', output, re.I)
         present  = re.findall(r'\[✓\]\s*(.+?)\s*:', output, re.I)
 
         _sh_ip, _sh_port = self.ctx.findings._extract_ip_port_from_url(url)
-        if missing:
+        _HSTS = "Strict-Transport-Security"
+        for header_name in missing:
+            header_name = header_name.strip()
+            if not header_name:
+                continue
+            _risk = "Medium" if header_name == _HSTS else "Low"
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=f"Missing Security Headers — {url}",
+                title=f"Missing Security Header: {header_name}",
                 description=(
-                    f"The following security headers are absent from {url}: "
-                    + ", ".join(missing)),
+                    f"The HTTP security header '{header_name}' is absent from {url}."),
                 tool="shcheck",
                 raw_output=output[:800],
                 source_type="primary",
-                force_risk="Medium",
+                force_risk=_risk,
+                affected_component=header_name,
                 ip=_sh_ip, port=_sh_port,
                 output_file=str(out_file),
             )
@@ -8629,17 +8772,19 @@ class SSLModule(BaseModule):
             + "\n".join(f"  - {h}" for h in headers_missing)
         )
         _sh_ip, _sh_port = self.ctx.findings._extract_ip_port_from_url(url)
-        if headers_missing:
+        _HSTS = "Strict-Transport-Security"
+        for _hdr in headers_missing:
+            _risk = "Medium" if _hdr == _HSTS else "Low"
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=f"Missing Security Headers — {url}",
+                title=f"Missing Security Header: {_hdr}",
                 description=(
-                    f"The following security headers are absent from {url}: "
-                    + ", ".join(headers_missing)),
+                    f"The HTTP security header '{_hdr}' is absent from {url}."),
                 tool="curl",
                 raw_output=content[:800],
                 source_type="primary",
-                force_risk="Medium",
+                force_risk=_risk,
+                affected_component=_hdr,
                 ip=_sh_ip, port=_sh_port,
                 output_file=str(out_file),
             )
@@ -8691,47 +8836,118 @@ class SSLModule(BaseModule):
 
         Every check uses line-level matching so that lines containing
         'not vulnerable', 'disabled', or 'not' are not falsely triggered.
+        Cipher-based inference detects SWEET32/BEAST/LUCKY13 from accepted ciphers.
         """
-        # Each tuple: (line_regex_must_match, line_regex_must_NOT_match, label, risk)
-        # Each tuple: (line_regex_must_match, line_regex_must_NOT_match, label, risk)
+        # Each tuple: (pos_regex, neg_regex, title, risk, affected_component)
         checks = [
-            (r'SSLv2\s+enabled',     None,                         "SSL/TLS - SSLv2 Enabled",                           "High"),
-            (r'SSLv3\s+enabled',     None,                         "SSL/TLS - SSLv3 Enabled",                           "Medium"),
-            (r'TLSv1\.0\s+enabled',  None,                         "SSL/TLS - TLSv1.0 Enabled",                         "Low"),
-            (r'TLSv1\.1\s+enabled',  None,                         "SSL/TLS - TLSv1.1 Enabled",                         "Low"),
-            (r'NULL\s+cipher',       r'not\s+vuln|disabled|none',  "NULL Cipher Suite",                                  "Critical"),
-            (r'RC4\s+cipher',        r'not\s+vuln|disabled|none',  "SSL/TLS \u2014 Weak Encryption Method (RC4)",         "High"),
-            (r'EXPORT\s+cipher',     r'not\s+vuln|disabled|none',  "SSL/TLS \u2014 Weak Encryption Method (Export Grade)","High"),
-            (r'\\bDES\s+cipher',     r'not\s+vuln|disabled|none',  "SSL/TLS \u2014 Weak Encryption Method (DES)",         "High"),
-            (r'\\b3DES\s+cipher',    r'not\s+vuln|disabled|none',  "SSL/TLS \u2014 Weak Encryption Method (3DES)",        "Medium"),
-            (r'MD5\s+signature',     r'not\s+vuln|disabled|none',  "MD5 Signature Algorithm",                            "Medium"),
-            (r'CBC.*cipher|Obsolete.*CBC', r'not\s+vuln|disabled|none',
-             "SSL/TLS \u2014 Server Permits Obsolete CBC Ciphers",                                                     "Low"),
-            # Heartbleed: handled by whole-output section analysis below the loop.
+            (r'SSLv2\s+enabled',       None,                        "Deprecated Protocol Enabled: SSLv2",   "High",     ""),
+            (r'SSLv3\s+enabled',       None,                        "Deprecated Protocol Enabled: SSLv3",   "Medium",   ""),
+            (r'TLSv1\.0\s+enabled',    None,                        "Deprecated Protocol Enabled: TLSv1.0", "Medium",   ""),
+            (r'TLSv1\.1\s+enabled',    None,                        "Deprecated Protocol Enabled: TLSv1.1", "Low",      ""),
+            (r'NULL\s+cipher',         r'not\s+vuln|disabled|none', "Weak Cipher Identified",               "Critical", "NULL"),
+            (r'\bRC4\b',               r'not\s+vuln|disabled|none', "Weak Cipher Identified",               "Medium",   "RC4"),
+            (r'\bEXPORT\b',            r'not\s+vuln|disabled|none', "Weak Cipher Identified",               "Medium",   "EXPORT"),
+            (r'\bDES\b(?!-CBC3)',       r'not\s+vuln|disabled|none', "Weak Cipher Identified",               "Medium",   "DES"),
+            (r'MD5\s+signature',       r'not\s+vuln|disabled|none', "MD5 Signature Algorithm",              "Medium",   ""),
         ]
+        _u    = re.match(r'https?://([^/:]+)(?::(\d+))?', url)
+        _sip  = _u.group(1) if _u else ""
+        _sprt = _u.group(2) if (_u and _u.group(2)) else (
+            "443" if url.startswith("https") else "80")
+
+        _tls10_enabled = False
+        _cbc_ciphers:  list[str] = []
+        _3des_ciphers: list[str] = []
+        _RE_SS_CIPHER_LINE = re.compile(
+            r'Accepted\s+(\S+)\s+\d+\s+bits\s+(\S+)', re.I)
+
         for line in output.splitlines():
-            for pos_pat, neg_pat, label, risk in checks:
+            # Track TLS 1.0 state for BEAST inference
+            if re.search(r'TLSv1\.0\s+enabled', line, re.I):
+                _tls10_enabled = True
+            # Collect accepted cipher names for cipher-based inference
+            _cm = _RE_SS_CIPHER_LINE.match(line.strip())
+            if _cm:
+                _cn = _cm.group(2).strip()
+                _cn_lo = _cn.lower()
+                if "cbc" in _cn_lo:
+                    _cbc_ciphers.append(_cn)
+                if "3des" in _cn_lo or "des-cbc3" in _cn_lo:
+                    _3des_ciphers.append(_cn)
+            for pos_pat, neg_pat, title, risk, affected_comp in checks:
                 if not re.search(pos_pat, line, re.I):
                     continue
                 if neg_pat and re.search(neg_pat, line, re.I):
                     continue
-                _u = re.match(r'https?://([^/:]+)(?::(\d+))?', url)
-                _sip  = _u.group(1) if _u else ""
-                _sprt = _u.group(2) if (_u and _u.group(2)) else (
-                    "443" if url.startswith("https") else "80")
                 self.ctx.findings.create(
                     ctx=self.ctx,
-                    title=f"SSL/TLS — {label} ({url})",
-                    description=f"sslscan detected: {label} at {url}",
+                    title=title,
+                    description=f"sslscan detected: {title}{' (' + affected_comp + ')' if affected_comp else ''} at {url}",
                     tool="sslscan",
                     raw_output=line.strip(),
                     source_type="primary",
                     force_risk=risk,
+                    affected_component=affected_comp,
                     ip=_sip,
                     port=_sprt,
                     output_file=str(out_file),
                 )
                 break  # one match per line is enough
+
+        # ── Cipher-based vulnerability inference ─────────────────────────────
+        # SWEET32: 3DES cipher suites accepted → CVE-2016-2183
+        if _3des_ciphers:
+            self.ctx.findings.create(
+                ctx=self.ctx,
+                title="SSL/TLS Vulnerability: SWEET32",
+                description=(
+                    f"sslscan: 3DES cipher suites accepted — susceptible to SWEET32 "
+                    f"birthday attack (CVE-2016-2183): {', '.join(_3des_ciphers[:5])}"
+                ),
+                tool="sslscan",
+                raw_output=", ".join(_3des_ciphers[:10]),
+                source_type="primary",
+                force_risk="Medium",
+                cve_ids=["CVE-2016-2183"],
+                ip=_sip, port=_sprt,
+                output_file=str(out_file),
+            )
+
+        # BEAST: TLSv1.0 + CBC cipher suites → CVE-2011-3389
+        if _tls10_enabled and _cbc_ciphers:
+            self.ctx.findings.create(
+                ctx=self.ctx,
+                title="SSL/TLS Vulnerability: BEAST",
+                description=(
+                    "sslscan: TLSv1.0 enabled with CBC cipher suites — "
+                    "susceptible to BEAST (CVE-2011-3389)"
+                ),
+                tool="sslscan",
+                raw_output=", ".join(_cbc_ciphers[:10]),
+                source_type="primary",
+                force_risk="Medium",
+                cve_ids=["CVE-2011-3389"],
+                ip=_sip, port=_sprt,
+                output_file=str(out_file),
+            )
+
+        # LUCKY13: any CBC cipher suites → CVE-2013-0169
+        if _cbc_ciphers:
+            self.ctx.findings.create(
+                ctx=self.ctx,
+                title="SSL/TLS Vulnerability: LUCKY13",
+                description=(
+                    "sslscan: CBC cipher suites accepted — "
+                    "susceptible to LUCKY13 (CVE-2013-0169)"
+                ),
+                tool="sslscan",
+                raw_output=", ".join(_cbc_ciphers[:10]),
+                source_type="primary",
+                force_risk="Medium",
+                cve_ids=["CVE-2013-0169"],
+                ip=_sip, port=_sprt,
+                output_file=str(out_file),
+            )
 
         # ── Heartbleed: whole-output section analysis ─────────────────────────────
         # More reliable than per-line matching — sslscan output format varies by version.
@@ -8748,13 +8964,9 @@ class SSLModule(BaseModule):
                 and re.search(r'vuln|heartbleed', ln, re.I)
             ]
             if _hb_vuln:
-                _u2 = re.match(r'https?://([^/:]+)(?::(\d+))?', url)
-                _sip2  = _u2.group(1) if _u2 else ''
-                _sprt2 = _u2.group(2) if (_u2 and _u2.group(2)) else (
-                    '443' if url.startswith('https') else '80')
                 self.ctx.findings.create(
                     ctx=self.ctx,
-                    title=f'SSL/TLS — Heartbleed (CVE-2014-0160) ({url})',
+                    title='Heartbleed (CVE-2014-0160) Vulnerability Detected',
                     description=('sslscan confirmed Heartbleed vulnerability at ' + url
                                  + '. Affected: '
                                  + '; '.join(ln.strip() for ln in _hb_vuln)),
@@ -8762,8 +8974,9 @@ class SSLModule(BaseModule):
                     raw_output=_hb_section[:500],
                     source_type='primary',
                     force_risk='Critical',
-                    ip=_sip2,
-                    port=_sprt2,
+                    cve_ids=['CVE-2014-0160'],
+                    ip=_sip,
+                    port=_sprt,
                     output_file=str(out_file),
                 )
 
@@ -8834,10 +9047,10 @@ class SSLModule(BaseModule):
             is_validity = (re.search(r'\d+\s*days?', description, re.I)
                            and re.search(r'valid|expir|certif', desc_lower))
             if is_validity:
-                label = "SSL/TLS - Overly Long Certificate Expiry"
+                label, affected_comp = "SSL/TLS Certificate: Overly Long Expiry", ""
                 risk  = "Low"
             else:
-                label = self._testssl_label(description)
+                label, affected_comp = self._testssl_label(description)
 
             # Drop noise findings where _testssl_label returned None
             if label is None:
@@ -8847,32 +9060,28 @@ class SSLModule(BaseModule):
             # Chain of trust incomplete
             if re.search(r'chain.*incomplete|incomplete.*chain', desc_lower):
                 risk  = "Informational"
-                label = "SSL/TLS - Chain of Trust Incomplete"
+                label = "SSL/TLS Chain of Trust Incomplete"
             if re.search(r'certificate.*does not match|does not match.*suppli|'
                          r'neither.*CRL|no.*CRL.*no.*OCSP|not.*CRL.*OCSP|'
                          r'CRL.*OCSP|OCSP.*CRL|mismatch', desc_lower):
                 risk = "Informational"
             if re.search(r'CBC.*obsolet|obsolet.*CBC', desc_lower):
                 risk  = "Low"
-                label = "SSL/TLS — Server Permits Obsolete CBC Ciphers"
+                label = "SSL/TLS Vulnerability: Obsolete CBC Ciphers"
 
             # CVE extraction from description (e.g. "CVE-2013-0169")
             cve_list = re.findall(r'CVE-\d{4}-\d+', description, re.I)
 
-            # Labels beginning with "SSL/TLS -" are already complete titles
-            if label.startswith("SSL/TLS -"):
-                final_title = label
-            else:
-                final_title = f"SSL/TLS — {label} ({url})"
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=final_title,
+                title=label,
                 description=f"testssl.sh: {description}",
                 tool="testssl.sh",
                 raw_output=line.strip(),
                 source_type="primary",
                 force_risk=risk,
                 cve_ids=[c.upper() for c in cve_list],
+                affected_component=affected_comp,
                 ip=_tip,
                 port=_tprt,
                 output_file=str(out_file),
@@ -8900,7 +9109,7 @@ class SSLModule(BaseModule):
             if re.search(r'not\s+vuln|not\s+offer|not\s+affect', finding_text, re.I):
                 continue
             risk  = RISK_MAP.get(severity, "Medium")
-            label = self._testssl_label(finding_text)
+            label, affected_comp = self._testssl_label(finding_text)
             if label is None:
                 continue  # suppress noise
             # Extract ip/port from url
@@ -8909,25 +9118,26 @@ class SSLModule(BaseModule):
             _tprt = _u.group(2) if (_u and _u.group(2)) else (
                 "443" if url.startswith("https") else "80")
             cve_list = re.findall(r'CVE-\d{4}-\d+', finding_text, re.I)
-            _tj = label if label.startswith("SSL/TLS -") else f"SSL/TLS — {label} ({url})"
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=_tj,
+                title=label,
                 description=f"testssl.sh: {finding_text}",
                 tool="testssl.sh",
                 raw_output=finding_text[:500],
                 source_type="secondary",
                 force_risk=risk,
                 cve_ids=[c.upper() for c in cve_list],
+                affected_component=affected_comp,
                 ip=_tip,
                 port=_tprt,
                 output_file=str(txt_file),
             )
 
-    def _testssl_label(self, text: str) -> str:
+    def _testssl_label(self, text: str) -> "tuple[str, str] | tuple[None, None]":
         """
-        Map a testssl.sh description string to a standardised SSL/TLS label.
-        Returns None to signal the finding should be SUPPRESSED (noise).
+        Map a testssl.sh description string to a (canonical_title, affected_component) tuple.
+        Returns (None, None) to signal the finding should be SUPPRESSED (noise).
+        affected_component is non-empty only for weak cipher entries.
         """
         text = text.strip()
         # ── Suppress noise ──────────────────────────────────────────────────
@@ -8939,65 +9149,68 @@ class SSLModule(BaseModule):
         ]
         for np in noise_patterns:
             if re.match(np, text, re.I):
-                return None  # caller must drop this finding
+                return (None, None)  # caller must drop this finding
 
+        # Each entry: (pattern, canonical_title, affected_component)
+        # affected_component is non-empty only for weak cipher findings.
         mappings = [
             # Protocol versions
-            (r'SSLv2',                           "SSL/TLS - SSLv2 Enabled"),
-            (r'SSLv3',                           "SSL/TLS - SSLv3 Enabled"),
-            (r'TLS\s*1\.0',                      "SSL/TLS - TLSv1.0 Enabled"),
-            (r'TLS\s*1\.1',                      "SSL/TLS - TLSv1.1 Enabled"),
-            # Known attacks — precise names
-            (r'Heartbleed',                      "Heartbleed (CVE-2014-0160)"),
-            (r'POODLE',                          "POODLE Attack (CVE-2014-3566)"),
-            (r'BEAST',                           "BEAST Attack (CVE-2011-3389)"),
-            (r'BREACH',                          "BREACH Attack (CVE-2013-3587)"),
-            (r'CRIME',                           "CRIME Attack (CVE-2012-4929)"),
-            (r'DROWN',                           "DROWN Attack (CVE-2016-0800)"),
-            (r'SWEET32',                         "SWEET32 Birthday Attack"),
-            (r'LUCKY\s*13',                      "LUCKY13 Attack (CVE-2013-0169)"),
-            (r'LOGJAM',                          "Logjam (DHE Export)"),
-            (r'FREAK',                           "FREAK Attack"),
-            (r'CCS\s+injection|CCS\s+vuln',     "OpenSSL CCS Injection (CVE-2014-0224)"),
-            (r'Ticketbleed',                     "Ticketbleed (CVE-2016-9244)"),
-            (r'ROBOT',                           "ROBOT Attack (CVE-2017-13099)"),
-            (r'RC4',                             "SSL/TLS — Weak Encryption Method (RC4)"),
-            (r'NULL\s+cipher',                   "NULL Cipher Suite"),
-            (r'EXPORT\s+cipher|export\s+grade',  "SSL/TLS — Weak Encryption Method (Export Grade)"),
-            (r'\bDES\b',                         "SSL/TLS — Weak Encryption Method (DES)"),
-            (r'\b3DES\b',                        "SSL/TLS — Weak Encryption Method (3DES)"),
-            (r'CBC.*obsolet|obsolet.*CBC',        "SSL/TLS — Server Permits Obsolete CBC Ciphers"),
-            (r'MD5',                             "MD5 Signature Algorithm"),
-            (r'SHA-?1\s+sign',                   "SHA-1 Signature Algorithm"),
-            (r'weak.*DH|DH\s+\d{1,3}\s*bit',    "Weak DH Parameter"),
-            (r'forward.secrecy|PFS',             "No Forward Secrecy"),
+            (r'SSLv2',                           "Deprecated Protocol Enabled: SSLv2",              ""),
+            (r'SSLv3',                           "Deprecated Protocol Enabled: SSLv3",              ""),
+            (r'TLS\s*1\.0',                      "Deprecated Protocol Enabled: TLSv1.0",            ""),
+            (r'TLS\s*1\.1',                      "Deprecated Protocol Enabled: TLSv1.1",            ""),
+            # Known attacks — precise names aligned with Scattershot3/Fracture
+            (r'Heartbleed',                      "Heartbleed (CVE-2014-0160) Vulnerability Detected", ""),
+            (r'POODLE',                          "SSL/TLS Vulnerability: POODLE",                   ""),
+            (r'BEAST',                           "SSL/TLS Vulnerability: BEAST",                    ""),
+            (r'BREACH',                          "BREACH Attack (CVE-2013-3587)",                   ""),
+            (r'CRIME',                           "SSL/TLS Vulnerability: CRIME",                    ""),
+            (r'DROWN',                           "SSL/TLS Vulnerability: DROWN",                    ""),
+            (r'SWEET32',                         "SSL/TLS Vulnerability: SWEET32",                  ""),
+            (r'LUCKY\s*13',                      "SSL/TLS Vulnerability: LUCKY13",                  ""),
+            (r'LOGJAM',                          "SSL/TLS Vulnerability: LOGJAM",                   ""),
+            (r'FREAK',                           "SSL/TLS Vulnerability: FREAK",                    ""),
+            (r'CCS\s+injection|CCS\s+vuln',      "OpenSSL CCS Injection (CVE-2014-0224)",           ""),
+            (r'Ticketbleed',                     "Ticketbleed (CVE-2016-9244)",                     ""),
+            (r'ROBOT',                           "ROBOT Attack (CVE-2017-13099)",                   ""),
+            # Weak ciphers — emit "Weak Cipher Identified" with cipher in affected_component
+            (r'\bRC4\b',                         "Weak Cipher Identified",                          "RC4"),
+            (r'NULL\s+cipher',                   "Weak Cipher Identified",                          "NULL"),
+            (r'EXPORT\s+cipher|export\s+grade',  "Weak Cipher Identified",                          "EXPORT"),
+            (r'\b3DES\b',                        "Weak Cipher Identified",                          "3DES"),
+            (r'\bDES\b',                         "Weak Cipher Identified",                          "DES"),
+            (r'CBC.*obsolet|obsolet.*CBC',        "SSL/TLS Vulnerability: Obsolete CBC Ciphers",    ""),
+            (r'MD5',                             "MD5 Signature Algorithm",                         ""),
+            (r'SHA-?1\s+sign',                   "SHA-1 Signature Algorithm",                       ""),
+            (r'weak.*DH|DH\s+\d{1,3}\s*bit',    "Weak DH Parameter",                              ""),
+            (r'forward.secrecy|PFS',             "No Forward Secrecy",                              ""),
             # Certificate issues
-            (r'self.sign',                       "Self-Signed Certificate"),
-            (r'expir',                           "Expired Certificate"),
+            (r'self.sign',                       "SSL/TLS Certificate: Self-Signed",                ""),
+            (r'expir',                           "SSL/TLS Certificate: Expired",                    ""),
             (r'certificate.*does not match|does not match.*suppli',
-                                                 "Certificate Hostname Mismatch"),
-            (r'mismatch',                        "Certificate Hostname Mismatch"),
+                                                 "Certificate Hostname Mismatch",                   ""),
+            (r'mismatch',                        "Certificate Hostname Mismatch",                   ""),
             (r'neither.*CRL.*OCSP|no.*CRL.*no.*OCSP|not.*CRL.*OCSP',
-                                                 "No Certificate Revocation Information"),
-            (r'CRL.*OCSP|OCSP.*CRL',             "Missing CRL/OCSP URI"),
+                                                 "No Certificate Revocation Information",           ""),
+            (r'CRL.*OCSP|OCSP.*CRL',             "Missing CRL/OCSP URI",                           ""),
             # Cipher order
             (r'not.*cipher.*order|no.*cipher.*order|cipher.*order.*not',
-                                                 "Server Does Not Specify Cipher Order"),
+                                                 "Server Does Not Specify Cipher Order",            ""),
             # Headers
-            (r'HSTS',                            "Missing HSTS Header"),
+            (r'HSTS',                            "Missing Security Header: Strict-Transport-Security", ""),
             # Potentially vulnerable (explicit label from testssl output)
             (r'potentially vulnerable|possibly vulnerable',
-                                                 "Potentially Vulnerable — Manual Verification Needed"),
+                                                 "Potentially Vulnerable — Manual Verification Needed", ""),
         ]
-        for pattern, label in mappings:
+        for pattern, label, affected in mappings:
             if re.search(pattern, text, re.I):
-                return label
+                return (label, affected)
         # Fallback: clean up the raw text — better than "Configuration Issue"
         cleaned = re.sub(r'[\s_\-]+', ' ', text).strip()
         # Drop if the result is trivially short or uninformative
         if not cleaned or len(cleaned) < 4:
-            return None
-        return _fix_acronyms(cleaned[:100])
+            return (None, None)
+        return (_fix_acronyms(cleaned[:100]), "")
 
     # ── 9. Nuclei (with aggressive timeout guard) ─────────────────────────────
 
@@ -9118,10 +9331,11 @@ class SMBModule(BaseModule):
             if "SMB Signing" in content and "disabled" in content.lower():
                 self.ctx.findings.create(
                     ctx=self.ctx,
-                    title=f"SMB Signing Disabled — {ip}:{port}",
-                    description=f"SMB message signing is not enforced on {ip}:{port}.",
+                    title="SMB Signing Disabled or Not Required",
+                    description="SMB packet signing is not enforced on the server, allowing an attacker positioned between client and server to relay or tamper with SMB authentication and data.",
+                    remediation="Enable and require SMB signing via Group Policy (RequireSecuritySignature=1) on all Windows systems to prevent NTLM relay attacks.",
                     tool="nmap-smb", raw_output=content[:500],
-                    source_type="primary", force_risk="Medium",
+                    source_type="primary", force_risk="High",
                     ip=ip, port=str(port),
                     output_file=str(out_file),
                 )
@@ -9149,10 +9363,11 @@ class SMBModule(BaseModule):
             # Fall back to reporting plain anonymous access
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=f"SMB Anonymous Access — {ip}:{port}",
-                description=f"SMB on {ip}:{port} allows anonymous access (smbmap unavailable).",
+                title="SMB Share Accessible Without Authentication",
+                description="One or more SMB shares are accessible without valid credentials, allowing unauthenticated users to read or write files and potentially enumerate domain information.",
+                remediation="Require authentication on all SMB shares, disable null-session and guest access, and enforce least-privilege ACLs on every share.",
                 tool="nmap-smb", raw_output="",
-                source_type="primary", force_risk="High",
+                source_type="primary", force_risk="Critical",
                 ip=ip, port=str(port), output_file=nmap_out)
             return
 
@@ -9182,30 +9397,30 @@ class SMBModule(BaseModule):
         if has_write:
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=f"SMB Share - Anonymous Write Access — {ip}:{port}",
-                description=(f"smbmap confirmed anonymous WRITE access to SMB shares on "
-                             f"{ip}:{port}. Full output: {combined[:300]}"),
+                title="SMB Share Accessible Without Authentication",
+                description="One or more SMB shares are accessible without valid credentials, allowing unauthenticated users to read or write files and potentially enumerate domain information.",
+                remediation="Require authentication on all SMB shares, disable null-session and guest access, and enforce least-privilege ACLs on every share.",
                 tool="smbmap", raw_output=combined[:500],
                 source_type="primary", force_risk="Critical",
                 ip=ip, port=str(port), output_file=str(smbmap_out))
         elif has_read:
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=f"SMB Share - Anonymous Read Access — {ip}:{port}",
-                description=(f"smbmap confirmed anonymous READ access to SMB shares on "
-                             f"{ip}:{port}. Full output: {combined[:300]}"),
+                title="SMB Share Accessible Without Authentication",
+                description="One or more SMB shares are accessible without valid credentials, allowing unauthenticated users to read or write files and potentially enumerate domain information.",
+                remediation="Require authentication on all SMB shares, disable null-session and guest access, and enforce least-privilege ACLs on every share.",
                 tool="smbmap", raw_output=combined[:500],
-                source_type="primary", force_risk="Medium",
+                source_type="primary", force_risk="Critical",
                 ip=ip, port=str(port), output_file=str(smbmap_out))
         else:
             # nmap saw anonymous but smbmap didn't confirm — report original
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=f"SMB Anonymous Access — {ip}:{port}",
-                description=(f"SMB on {ip}:{port} may allow anonymous access "
-                             f"(nmap detected, smbmap unconfirmed)."),
+                title="SMB Share Accessible Without Authentication",
+                description="One or more SMB shares are accessible without valid credentials, allowing unauthenticated users to read or write files and potentially enumerate domain information.",
+                remediation="Require authentication on all SMB shares, disable null-session and guest access, and enforce least-privilege ACLs on every share.",
                 tool="nmap-smb", raw_output=combined[:200],
-                source_type="primary", force_risk="High",
+                source_type="primary", force_risk="Critical",
                 ip=ip, port=str(port), output_file=nmap_out)
 
     def _analyze_responder(self, log_path: Path) -> None:
@@ -9246,6 +9461,25 @@ class SMBModule(BaseModule):
                     source_type="primary", force_risk="Critical",
                     force_classification="Validated",
                     ip=_resp_ip,
+                    output_file=str(log_path),
+                )
+            # NTLMv1 hashes
+            for m in re.finditer(r'(NTLMv1-SSP Hash\s*:.+)', content):
+                _ntlm_ip = ""
+                _ntlm_m = re.search(
+                    r"\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b",
+                    m.group(1))
+                if _ntlm_m:
+                    _ntlm_ip = _ntlm_m.group(1)
+                self.ctx.findings.create(
+                    ctx=self.ctx,
+                    title="Responder Captured NTLMv1 Hashes",
+                    description=(
+                        "Responder captured NTLMv1 authentication hashes. NTLMv1 is "
+                        "cryptographically weak and can be cracked offline rapidly."),
+                    tool="responder", raw_output=m.group(1)[:200],
+                    source_type="primary", force_risk="Critical",
+                    ip=_ntlm_ip,
                     output_file=str(log_path),
                 )
             # NTLMv2 hashes
@@ -9436,13 +9670,12 @@ class FTPModule(BaseModule):
             listing = m_listing.group(1).strip()[:400] if m_listing else ""
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=f"Anonymous FTP Access Enabled — {ip}:{port}",
-                description=(
-                    f"The FTP service on {ip}:{port} permits unauthenticated "
-                    f"anonymous login. Attackers can access files without credentials."
-                    + (f"\n\nAccessible content:\n{listing}" if listing else "")),
+                title="FTP Anonymous Login Permitted",
+                description="The FTP service accepts the anonymous username without credentials, potentially exposing hosted files or allowing unauthenticated file upload."
+                    + (f"\n\nAccessible content:\n{listing}" if listing else ""),
+                remediation="Disable anonymous FTP in the server configuration; migrate file transfer to SFTP/FTPS and enforce authentication for all access.",
                 tool="nmap-ftp", raw_output=content[:500],
-                source_type="primary", force_risk="Medium",
+                source_type="primary", force_risk="High",
                 ip=ip, port=str(port), output_file=str(out_file))
 
         if re.search(r"ftp-bounce.*?bounce.*?working", content, re.I):

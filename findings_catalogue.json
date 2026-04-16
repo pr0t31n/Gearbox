@@ -4,17 +4,17 @@
     "title": "Live Host Discovered",
     "severity": "INFO",
     "category": "Network Discovery",
-    "description": "A live host was discovered on the test network via nmap host discovery (ping sweep / ARP). The host responded to ICMP, TCP SYN, or ARP probes. Documented for inventory and attack surface mapping.",
-    "remediation": "Review all discovered hosts against the expected device inventory. Any unexpected hosts warrant further investigation.",
+    "description": "A host was confirmed active on the network by responding to one or more probe types (ICMP, TCP SYN, ARP, or UDP), expanding the known attack surface.",
+    "remediation": "Reconcile all discovered hosts against the authorised asset inventory and investigate any unexpected or unregistered hosts.",
     "references": []
   },
   {
     "id": "GB-DISC-002",
-    "title": "Open TCP/UDP Port Identified",
+    "title": "Open Port Discovered",
     "severity": "INFO",
     "category": "Network Discovery",
-    "description": "An open TCP or UDP port was identified during port scanning. Service/version detection was performed to characterise the listening daemon.",
-    "remediation": "Disable or firewall any ports not required for the device's intended function. Apply the principle of least exposure.",
+    "description": "A TCP or UDP port was confirmed open on the target host, indicating an exposed service that contributes to the overall network attack surface.",
+    "remediation": "Inventory all open ports against expected service requirements; close or restrict access to ports that serve no legitimate business purpose via host-based or network firewall rules.",
     "references": ["CWE-200"]
   },
   {
@@ -37,20 +37,20 @@
   },
   {
     "id": "GB-DISC-005",
-    "title": "LLMNR Query Observed (Potential Poisoning Vector)",
+    "title": "LLMNR/NBT-NS Broadcast Poisoning Possible",
     "severity": "HIGH",
     "category": "Network Protocol",
-    "description": "Link-Local Multicast Name Resolution (LLMNR) broadcast queries were observed from the device. An attacker on the same segment can send poisoned LLMNR responses to redirect the device to a malicious host and capture NTLMv2 challenge-response hashes.",
-    "remediation": "Disable LLMNR via Group Policy or OS configuration. On Linux, disable avahi mDNS if not required. Implement network segmentation to contain broadcast domains.",
+    "description": "LLMNR and/or NBT-NS broadcast name resolution is active on the network, allowing an attacker to poison responses with Responder and capture NTLMv1/v2 hashes for offline cracking or relay.",
+    "remediation": "Disable LLMNR and NetBIOS-NS via Group Policy (Network > DNS Client) and enforce DNS-only name resolution across all hosts.",
     "references": ["CVE-2020-1206", "CWE-345", "OWASP-A07:2021"]
   },
   {
     "id": "GB-DISC-006",
-    "title": "NBT-NS Query Observed (Potential Poisoning Vector)",
+    "title": "LLMNR/NBT-NS Broadcast Poisoning Possible",
     "severity": "HIGH",
     "category": "Network Protocol",
-    "description": "NetBIOS Name Service (NBT-NS) broadcast queries were captured from the device. Responder can reply with a forged response to capture NTLM hashes for offline cracking.",
-    "remediation": "Disable NetBIOS over TCP/IP via network adapter settings or Group Policy. Consider deploying LAPS for local account management.",
+    "description": "LLMNR and/or NBT-NS broadcast name resolution is active on the network, allowing an attacker to poison responses with Responder and capture NTLMv1/v2 hashes for offline cracking or relay.",
+    "remediation": "Disable LLMNR and NetBIOS-NS via Group Policy (Network > DNS Client) and enforce DNS-only name resolution across all hosts.",
     "references": ["CWE-345"]
   },
   {
@@ -73,11 +73,11 @@
   },
   {
     "id": "GB-CRED-003",
-    "title": "Default Credentials Accepted",
+    "title": "Weak or Default Credentials Accepted",
     "severity": "CRITICAL",
     "category": "Credential Exposure",
-    "description": "The device or service accepted default manufacturer credentials (e.g., admin/admin, admin/password, guest/guest). Default credentials are publicly documented and routinely tested by automated scanners.",
-    "remediation": "Force credential change on first-use or during factory provisioning. Implement a policy preventing default credential deployment in production. Audit all devices for retained default credentials.",
+    "description": "The target accepted well-known default or factory-set credentials, granting unauthorised access.",
+    "remediation": "Replace all default credentials with strong, unique secrets and enforce a password policy prior to any deployment.",
     "references": ["CWE-1188", "CWE-798", "OWASP-A07:2021"]
   },
   {
@@ -172,20 +172,20 @@
   },
   {
     "id": "GB-TLS-001",
-    "title": "SSL/TLS — Expired Certificate",
-    "severity": "MEDIUM",
+    "title": "SSL/TLS Certificate: Expired",
+    "severity": "HIGH",
     "category": "Cryptography",
-    "description": "The TLS certificate presented by the service has passed its notAfter date. Certificate validation will fail for properly configured clients.",
-    "remediation": "Renew the certificate. Implement automated renewal with alerts at 30 and 14 days before expiry.",
+    "description": "The server's TLS certificate has passed its expiry date, causing browser trust errors and indicating a breakdown in certificate lifecycle management.",
+    "remediation": "Renew the certificate immediately and implement automated renewal (e.g., ACME/Let's Encrypt) to prevent future expiry.",
     "references": ["CWE-298"]
   },
   {
     "id": "GB-TLS-002",
-    "title": "SSL/TLS — Self-Signed Certificate",
+    "title": "SSL/TLS Certificate: Self-Signed",
     "severity": "MEDIUM",
     "category": "Cryptography",
-    "description": "A self-signed certificate is presented. No trust chain to a CA is available, enabling trivial MITM attacks.",
-    "remediation": "Issue a certificate from a trusted CA (internal PKI or public CA). Distribute the CA trust anchor to all clients.",
+    "description": "The server presented a self-signed TLS certificate that is not anchored to a publicly trusted CA, preventing clients from verifying the server's identity and enabling trivial MITM attacks.",
+    "remediation": "Replace self-signed certificates with certificates issued by a trusted CA; use ACME/Let's Encrypt for cost-free automation.",
     "references": ["CWE-295"]
   },
   {
@@ -244,74 +244,74 @@
   },
   {
     "id": "GB-SSH-001",
-    "title": "SSH — Weak Cipher or MAC Algorithm",
+    "title": "SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
     "severity": "MEDIUM",
     "category": "Cryptography",
-    "description": "The SSH server accepts weak or deprecated ciphers (arcfour, 3des-cbc, blowfish) or MAC algorithms (hmac-md5, hmac-sha1). These are susceptible to cryptanalytic attacks.",
-    "remediation": "Disable deprecated algorithms in sshd_config. Use only chacha20-poly1305, aes256-gcm, aes128-gcm ciphers and hmac-sha2-256-etm, hmac-sha2-512-etm MACs.",
+    "description": "The SSH service is configured with one or more weaknesses including weak ciphers/MACs, SSHv1 support, permitted root login, or password-based authentication, increasing exposure to brute-force and protocol-level attacks.",
+    "remediation": "Harden sshd_config to disable SSHv1, restrict ciphers and MACs to strong algorithms, disable root login, disable password authentication, and require public-key authentication only.",
     "references": ["CVE-2023-38408", "CWE-327"]
   },
   {
     "id": "GB-SSH-002",
-    "title": "SSH — Protocol Version 1 Supported",
+    "title": "SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
     "severity": "HIGH",
     "category": "Network Services",
-    "description": "The SSH server accepts SSH protocol version 1. SSHv1 has known cryptographic weaknesses and should be considered broken.",
-    "remediation": "Set Protocol 2 in sshd_config. Disable SSHv1 entirely.",
+    "description": "The SSH service is configured with one or more weaknesses including weak ciphers/MACs, SSHv1 support, permitted root login, or password-based authentication, increasing exposure to brute-force and protocol-level attacks.",
+    "remediation": "Harden sshd_config to disable SSHv1, restrict ciphers and MACs to strong algorithms, disable root login, disable password authentication, and require public-key authentication only.",
     "references": ["CVE-2001-0144", "CWE-327"]
   },
   {
     "id": "GB-SSH-003",
-    "title": "SSH — Weak Key Exchange Algorithm",
+    "title": "SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
     "severity": "MEDIUM",
     "category": "Cryptography",
-    "description": "The SSH server accepts weak key exchange algorithms (diffie-hellman-group1-sha1, diffie-hellman-group14-sha1). These are insufficient against well-resourced adversaries.",
-    "remediation": "Enable only curve25519-sha256 and diffie-hellman-group16-sha512 or stronger key exchange algorithms.",
+    "description": "The SSH service is configured with one or more weaknesses including weak ciphers/MACs, SSHv1 support, permitted root login, or password-based authentication, increasing exposure to brute-force and protocol-level attacks.",
+    "remediation": "Harden sshd_config to disable SSHv1, restrict ciphers and MACs to strong algorithms, disable root login, disable password authentication, and require public-key authentication only.",
     "references": ["CWE-327"]
   },
   {
     "id": "GB-SSH-004",
-    "title": "SSH — Root Login Permitted",
+    "title": "SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
     "severity": "MEDIUM",
     "category": "Network Services",
-    "description": "Direct root login over SSH is permitted (PermitRootLogin yes). This increases the brute-force attack surface for the highest-privilege account.",
-    "remediation": "Set PermitRootLogin no or PermitRootLogin prohibit-password in sshd_config.",
+    "description": "The SSH service is configured with one or more weaknesses including weak ciphers/MACs, SSHv1 support, permitted root login, or password-based authentication, increasing exposure to brute-force and protocol-level attacks.",
+    "remediation": "Harden sshd_config to disable SSHv1, restrict ciphers and MACs to strong algorithms, disable root login, disable password authentication, and require public-key authentication only.",
     "references": ["CWE-250"]
   },
   {
     "id": "GB-SSH-005",
-    "title": "SSH — Password Authentication Enabled",
-    "severity": "LOW",
+    "title": "SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
+    "severity": "MEDIUM",
     "category": "Network Services",
-    "description": "Password-based SSH authentication is accepted. Susceptible to brute-force and credential stuffing attacks.",
-    "remediation": "Set PasswordAuthentication no and enforce key-based authentication only.",
+    "description": "The SSH service is configured with one or more weaknesses including weak ciphers/MACs, SSHv1 support, permitted root login, or password-based authentication, increasing exposure to brute-force and protocol-level attacks.",
+    "remediation": "Harden sshd_config to disable SSHv1, restrict ciphers and MACs to strong algorithms, disable root login, disable password authentication, and require public-key authentication only.",
     "references": ["CWE-521"]
   },
   {
     "id": "GB-SMB-001",
-    "title": "SMB — Signing Disabled or Not Required",
-    "severity": "MEDIUM",
+    "title": "SMB Signing Disabled or Not Required",
+    "severity": "HIGH",
     "category": "Network Protocol",
-    "description": "SMB message signing is not enforced. An attacker in a man-in-the-middle position can relay NTLM authentication or modify SMB messages in transit.",
-    "remediation": "Enable and mandate SMB signing via Group Policy or smb.conf (server signing = mandatory).",
+    "description": "SMB packet signing is not enforced on the server, allowing an attacker positioned between client and server to relay or tamper with SMB authentication and data.",
+    "remediation": "Enable and require SMB signing via Group Policy (RequireSecuritySignature=1) on all Windows systems to prevent NTLM relay attacks.",
     "references": ["CVE-2015-0005", "CWE-353"]
   },
   {
     "id": "GB-SMB-002",
-    "title": "SMB — Null Session Permitted",
-    "severity": "HIGH",
+    "title": "SMB Share Accessible Without Authentication",
+    "severity": "CRITICAL",
     "category": "Network Services",
-    "description": "The SMB service accepts anonymous (null session) authentication. This allows enumeration of shares, users, and group memberships without credentials.",
-    "remediation": "Disable null sessions (RestrictAnonymous = 2 or Samba restrict anonymous = 2).",
+    "description": "One or more SMB shares are accessible without valid credentials, allowing unauthenticated users to read or write files and potentially enumerate domain information.",
+    "remediation": "Require authentication on all SMB shares, disable null-session and guest access, and enforce least-privilege ACLs on every share.",
     "references": ["CVE-2000-1200", "CWE-284"]
   },
   {
     "id": "GB-SMB-003",
-    "title": "SMB — World-Readable Share Discovered",
-    "severity": "HIGH",
+    "title": "SMB Share Accessible Without Authentication",
+    "severity": "CRITICAL",
     "category": "Network Services",
-    "description": "An SMB share is accessible without authentication, exposing its contents to any host on the network. Sensitive files may be readable or writable.",
-    "remediation": "Restrict share access to authorised user accounts. Remove read/write access for EVERYONE or unauthenticated users.",
+    "description": "One or more SMB shares are accessible without valid credentials, allowing unauthenticated users to read or write files and potentially enumerate domain information.",
+    "remediation": "Require authentication on all SMB shares, disable null-session and guest access, and enforce least-privilege ACLs on every share.",
     "references": ["CWE-284"]
   },
   {
@@ -325,11 +325,11 @@
   },
   {
     "id": "GB-WEB-002",
-    "title": "Web — Directory Listing Enabled",
+    "title": "Directory Listing Enabled",
     "severity": "MEDIUM",
     "category": "Web Application",
-    "description": "The web server returns a directory listing for one or more paths, exposing the file and directory structure to unauthenticated users.",
-    "remediation": "Disable directory indexing/listing in the web server configuration (Options -Indexes in Apache, autoindex off in nginx).",
+    "description": "The web server is configured to display a browsable directory index, exposing file structure and potentially sensitive files to unauthenticated users.",
+    "remediation": "Disable directory indexing (e.g., Options -Indexes in Apache; autoindex off in nginx) and ensure every directory contains an explicit index document.",
     "references": ["CWE-548"]
   },
   {
@@ -343,11 +343,11 @@
   },
   {
     "id": "GB-WEB-004",
-    "title": "Web — Server Version Disclosure",
+    "title": "Header Data Leakage: Server",
     "severity": "LOW",
     "category": "Web Application",
-    "description": "The Server or X-Powered-By HTTP response header discloses the web server or framework version, enabling targeted exploitation.",
-    "remediation": "Suppress the Server header (ServerTokens Prod / server_tokens off). Remove X-Powered-By and X-AspNet-Version headers.",
+    "description": "The HTTP Server response header reveals the web server software name and version, reducing the attacker's reconnaissance effort needed to identify version-specific vulnerabilities.",
+    "remediation": "Remove or genericise the Server response header in the web server configuration (e.g., ServerTokens Prod in Apache; server_tokens off in nginx).",
     "references": ["CWE-200"]
   },
   {
@@ -370,20 +370,20 @@
   },
   {
     "id": "GB-NET-001",
-    "title": "Telnet Service Enabled",
+    "title": "Unencrypted Service: Telnet",
     "severity": "HIGH",
     "category": "Network Services",
-    "description": "A Telnet service (typically TCP/23) was identified. Telnet transmits all data including credentials in cleartext.",
-    "remediation": "Disable Telnet. Replace with SSH v2 with key-based authentication.",
+    "description": "A Telnet service is accessible on the network, transmitting all data including authentication credentials in cleartext, enabling passive interception or active MITM attacks.",
+    "remediation": "Disable the Telnet daemon and replace it with SSH for all remote administration; block port 23 at the network perimeter.",
     "references": ["CVE-1999-0619", "CWE-319", "OWASP-A02:2021"]
   },
   {
     "id": "GB-NET-002",
-    "title": "SNMP Default Community String",
+    "title": "SNMP Default Community String Accepted",
     "severity": "HIGH",
     "category": "Network Services",
-    "description": "The device accepts SNMP queries using the default community string ('public' or 'private'), providing unauthenticated access to system information and potentially write access to device configuration.",
-    "remediation": "Disable SNMPv1/v2c. Migrate to SNMPv3 authPriv mode with unique high-entropy credentials. Apply ACLs restricting SNMP to the management network.",
+    "description": "The SNMP service accepts a well-known default community string (e.g., public/private), allowing unauthenticated read (and potentially write) access to device configuration data.",
+    "remediation": "Change all SNMP community strings to random high-entropy values, restrict SNMP access by source IP, and migrate to SNMPv3 with authentication and encryption.",
     "references": ["CVE-1999-0517", "CWE-1188", "OWASP-A05:2021"]
   },
   {
@@ -391,8 +391,8 @@
     "title": "FTP Anonymous Login Permitted",
     "severity": "HIGH",
     "category": "Network Services",
-    "description": "The FTP service permits anonymous authentication, allowing unauthenticated users to browse and potentially download or upload files.",
-    "remediation": "Disable anonymous FTP. Use SFTP or FTPS for file transfers. Restrict access to authenticated users only.",
+    "description": "The FTP service accepts the anonymous username without credentials, potentially exposing hosted files or allowing unauthenticated file upload.",
+    "remediation": "Disable anonymous FTP in the server configuration; migrate file transfer to SFTP/FTPS and enforce authentication for all access.",
     "references": ["CWE-284", "OWASP-A07:2021"]
   },
   {

@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -21,6 +21,7 @@ import platform         # stdlib — OS detection for clients base directory
 import re               # stdlib — banner / version string parsing, protocol token extraction
 import shutil           # stdlib — tool PATH lookups, file operations
 import signal           # stdlib — SIGINT/SIGTERM graceful shutdown handler
+import socket           # stdlib — hostname recording in project_meta.json
 import sqlite3          # stdlib — findings.db SQLite persistence
 import subprocess       # stdlib — invokes nmap (Gordon Lyon @Fyodor — https://nmap.org), tcpdump, sslscan (rbsec — https://github.com/rbsec/sslscan), testssl.sh (Dirk Wetter @drwetter — https://github.com/drwetter/testssl.sh), nuclei (ProjectDiscovery @projectdiscovery — https://github.com/projectdiscovery/nuclei), gowitness (SensePost @sensepost — https://github.com/sensepost/gowitness), ssh-audit (Joe Testa @jtesta — https://github.com/jtesta/ssh-audit), responder (Laurent Gaffié @lgandx — https://github.com/lgandx/Responder), smbmap (ShawnDEvans — https://github.com/ShawnDEvans/smbmap), dnsmasq (Simon Kelley — https://www.thekelleys.org.uk/dnsmasq), cec-client (Pulse-Eight — https://github.com/Pulse-Eight/libcec), ddcutil (Sanford Rockowitz — https://www.ddcutil.com), candump/cansend (SocketCAN — https://github.com/linux-can/can-utils), proxmark3/pm3 (RfidResearchGroup — https://github.com/RfidResearchGroup/proxmark3)
 import sys              # stdlib — exit codes, stdout protocol token output
@@ -73,6 +74,7 @@ def _write_project_meta(project_dir: Path, tool: str, client_short: str,
                 "client_short": client_short,
                 "year":         year,
                 "created_at":   datetime.now().isoformat(),
+                "hostname":     socket.gethostname(),
                 "version":      version,
             }, indent=2),
             encoding="utf-8",

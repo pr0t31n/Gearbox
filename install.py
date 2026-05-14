@@ -255,7 +255,7 @@ GO_TOOLS = [
         "label": "nuclei",
     },
     {
-        "pkg":   "github.com/sensepost/gowitness/v3/cmd/gowitness@latest",
+        "pkg":   "github.com/sensepost/gowitness@latest",
         "label": "gowitness",
     },
 ]

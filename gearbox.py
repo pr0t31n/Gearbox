@@ -12527,39 +12527,13 @@ class ProjectOrchestrator:
     def _run_preflight_photos(self, all_instances: list) -> None:
         """Run all photo requirements before module selection.
 
-        Phase 1 — per-instance photos: PhotoModule for every regular instance
-                   whose Photo module is not yet complete.
-        Phase 2 — subdevice photos: FRONT / BACK / INTERFACES for every
+        Phase 1 — subdevice photos: FRONT / BACK / INTERFACES for every
                    subdevice, matching the virtual _photos_ instances shown
                    in Gauntlet's evidence tab.
+        Phase 2 — per-instance photos: PhotoModule for every regular instance
+                   whose Photo module is not yet complete.
         """
-        # ── Phase 1: per-instance photos ──────────────────────────────────────
-        for inst in all_instances:
-            if "Photo" not in INTERFACE_MODULES.get(inst["interface"], []):
-                continue
-            if self.progress.is_module_complete(
-                    inst["sd_key"], inst["interface"], inst["inst_key"], "Photo"):
-                continue
-            ctx = ModuleContext(
-                config         = self.config,
-                subdevice_key  = inst["sd_key"],
-                subdevice_name = inst["sd_name"],
-                interface      = inst["interface"],
-                instance_key   = inst["inst_key"],
-                instance_loc   = inst["inst_loc"],
-                instance_dir   = inst["inst_dir"],
-                file_prefix    = inst["file_prefix"],
-                db             = self.db,
-                findings       = self.findings,
-                progress       = self.progress,
-                logger         = self.logger,
-                ip_tracker     = self.ip_tracker,
-                net            = NetworkUtils(self.logger),
-                skip_nessus    = self.skip_nessus,
-            )
-            PhotoModule(ctx).run()
-
-        # ── Phase 2: subdevice FRONT / BACK / INTERFACES photos ───────────────
+        # ── Phase 1: subdevice FRONT / BACK / INTERFACES photos ───────────────
         join_interfaces = self.config.get("join_interfaces") or []
         join_url        = join_interfaces[0]["url"] if join_interfaces else ""
 
@@ -12602,6 +12576,32 @@ class ProjectOrchestrator:
                     self.progress.set_module_status(
                         sd_key, "_photos_", inst_key, module_name,
                         "skipped", "Skipped by user")
+
+        # ── Phase 2: per-instance photos ──────────────────────────────────────
+        for inst in all_instances:
+            if "Photo" not in INTERFACE_MODULES.get(inst["interface"], []):
+                continue
+            if self.progress.is_module_complete(
+                    inst["sd_key"], inst["interface"], inst["inst_key"], "Photo"):
+                continue
+            ctx = ModuleContext(
+                config         = self.config,
+                subdevice_key  = inst["sd_key"],
+                subdevice_name = inst["sd_name"],
+                interface      = inst["interface"],
+                instance_key   = inst["inst_key"],
+                instance_loc   = inst["inst_loc"],
+                instance_dir   = inst["inst_dir"],
+                file_prefix    = inst["file_prefix"],
+                db             = self.db,
+                findings       = self.findings,
+                progress       = self.progress,
+                logger         = self.logger,
+                ip_tracker     = self.ip_tracker,
+                net            = NetworkUtils(self.logger),
+                skip_nessus    = self.skip_nessus,
+            )
+            PhotoModule(ctx).run()
 
     def run(self) -> None:
         """Main project execution loop."""

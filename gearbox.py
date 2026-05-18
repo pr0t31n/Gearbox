@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.3.2"
+VERSION = "1.3.3"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -12524,6 +12524,33 @@ class ProjectOrchestrator:
         self.risk_map     = risk_map or {}
         self.ip_tracker   = _get_ip_tracker(project_dir)
 
+    def _run_preflight_photos(self, all_instances: list) -> None:
+        """Run PhotoModule for every instance that requires one, before module selection."""
+        for inst in all_instances:
+            if "Photo" not in INTERFACE_MODULES.get(inst["interface"], []):
+                continue
+            if self.progress.is_module_complete(
+                    inst["sd_key"], inst["interface"], inst["inst_key"], "Photo"):
+                continue
+            ctx = ModuleContext(
+                config         = self.config,
+                subdevice_key  = inst["sd_key"],
+                subdevice_name = inst["sd_name"],
+                interface      = inst["interface"],
+                instance_key   = inst["inst_key"],
+                instance_loc   = inst["inst_loc"],
+                instance_dir   = inst["inst_dir"],
+                file_prefix    = inst["file_prefix"],
+                db             = self.db,
+                findings       = self.findings,
+                progress       = self.progress,
+                logger         = self.logger,
+                ip_tracker     = self.ip_tracker,
+                net            = NetworkUtils(self.logger),
+                skip_nessus    = self.skip_nessus,
+            )
+            PhotoModule(ctx).run()
+
     def run(self) -> None:
         """Main project execution loop."""
         all_instances = self._collect_instances()
@@ -12534,6 +12561,9 @@ class ProjectOrchestrator:
         console.log(
             f"Project has {len(all_instances)} total instance(s) to test.",
             "INFO")
+
+        # Collect all photo requirements upfront before instance selection
+        self._run_preflight_photos(all_instances)
 
         # Filter to incomplete instances
         remaining = [

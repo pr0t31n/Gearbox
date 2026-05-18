@@ -12525,7 +12525,15 @@ class ProjectOrchestrator:
         self.ip_tracker   = _get_ip_tracker(project_dir)
 
     def _run_preflight_photos(self, all_instances: list) -> None:
-        """Run PhotoModule for every instance that requires one, before module selection."""
+        """Run all photo requirements before module selection.
+
+        Phase 1 — per-instance photos: PhotoModule for every regular instance
+                   whose Photo module is not yet complete.
+        Phase 2 — subdevice photos: FRONT / BACK / INTERFACES for every
+                   subdevice, matching the virtual _photos_ instances shown
+                   in Gauntlet's evidence tab.
+        """
+        # ── Phase 1: per-instance photos ──────────────────────────────────────
         for inst in all_instances:
             if "Photo" not in INTERFACE_MODULES.get(inst["interface"], []):
                 continue
@@ -12550,6 +12558,50 @@ class ProjectOrchestrator:
                 skip_nessus    = self.skip_nessus,
             )
             PhotoModule(ctx).run()
+
+        # ── Phase 2: subdevice FRONT / BACK / INTERFACES photos ───────────────
+        join_interfaces = self.config.get("join_interfaces") or []
+        join_url        = join_interfaces[0]["url"] if join_interfaces else ""
+
+        short  = (self.config.get("client_short") or "proj").strip().replace(" ", "_").upper()
+        device = (self.config.get("device") or "device").strip().replace(" ", "_").replace("/", "-")
+
+        seen_sds: dict = {}
+        for inst in all_instances:
+            sd_key = inst["sd_key"]
+            if sd_key not in seen_sds:
+                seen_sds[sd_key] = {"sd_name": inst["sd_name"], "sd_dir": inst["sd_dir"]}
+
+        for sd_key, info in seen_sds.items():
+            sd_name = info["sd_name"]
+            sd_dir  = info["sd_dir"]
+            if not sd_dir:
+                continue
+            for photo_type in ("FRONT", "BACK", "INTERFACES"):
+                inst_key    = photo_type.lower()
+                module_name = f"PHOTO-{sd_dir}-{photo_type}"
+                if self.progress.is_module_complete(sd_key, "_photos_", inst_key, module_name):
+                    continue
+                photo_dir   = (self.project_dir / short / device
+                               / sd_dir / "_Photos" / inst_key / "Photo")
+                file_prefix = f"{short}_{device}_{sd_dir}_photos_{inst_key}"
+                photo_dir.mkdir(parents=True, exist_ok=True)
+                answer = console.prompt(
+                    f"Upload a {photo_type.title()} photo of subdevice '{sd_name}'.",
+                    prompt_type="file",
+                    skippable=True,
+                    join_url=join_url,
+                    join_interfaces=join_interfaces,
+                )
+                if answer and answer.lower() not in ("skip", "") and os.path.exists(answer):
+                    shutil.copy2(answer, str(photo_dir / f"{file_prefix}_photo_1.jpg"))
+                    self.progress.set_module_status(
+                        sd_key, "_photos_", inst_key, module_name,
+                        "complete", "Photo captured")
+                else:
+                    self.progress.set_module_status(
+                        sd_key, "_photos_", inst_key, module_name,
+                        "skipped", "Skipped by user")
 
     def run(self) -> None:
         """Main project execution loop."""

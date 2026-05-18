@@ -9887,26 +9887,50 @@ class KeyCombosModule(BaseModule):
                 "Ctrl+Alt+Del", "Ctrl+Alt+F1/F2 (TTY)", "Ctrl+Alt+T (terminal)",
                 "Win+R", "Alt+F4", "Ctrl+Shift+Esc", "F1/F2/F10/F12 (BIOS/boot)",
             ]
-            answer = self._prompt(
+            response_answer = self._prompt(
                 f"Test the following key combinations on [{self.ctx.instance_loc}]:\n"
                 + "\n".join(f"  • {c}" for c in combos)
-                + "\n  Which combinations produced a result?",
-                prompt_type="text", skippable=True)
+                + "\n  Did any combination produce a result?",
+                options=["Yes — one or more produced a result",
+                         "No Response — none produced a result",
+                         "Skip"],
+                prompt_type="choice", skippable=True)
             out_dir = self.ctx.instance_dir / "KeyCombos"
             out_dir.mkdir(parents=True, exist_ok=True)
+
+            if "skip" in response_answer.lower() or response_answer == "3":
+                (out_dir / f"{self.ctx.file_prefix}_keycombos.txt").write_text(
+                    "Effective combos: skipped\n")
+                self._mark_complete("KeyCombos skipped")
+                return
+
+            no_response = (
+                "no response" in response_answer.lower()
+                or response_answer == "2"
+            )
+
+            if no_response:
+                (out_dir / f"{self.ctx.file_prefix}_keycombos.txt").write_text(
+                    "Effective combos: none — no combinations produced a result\n")
+                self._mark_complete("KeyCombos tested — no response")
+                return
+
+            detail = self._prompt(
+                f"Which combinations produced a result at [{self.ctx.instance_loc}]?",
+                prompt_type="text")
             (out_dir / f"{self.ctx.file_prefix}_keycombos.txt").write_text(
-                f"Effective combos: {answer}\n")
-            if answer and answer.lower() not in ("skip", "none", ""):
+                f"Effective combos: {detail}\n")
+            if detail and detail.lower() not in ("skip", "none", ""):
                 self.ctx.findings.create(
                     ctx=self.ctx,
                     title=f"Keyboard Shortcut Access — {self.ctx.instance_key}",
-                    description=f"Key combinations produced responses: {answer}",
-                    tool="manual", raw_output=answer,
+                    description=f"Key combinations produced responses: {detail}",
+                    tool="manual", raw_output=detail,
                     source_type="primary", force_risk="Medium",
                     ip="",
                     output_file="",
                 )
-            self._mark_complete("KeyCombos tested")
+            self._mark_complete(f"KeyCombos tested: {detail}")
         except Exception as e:
             self._mark_error(str(e))
 

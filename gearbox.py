@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.3.3"
+VERSION = "1.3.4"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -4377,6 +4377,67 @@ class BaseModule:
             join_interfaces=join_interfaces or [],
         )
 
+    def _prompt_connected_photo(self, connection_description: str = "") -> None:
+        """Prompt for a photo of the testing tool connected to this instance.
+        Tracks as '{ModuleName}ConnectedPhoto' in progress."""
+        prog_key = f"{self.name}ConnectedPhoto"
+        if self.ctx.progress.is_module_complete(
+                self.ctx.subdevice_key, self.ctx.interface,
+                self.ctx.instance_key, prog_key):
+            return
+
+        join_interfaces = self.ctx.config.get("join_interfaces") or []
+        join_url        = join_interfaces[0]["url"] if join_interfaces else ""
+
+        if not connection_description:
+            connection_description = f"testing tool connected to [{self.ctx.instance_loc}]"
+
+        if join_url:
+            iface_lines = "\n" + "\n".join(
+                f"  [{i['name']}]  {i['url']}" for i in join_interfaces)
+            msg = (
+                f"Upload a photo showing the {connection_description}."
+                f"\n  Scan a QR code or visit a URL on your mobile device:{iface_lines}"
+                f"\n  OR type 'skip' to continue."
+            )
+        else:
+            msg = (
+                f"Upload a photo showing the {connection_description}."
+                f"\n  Visit the Gauntlet web interface on a mobile device to upload,"
+                f" OR type 'skip' to continue."
+            )
+
+        answer = self._prompt(
+            msg,
+            prompt_type="file",
+            skippable=True,
+            join_url=join_url,
+            join_interfaces=join_interfaces,
+        )
+
+        name_slug = self.name.lower().replace(" ", "_")
+        photo_dir = self.ctx.instance_dir / f"{self.name}ConnectedPhoto"
+        photo_dir.mkdir(parents=True, exist_ok=True)
+        dest = photo_dir / f"{self.ctx.file_prefix}_{name_slug}_connected_photo.jpg"
+
+        if answer and answer.lower() not in ("skip", "") and os.path.exists(answer):
+            shutil.copy2(answer, str(dest))
+            self.ctx.progress.set_module_status(
+                self.ctx.subdevice_key, self.ctx.interface,
+                self.ctx.instance_key, prog_key, "complete", "Connected photo captured")
+        else:
+            self.ctx.progress.set_module_status(
+                self.ctx.subdevice_key, self.ctx.interface,
+                self.ctx.instance_key, prog_key, "skipped", "Skipped by user")
+
+    def _mark_connected_photo_na(self, reason: str = "") -> None:
+        """Mark the connected-photo entry N/A — parent was skipped or not applicable."""
+        prog_key = f"{self.name}ConnectedPhoto"
+        self.ctx.progress.set_module_status(
+            self.ctx.subdevice_key, self.ctx.interface,
+            self.ctx.instance_key, prog_key, "na",
+            reason or "Parent module skipped or N/A")
+
 
 # ---------------------------------------------------------------------------
 # Photo Module
@@ -4581,7 +4642,12 @@ class EthtoolModule(BaseModule):
             )
             if "skip" in answer.lower() or answer == "2":
                 self._mark_skipped("User skipped Ethtool")
+                self._mark_connected_photo_na("Ethtool skipped")
                 return
+
+            self._prompt_connected_photo(
+                f"Ethernet cable connected between {TEST_INTERFACE} and "
+                f"[{self.ctx.instance_loc}]")
 
             if not tool_available("ethtool"):
                 self._mark_skipped("ethtool not available")
@@ -9764,9 +9830,11 @@ class UsbPowerModule(BaseModule):
         try:
             out_dir = self.ctx.instance_dir / "UsbPower"
             out_dir.mkdir(parents=True, exist_ok=True)
+            self._prompt_connected_photo(
+                f"USB power measurement device connected to [{self.ctx.instance_loc}]")
             answer = self._prompt(
-                f"Connect a USB power measurement device to the USB port: "
-                f"[{self.ctx.instance_loc}]. Record the voltage and current readings below.",
+                f"Record the voltage and current readings from the USB power meter at "
+                f"[{self.ctx.instance_loc}].",
                 prompt_type="text", skippable=True)
             out_file = out_dir / f"{self.ctx.file_prefix}_usb_power.txt"
             out_file.write_text(f"Voltage/Current readings: {answer}\n")
@@ -9782,9 +9850,11 @@ class KeyboardModule(BaseModule):
     def run(self) -> None:
         self._mark_running()
         try:
+            self._prompt_connected_photo(
+                f"USB keyboard connected to [{self.ctx.instance_loc}]")
             answer = self._prompt(
-                f"Connect a USB keyboard to [{self.ctx.instance_loc}]. "
-                f"Test if keystrokes are registered. Was HID keyboard detected?",
+                f"Test keystrokes on the USB keyboard at [{self.ctx.instance_loc}]. "
+                f"Was HID keyboard detected?",
                 options=["Yes — keyboard detected", "No — not detected", "Skip"],
                 prompt_type="choice", skippable=True)
             out_dir = self.ctx.instance_dir / "Keyboard"
@@ -9848,9 +9918,11 @@ class MouseModule(BaseModule):
     def run(self) -> None:
         self._mark_running()
         try:
+            self._prompt_connected_photo(
+                f"USB mouse connected to [{self.ctx.instance_loc}]")
             answer = self._prompt(
-                f"Connect a USB mouse to [{self.ctx.instance_loc}]. "
-                f"Was HID mouse detected and functional?",
+                f"With a USB mouse at [{self.ctx.instance_loc}]: "
+                f"was HID mouse detected and functional?",
                 options=["Yes — mouse detected", "No — not detected", "Skip"],
                 prompt_type="choice", skippable=True)
             out_dir = self.ctx.instance_dir / "Mouse"
@@ -9869,9 +9941,11 @@ class BashBunnyModule(BaseModule):
     def run(self) -> None:
         self._mark_running()
         try:
+            self._prompt_connected_photo(
+                f"Bash Bunny (or HID attack device) inserted into [{self.ctx.instance_loc}]")
             answer = self._prompt(
-                f"Insert a Bash Bunny (or HID attack device) into "
-                f"[{self.ctx.instance_loc}]. Was the device accepted / did payloads execute?",
+                f"With the HID attack device at [{self.ctx.instance_loc}]: "
+                f"was it accepted / did payloads execute?",
                 options=["Yes — accepted and executed", "Accepted, no execution",
                          "Not accepted / rejected", "Skip"],
                 prompt_type="choice", skippable=True)
@@ -9911,6 +9985,8 @@ class TcpdumpRunningModule(BaseModule):
                 f"Ensure the device is powered on and in normal operation. "
                 f"Press Enter to begin 300-second capture.",
                 options=["Ready"], prompt_type="choice")
+            self._prompt_connected_photo(
+                f"Ethernet tap inline on [{self.ctx.instance_loc}]")
             out_dir = self.ctx.instance_dir / "Tcpdump_running"
             out_dir.mkdir(parents=True, exist_ok=True)
             out_file = out_dir / f"{self.ctx.file_prefix}_running.pcap"
@@ -9944,6 +10020,8 @@ class TcpdumpBootModule(BaseModule):
                 f"Power OFF the device, then press Enter — immediately power ON "
                 f"the device to capture boot traffic.",
                 options=["Ready — starting capture"], prompt_type="choice")
+            self._prompt_connected_photo(
+                f"Ethernet tap inline on [{self.ctx.instance_loc}]")
             out_dir = self.ctx.instance_dir / "Tcpdump_boot"
             out_dir.mkdir(parents=True, exist_ok=True)
             out_file = out_dir / f"{self.ctx.file_prefix}_boot.pcap"
@@ -10055,11 +10133,14 @@ class VideoInputModule(BaseModule):
                     f"Port: {self.ctx.instance_loc}\nType: output-only\n"
                     f"Result: N/A — input test not applicable to output-only port\n")
                 self._mark_na("Port is output-only — input test not applicable")
+                self._mark_connected_photo_na("Port is output-only")
                 return
 
+            self._prompt_connected_photo(
+                f"video source connected to the {iface} INPUT port [{self.ctx.instance_loc}]")
             answer = self._prompt(
-                f"Connect a video source to the {iface} INPUT port "
-                f"[{self.ctx.instance_loc}]. Was the input signal detected and accepted?",
+                f"Was the input signal from the video source detected and accepted at "
+                f"[{self.ctx.instance_loc}]?",
                 options=["Yes — input accepted", "No — input rejected"],
                 prompt_type="choice", skippable=True)
 
@@ -10121,11 +10202,14 @@ class VideoOutputModule(BaseModule):
                     f"Port: {self.ctx.instance_loc}\nType: input-only\n"
                     f"Result: N/A — output test not applicable to input-only port\n")
                 self._mark_na("Port is input-only — output test not applicable")
+                self._mark_connected_photo_na("Port is input-only")
                 return
 
+            self._prompt_connected_photo(
+                f"video display/sink connected to the {iface} OUTPUT port [{self.ctx.instance_loc}]")
             answer = self._prompt(
-                f"Connect a video display/sink to the {iface} OUTPUT port "
-                f"[{self.ctx.instance_loc}]. Was an output signal detected or displayed?",
+                f"Was an output signal detected or displayed by the sink at "
+                f"[{self.ctx.instance_loc}]?",
                 options=["Yes — output detected", "No — no output"],
                 prompt_type="choice", skippable=True)
 
@@ -10933,6 +11017,7 @@ class HdmiCECModule(BaseModule):
                 (out_dir / f"{self.ctx.file_prefix}_cec_note.txt").write_text(
                     "cec-client not available and auto-install failed.\n")
                 self._mark_skipped("cec-client not available — auto-install failed")
+                self._mark_connected_photo_na("cec-client not available")
                 return
 
             # ── Prompt: connect the HDMI-CEC adapter ─────────────────────────
@@ -10948,7 +11033,11 @@ class HdmiCECModule(BaseModule):
                 (out_dir / f"{self.ctx.file_prefix}_cec_note.txt").write_text(
                     "Tester skipped CEC — no HDMI-CEC adapter available.\n")
                 self._mark_skipped("No HDMI-CEC adapter available — skipped by tester")
+                self._mark_connected_photo_na("No HDMI-CEC adapter available")
                 return
+
+            self._prompt_connected_photo(
+                f"HDMI-CEC adapter connected to [{self.ctx.instance_loc}]")
 
             # ── Confirm adapter is recognised ─────────────────────────────────
             self.ctx.logger.info("Probing for CEC adapter…", tool="cec-client")
@@ -11115,6 +11204,8 @@ class ZigbeeSniffModule(BaseModule):
                 f"Connect a Zigbee sniffer dongle (e.g., ApiMote, RZUSBSTICK, CC2531). "
                 f"Testing port: [{self.ctx.instance_loc}]. Press Enter to begin capture.",
                 options=["Ready"], prompt_type="choice")
+            self._prompt_connected_photo(
+                f"Zigbee sniffer dongle connected for [{self.ctx.instance_loc}]")
             out_dir = self.ctx.instance_dir / "Sniff"
             out_dir.mkdir(parents=True, exist_ok=True)
             # Zigbee capture tooling will be added in a future release.
@@ -11426,6 +11517,7 @@ class SerialDetectModule(BaseModule):
 
         # ── Step 3: cable connection prompt + device check (3 attempts) ──────
         p232, p485 = None, None
+        _serial_photo_done = False
         for attempt in range(3):
             self._prompt(
                 f"Connect a DB9 cable between the testing device and the "
@@ -11437,6 +11529,10 @@ class SerialDetectModule(BaseModule):
             if p232 and p485:
                 self.ctx.logger.info(
                     f"Serial devices found: {p232}, {p485}", tool=self.name)
+                if not _serial_photo_done:
+                    self._prompt_connected_photo(
+                        f"DB9 cable connected to [{self.ctx.instance_loc}]")
+                    _serial_photo_done = True
                 break
             missing = []
             if not p232:
@@ -11451,6 +11547,7 @@ class SerialDetectModule(BaseModule):
             self._mark_skipped(
                 "Serial devices /dev/rs232 and/or /dev/rs485 not detected "
                 "after 3 attempts")
+            self._mark_connected_photo_na("Serial devices not detected after 3 attempts")
             return
 
         # ── Steps 3-4: scan baudrates (retry on user request) ────────────────
@@ -11716,14 +11813,17 @@ class CanAssessModule(BaseModule):
             self._mark_skipped(
                 f"Serial protocol detected ({ser_res['protocol']} @ "
                 f"{ser_res['baudrate']} bps) — CAN assessment skipped")
+            self._mark_connected_photo_na("Serial protocol detected — CAN skipped")
             return
 
         if not _CD_AVAILABLE:
             self._mark_skipped("can_detect unavailable")
+            self._mark_connected_photo_na("can_detect unavailable")
             return
 
         # ── Step 10: locate CAN interface (3 attempts) ───────────────────────
         iface = None
+        _can_photo_done = False
         for attempt in range(3):
             self._prompt(
                 f"Connect a CAN-to-USB adapter to the DB9 port at "
@@ -11740,6 +11840,10 @@ class CanAssessModule(BaseModule):
                 iface = interfaces[0]
                 self.ctx.logger.info(
                     f"CAN interface found: {iface}", tool=self.name)
+                if not _can_photo_done:
+                    self._prompt_connected_photo(
+                        f"CAN-to-USB adapter connected to [{self.ctx.instance_loc}]")
+                    _can_photo_done = True
                 break
             self.ctx.logger.warn(
                 f"No CAN interface found.  Attempt {attempt + 1}/3.",
@@ -11764,6 +11868,7 @@ class CanAssessModule(BaseModule):
                 risk="Informational",
             )
             self._mark_complete("DB9 port dead — no active protocol")
+            self._mark_connected_photo_na("No CAN interface detected after 3 attempts")
             return
 
         # ── Run CAN bitrate detection ─────────────────────────────────────────
@@ -11968,7 +12073,10 @@ class RFIDSniffModule(BaseModule):
                 options=["Ready", "Skip"], prompt_type="choice", skippable=True)
             if "skip" in answer.lower() or answer == "2":
                 self._mark_skipped("Skipped by user")
+                self._mark_connected_photo_na("RFID test skipped")
                 return
+            self._prompt_connected_photo(
+                f"Proxmark3 RFID reader positioned at [{self.ctx.instance_loc}]")
 
             out_file = out_dir / f"{self.ctx.file_prefix}_rfid_sniff.txt"
             if tool_available("pm3"):

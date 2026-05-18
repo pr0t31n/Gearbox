@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.3.1"
+VERSION = "1.3.2"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -4395,11 +4395,11 @@ class PhotoModule(BaseModule):
                 # Prefer the interfaces list injected by app.py via --join-interfaces
                 join_interfaces = self.ctx.config.get("join_interfaces") or []
                 if not join_interfaces:
-                    flask_port = 5000
+                    flask_port = 5700
                     project_id = self.ctx.config.get("project_id", "")
                     join_interfaces = [
                         {"name": iface["name"], "ip": iface["ip"],
-                         "url": f"http://{iface['ip']}:{flask_port}/join/{project_id}"}
+                         "url": f"https://{iface['ip']}:{flask_port}/join/{project_id}"}
                         for iface in get_all_interfaces()
                     ]
             except Exception:
@@ -13172,10 +13172,10 @@ def main() -> None:
     if not config.get("join_interfaces") and config.get("join_url"):
         config["join_interfaces"] = [{"name": "eth0", "ip": "", "url": config["join_url"]}]
     if not config.get("join_interfaces"):
-        flask_port = 5000
+        flask_port = 5700
         config["join_interfaces"] = [
             {"name": iface["name"], "ip": iface["ip"],
-             "url": f"http://{iface['ip']}:{flask_port}/join/{config.get('project_id', '')}"}
+             "url": f"https://{iface['ip']}:{flask_port}/join/{config.get('project_id', '')}"}
             for iface in get_all_interfaces()
         ]
 

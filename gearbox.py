@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.3.4"
+VERSION = "1.4.0"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -398,7 +398,8 @@ INTERFACE_MODULES: dict[str, list[str]] = {
                      "TrafficCollector", "DhcpServer", "NmapLive", "Nessus", "Responder",
                      "NmapPort", "BannerGrab", "Web", "Nuclei", "SSL", "SSH", "FTP", "SMB", "NFS",
                      "EthernetCleanup"],
-    "USB":          ["Photo", "UsbPower", "Keyboard", "KeyCombos", "Mouse", "BashBunny"],
+    "USB":          ["Photo", "UsbPower", "Keyboard", "KeyCombos", "Mouse", "BashBunny",
+                     "UsbMassStorage", "UsbEthernetAdapter"],
     "Ethernet_tap": ["Photo", "Tcpdump_running", "Tcpdump_boot", "Tcpdump_shutdown"],
     "HDMI":         ["Photo", "PortType", "Input", "Output", "EDID", "HdmiDDC", "HdmiHDCP", "HdmiCEC"],
     "Dvi":          ["Photo", "PortType", "Input", "Output", "EDID", "HdmiDDC"],
@@ -9992,6 +9993,79 @@ class BashBunnyModule(BaseModule):
             self._mark_error(str(e))
 
 
+class UsbMassStorageModule(BaseModule):
+    name        = "UsbMassStorage"
+    description = "Test USB Mass Storage device acceptance"
+
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            self._prompt_connected_photo(
+                f"USB mass storage device connected to [{self.ctx.instance_loc}]")
+            answer = self._prompt(
+                f"Was the USB mass storage device at [{self.ctx.instance_loc}] "
+                f"accepted by the target?",
+                options=["Yes — mass storage accepted and mounted",
+                         "Partially — device enumerated but not mounted",
+                         "No — device blocked or rejected",
+                         "Skip"],
+                prompt_type="choice", skippable=True)
+            out_dir = self.ctx.instance_dir / "UsbMassStorage"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            (out_dir / f"{self.ctx.file_prefix}_mass_storage.txt").write_text(
+                f"Result: {answer}\n")
+            lo = answer.lower()
+            if "accepted" in lo or answer == "1":
+                self.ctx.findings.create(
+                    ctx=self.ctx,
+                    title=f"USB Mass Storage Accepted — {self.ctx.instance_key}",
+                    description=(
+                        f"The device at [{self.ctx.instance_loc}] accepted a USB mass "
+                        f"storage device and mounted it. Unrestricted USB storage access "
+                        f"may allow data exfiltration or malware delivery."
+                    ),
+                    tool="manual", raw_output=answer,
+                    source_type="primary", force_risk="High",
+                    ip="", output_file="",
+                )
+            elif "partially" in lo or answer == "2":
+                self.ctx.findings.create(
+                    ctx=self.ctx,
+                    title=f"USB Mass Storage Partially Accepted — {self.ctx.instance_key}",
+                    description=(
+                        f"The device at [{self.ctx.instance_loc}] enumerated a USB mass "
+                        f"storage device but did not mount it. Partial acceptance may still "
+                        f"allow device fingerprinting or driver-level attacks."
+                    ),
+                    tool="manual", raw_output=answer,
+                    source_type="primary", force_risk="Medium",
+                    ip="", output_file="",
+                )
+            self._mark_complete(f"UsbMassStorage: {answer}")
+        except Exception as e:
+            self._mark_error(str(e))
+
+
+class UsbEthernetAdapterModule(BaseModule):
+    name        = "UsbEthernetAdapter"
+    description = "Test USB-to-Ethernet adapter — run full network assessment via adapter"
+
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            self._prompt_connected_photo(
+                f"USB-to-Ethernet adapter connected to [{self.ctx.instance_loc}]")
+            # Run the full Ethernet assessment pipeline through the adapter.
+            # Photo is already complete (first USB module), so it is skipped
+            # automatically by _run_sequential; EthernetIface prompts the user
+            # to identify which interface the adapter created (e.g. eth1, enx...).
+            orchestrator = InstanceOrchestrator(self.ctx, threading.Semaphore(1))
+            orchestrator._run_ethernet_modules([], _MODULE_REGISTRY)
+            self._mark_complete("UsbEthernetAdapter assessment complete")
+        except Exception as e:
+            self._mark_error(str(e))
+
+
 # ---------------------------------------------------------------------------
 # Ethernet-tap / Tcpdump Modules
 # ---------------------------------------------------------------------------
@@ -12200,6 +12274,8 @@ _MODULE_REGISTRY: dict[str, type] = {
     "KeyCombos":        KeyCombosModule,
     "Mouse":            MouseModule,
     "BashBunny":        BashBunnyModule,
+    "UsbMassStorage":   UsbMassStorageModule,
+    "UsbEthernetAdapter": UsbEthernetAdapterModule,
     "Tcpdump_running":  TcpdumpRunningModule,
     "Tcpdump_boot":     TcpdumpBootModule,
     "Tcpdump_shutdown": TcpdumpShutdownModule,

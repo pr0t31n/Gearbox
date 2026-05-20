@@ -3743,14 +3743,41 @@ class NetworkUtils:
             pass
         return None
 
+    def _detect_net_manager(self) -> str:
+        """
+        Detect the host network manager.  Returns one of:
+          'netplan'    — /etc/netplan dir exists AND netplan binary is present
+          'interfaces' — /etc/network/interfaces file exists (Debian/Kali/Ubuntu pre-netplan)
+          'ip'         — fall back to raw ip commands (works everywhere)
+        """
+        if self.NETPLAN_DIR.is_dir() and shutil.which("netplan"):
+            return "netplan"
+        if Path("/etc/network/interfaces").exists():
+            return "interfaces"
+        return "ip"
+
     def set_static_ip(self, interface: str, ip: str, prefix: int,
                       gateway: str, ctx: ModuleContext) -> bool:
         """
-        Configure a static IP via netplan. Backs up existing config.
-        Stores working config in project directory.
+        Configure a static IP on *interface*.
+
+        Automatically detects the host network manager and applies the config
+        using the appropriate method:
+          netplan     — writes /etc/netplan/99-gearbox-<iface>.yaml + netplan apply
+          interfaces  — ip commands directly (no config file written; safe for testing)
+          ip          — ip commands directly (same as interfaces fallback)
         """
+        net_mgr = self._detect_net_manager()
+        self._logger.info(
+            f"set_static_ip: network manager detected as '{net_mgr}'", tool="ip")
+        if net_mgr == "netplan":
+            return self._set_static_ip_netplan(interface, ip, prefix, gateway, ctx)
+        return self._set_static_ip_ipcmd(interface, ip, prefix, gateway, ctx)
+
+    def _set_static_ip_netplan(self, interface: str, ip: str, prefix: int,
+                                gateway: str, ctx: ModuleContext) -> bool:
+        """Apply static IP via netplan (Ubuntu 18.04+ / Debian with netplan)."""
         config_file = self.NETPLAN_DIR / f"99-gearbox-{interface}.yaml"
-        backup_file = config_file.with_suffix(self.NETPLAN_BACKUP_SUFFIX)
         try:
             for existing in self.NETPLAN_DIR.glob("*.yaml"):
                 backup = existing.with_suffix(self.NETPLAN_BACKUP_SUFFIX)
@@ -3785,15 +3812,56 @@ class NetworkUtils:
                             f"      addresses:\n        - {ip}/{prefix}\n")
             ok, _ = self._run(["netplan", "apply"], tool="netplan", needs_root=True)
             if ok:
-                ctx.db.store_network_config(ip, gateway, f"{ip}/{prefix}", "", str(config_file), ctx)
-                self._logger.info(f"Static IP {ip}/{prefix} configured via netplan")
+                ctx.db.store_network_config(
+                    ip, gateway, f"{ip}/{prefix}", "", str(config_file), ctx)
+                self._logger.info(
+                    f"Static IP {ip}/{prefix} configured via netplan", tool="netplan")
                 return True
         except Exception as e:
-            self._logger.error(f"set_static_ip failed: {e}")
+            self._logger.error(f"set_static_ip (netplan) failed: {e}")
+        return False
+
+    def _set_static_ip_ipcmd(self, interface: str, ip: str, prefix: int,
+                              gateway: str, ctx: ModuleContext) -> bool:
+        """
+        Apply a static IP using raw ip commands — works on any Linux regardless
+        of network manager (/etc/network/interfaces, NetworkManager, systemd-networkd).
+        Not persistent across reboots; suitable for the duration of a test session.
+        """
+        try:
+            self._run(["ip", "addr", "flush", "dev", interface],
+                      tool="ip", needs_root=True)
+            ok, out = self._run(
+                ["ip", "addr", "add", f"{ip}/{prefix}", "dev", interface],
+                tool="ip", needs_root=True)
+            if not ok:
+                self._logger.warn(f"ip addr add {ip}/{prefix} failed: {out}", tool="ip")
+            self._run(["ip", "link", "set", interface, "up"],
+                      tool="ip", needs_root=True)
+            if gateway:
+                # Remove any existing default route before adding ours
+                self._run(["ip", "route", "del", "default"],
+                          tool="ip", needs_root=True)
+                ok2, out2 = self._run(
+                    ["ip", "route", "add", "default", "via", gateway],
+                    tool="ip", needs_root=True)
+                if not ok2:
+                    self._logger.warn(
+                        f"ip route add default via {gateway} failed: {out2}", tool="ip")
+            ctx.db.store_network_config(
+                ip, gateway, f"{ip}/{prefix}", "", "ip-cmd", ctx)
+            self._logger.info(
+                f"Static IP {ip}/{prefix} configured via ip command (gw: {gateway})",
+                tool="ip")
+            return True
+        except Exception as e:
+            self._logger.error(f"set_static_ip (ip-cmd) failed: {e}")
         return False
 
     def revert_netplan(self, interface: str) -> None:
-        """Restore netplan configuration from backup."""
+        """Restore netplan configuration from backup (netplan systems only)."""
+        if self._detect_net_manager() != "netplan":
+            return
         config_file = self.NETPLAN_DIR / f"99-gearbox-{interface}.yaml"
         try:
             if config_file.exists():
@@ -12919,13 +12987,12 @@ class ProjectOrchestrator:
 
         if not remaining:
             console.log("All instances already complete.", "INFO")
-            return
-
-        if len(remaining) < len(all_instances):
-            console.log(
-                f"{len(all_instances) - len(remaining)} instance(s) "
-                f"already complete — resuming from checkpoint.",
-                "INFO")
+        else:
+            if len(remaining) < len(all_instances):
+                console.log(
+                    f"{len(all_instances) - len(remaining)} instance(s) "
+                    f"already complete — resuming from checkpoint.",
+                    "INFO")
 
         # Let user choose which instance to run next
         while remaining:

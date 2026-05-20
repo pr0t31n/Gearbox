@@ -12759,7 +12759,13 @@ class ProjectOrchestrator:
             sd_dir  = info["sd_dir"]
             if not sd_dir:
                 continue
-            for photo_type in ("FRONT", "BACK", "INTERFACES"):
+            _SUBDEV_PHOTO_LABELS = {
+                "FRONT":        "front view",
+                "BACK":         "back view",
+                "INTERFACES":   "interface panel",
+                "VERSION_INFO": "version / device info screen",
+            }
+            for photo_type in ("FRONT", "BACK", "INTERFACES", "VERSION_INFO"):
                 inst_key    = photo_type.lower()
                 module_name = f"PHOTO-{sd_dir}-{photo_type}"
                 if self.progress.is_module_complete(sd_key, "_photos_", inst_key, module_name):
@@ -12768,8 +12774,9 @@ class ProjectOrchestrator:
                                / sd_dir / "_Photos" / inst_key / "Photo")
                 file_prefix = f"{short}_{device}_{sd_dir}_photos_{inst_key}"
                 photo_dir.mkdir(parents=True, exist_ok=True)
+                label = _SUBDEV_PHOTO_LABELS.get(photo_type, photo_type.title())
                 answer = console.prompt(
-                    f"Upload a {photo_type.title()} photo of subdevice '{sd_name}'.",
+                    f"Upload a photo of the {label} of subdevice '{sd_name}'.",
                     prompt_type="file",
                     skippable=True,
                     join_url=join_url,
@@ -12810,6 +12817,84 @@ class ProjectOrchestrator:
                 skip_nessus    = self.skip_nessus,
             )
             PhotoModule(ctx).run()
+
+    def _run_postflight_photos(self, all_instances: list) -> None:
+        """Re-prompt for any subdevice photos that were skipped during preflight.
+
+        Called after all instance testing is complete.  Any photo whose status
+        is not 'complete' is presented again as a final evidence requirement
+        before the assessment can be closed.
+        """
+        join_interfaces = self.config.get("join_interfaces") or []
+        join_url        = join_interfaces[0]["url"] if join_interfaces else ""
+
+        short  = (self.config.get("client_short") or "proj").strip().replace(" ", "_").upper()
+        device = (self.config.get("device") or "device").strip().replace(" ", "_").replace("/", "-")
+
+        seen_sds: dict = {}
+        for inst in all_instances:
+            sd_key = inst["sd_key"]
+            if sd_key not in seen_sds:
+                seen_sds[sd_key] = {"sd_name": inst["sd_name"], "sd_dir": inst["sd_dir"]}
+
+        _SUBDEV_PHOTO_LABELS = {
+            "FRONT":        "front view",
+            "BACK":         "back view",
+            "INTERFACES":   "interface panel",
+            "VERSION_INFO": "version / device info screen",
+        }
+
+        pending = []
+        for sd_key, info in seen_sds.items():
+            sd_dir = info["sd_dir"]
+            if not sd_dir:
+                continue
+            for photo_type in ("FRONT", "BACK", "INTERFACES", "VERSION_INFO"):
+                inst_key    = photo_type.lower()
+                module_name = f"PHOTO-{sd_dir}-{photo_type}"
+                status = self.progress.get_module_status(
+                    sd_key, "_photos_", inst_key, module_name)
+                if status != "complete":
+                    pending.append({
+                        "sd_key": sd_key, "sd_name": info["sd_name"],
+                        "sd_dir": sd_dir, "photo_type": photo_type,
+                        "inst_key": inst_key, "module_name": module_name,
+                    })
+
+        if not pending:
+            return
+
+        console.log(
+            f"Final evidence collection: {len(pending)} photo(s) outstanding.",
+            "INFO")
+
+        for p in pending:
+            sd_key      = p["sd_key"]
+            sd_name     = p["sd_name"]
+            sd_dir      = p["sd_dir"]
+            photo_type  = p["photo_type"]
+            inst_key    = p["inst_key"]
+            module_name = p["module_name"]
+            label       = _SUBDEV_PHOTO_LABELS.get(photo_type, photo_type.title())
+
+            photo_dir   = (self.project_dir / short / device
+                           / sd_dir / "_Photos" / inst_key / "Photo")
+            file_prefix = f"{short}_{device}_{sd_dir}_photos_{inst_key}"
+            photo_dir.mkdir(parents=True, exist_ok=True)
+
+            answer = console.prompt(
+                f"[Evidence required — testing complete] "
+                f"Upload a photo of the {label} of subdevice '{sd_name}'.",
+                prompt_type="file",
+                skippable=True,
+                join_url=join_url,
+                join_interfaces=join_interfaces,
+            )
+            if answer and answer.lower() not in ("skip", "") and os.path.exists(answer):
+                shutil.copy2(answer, str(photo_dir / f"{file_prefix}_photo_1.jpg"))
+                self.progress.set_module_status(
+                    sd_key, "_photos_", inst_key, module_name,
+                    "complete", "Photo captured (postflight)")
 
     def run(self) -> None:
         """Main project execution loop."""
@@ -12886,6 +12971,9 @@ class ProjectOrchestrator:
 
             instance = remaining.pop(idx)
             self._run_instance(instance)
+
+        # Collect any outstanding photo evidence now that all testing is complete
+        self._run_postflight_photos(all_instances)
 
     def _run_instance(self, inst: dict) -> None:
         """Build context and run all modules for a single instance."""

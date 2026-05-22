@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.4.0"
+VERSION = "1.7.0"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -81,6 +81,32 @@ def _write_project_meta(project_dir: Path, tool: str, client_short: str,
         )
     except Exception:
         pass
+
+
+def _u_dual_write_meta(project_dir, *, tool: str, version: str,
+                       client_short: str = "", client_name: str = "",
+                       engagement_name: str = "", target: str = "") -> bool:
+    """Dual-write universal meta.json (schema 1.0). Graceful no-op when
+    /opt/pr0t31n/shared/pr0t31n_schema.py is not installed."""
+    try:
+        import sys as _s
+        if "/opt/pr0t31n/shared" not in _s.path:
+            _s.path.insert(0, "/opt/pr0t31n/shared")
+        import pr0t31n_schema as _us
+    except ImportError:
+        return False
+    try:
+        meta = _us.make_meta(
+            tool=tool, version=version,
+            client_short=client_short or "unknown",
+            client_name=client_name or client_short or "unknown",
+            engagement_name=engagement_name or f"{tool} run",
+            target=target or "",
+        )
+        _us.atomic_write_json(Path(project_dir) / "meta.json", meta)
+        return True
+    except Exception:
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -12887,12 +12913,25 @@ class ProjectOrchestrator:
             PhotoModule(ctx).run()
 
     def _run_postflight_photos(self, all_instances: list) -> None:
-        """Re-prompt for any subdevice photos that were skipped during preflight.
+        """Collect tool evidence photos and re-prompt for any skipped preflight photos.
 
-        Called after all instance testing is complete.  Any photo whose status
-        is not 'complete' is presented again as a final evidence requirement
-        before the assessment can be closed.
+        Two categories are collected here:
+          TOOL_EVIDENCE — always new (never asked during preflight); photos of the
+                          physical test equipment/tools connected to each subdevice
+                          as evidence that testing was performed.
+          FRONT / BACK / INTERFACES / VERSION_INFO — re-prompted only if they were
+                          skipped during the preflight phase.
         """
+        # TOOL_EVIDENCE is postflight-only — never asked during preflight.
+        # The other types are only collected here if they were skipped earlier.
+        _POSTFLIGHT_LABELS = {
+            "TOOL_EVIDENCE": "test tools and equipment used during testing",
+            "FRONT":         "front view",
+            "BACK":          "back view",
+            "INTERFACES":    "interface panel",
+            "VERSION_INFO":  "version / device info screen",
+        }
+
         join_interfaces = self.config.get("join_interfaces") or []
         join_url        = join_interfaces[0]["url"] if join_interfaces else ""
 
@@ -12905,19 +12944,12 @@ class ProjectOrchestrator:
             if sd_key not in seen_sds:
                 seen_sds[sd_key] = {"sd_name": inst["sd_name"], "sd_dir": inst["sd_dir"]}
 
-        _SUBDEV_PHOTO_LABELS = {
-            "FRONT":        "front view",
-            "BACK":         "back view",
-            "INTERFACES":   "interface panel",
-            "VERSION_INFO": "version / device info screen",
-        }
-
         pending = []
         for sd_key, info in seen_sds.items():
             sd_dir = info["sd_dir"]
             if not sd_dir:
                 continue
-            for photo_type in ("FRONT", "BACK", "INTERFACES", "VERSION_INFO"):
+            for photo_type in _POSTFLIGHT_LABELS:
                 inst_key    = photo_type.lower()
                 module_name = f"PHOTO-{sd_dir}-{photo_type}"
                 status = self.progress.get_module_status(
@@ -12933,7 +12965,7 @@ class ProjectOrchestrator:
             return
 
         console.log(
-            f"Final evidence collection: {len(pending)} photo(s) outstanding.",
+            f"Final evidence collection: {len(pending)} photo(s) required.",
             "INFO")
 
         for p in pending:
@@ -12943,7 +12975,7 @@ class ProjectOrchestrator:
             photo_type  = p["photo_type"]
             inst_key    = p["inst_key"]
             module_name = p["module_name"]
-            label       = _SUBDEV_PHOTO_LABELS.get(photo_type, photo_type.title())
+            label       = _POSTFLIGHT_LABELS[photo_type]
 
             photo_dir   = (self.project_dir / short / device
                            / sd_dir / "_Photos" / inst_key / "Photo")
@@ -12952,7 +12984,7 @@ class ProjectOrchestrator:
 
             answer = console.prompt(
                 f"[Evidence required — testing complete] "
-                f"Upload a photo of the {label} of subdevice '{sd_name}'.",
+                f"Upload a photo of the {label} for subdevice '{sd_name}'.",
                 prompt_type="file",
                 skippable=True,
                 join_url=join_url,
@@ -12963,6 +12995,10 @@ class ProjectOrchestrator:
                 self.progress.set_module_status(
                     sd_key, "_photos_", inst_key, module_name,
                     "complete", "Photo captured (postflight)")
+            else:
+                self.progress.set_module_status(
+                    sd_key, "_photos_", inst_key, module_name,
+                    "skipped", "Skipped by user (postflight)")
 
     def run(self) -> None:
         """Main project execution loop."""
@@ -13646,6 +13682,17 @@ def main() -> None:
         year=((config.get("start_date") or "")[:4] or datetime.now().strftime("%Y")),
         version=VERSION,
     )
+    # Dual-write universal meta.json (schema 1.0) for Prometheus UniversalParser.
+    _u_dual_write_meta(
+        project_dir,
+        tool="gearbox", version=VERSION,
+        client_short=(config.get("client_short") or ""),
+        client_name=(config.get("client_name") or ""),
+        engagement_name=(config.get("engagement_name") or ""),
+        target=(config.get("targets") or config.get("target") or
+                ", ".join(sd.get("name", "?") if isinstance(sd, dict) else str(sd)
+                          for sd in (config.get("subdevices") or []))[:200]),
+    )
     console.log(f"Project output directory: {project_dir}", "INFO")
 
     # Expose local IP for QR / join URL generation
@@ -13741,7 +13788,96 @@ def main() -> None:
     )
     orchestrator.run()
 
+    # Synthesise universal findings.json + summary.json from findings.jsonl.
+    _u_synthesize_outputs(project_dir, tool="gearbox", version=VERSION,
+                           config=config)
+
     console.log("GearBox run complete.", "INFO")
+
+
+def _u_synthesize_outputs(project_dir, *, tool: str, version: str,
+                          config: dict) -> None:
+    """Read findings.jsonl, emit universal findings.json + summary.json."""
+    try:
+        import sys as _s
+        if "/opt/pr0t31n/shared" not in _s.path:
+            _s.path.insert(0, "/opt/pr0t31n/shared")
+        import pr0t31n_schema as _us
+    except ImportError:
+        return
+    try:
+        from pathlib import Path as _P
+        jsonl = _P(project_dir) / "findings.jsonl"
+        if not jsonl.exists():
+            return
+        raw_findings = []
+        for line in jsonl.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except Exception:
+                continue
+            if not isinstance(obj, dict):
+                continue
+            # Map Gearbox native schema to universal field names.
+            mapped = dict(obj)
+            if "affected_host" in mapped and not mapped.get("ip"):
+                mapped["ip"] = mapped.pop("affected_host")
+            if "affected_port" in mapped and not mapped.get("port"):
+                try:
+                    mapped["port"] = int(mapped.pop("affected_port") or 0)
+                except (ValueError, TypeError):
+                    mapped["port"] = 0
+            if "severity" in mapped and not mapped.get("risk"):
+                mapped["risk"] = mapped.pop("severity")
+            mapped.setdefault("sources", "gearbox")
+            mapped.setdefault("description", mapped.get("title", ""))
+            mapped.setdefault("remediation", "See module documentation for remediation guidance.")
+            # v1.1 enrichment — Gearbox knows these natively in its Finding
+            # dataclass; bubble them up rather than dropping them on the floor.
+            #   classification, subdevice, interface, instance — already in
+            #   the source dict if present, just keep them as-is (they're
+            #   v1.1 optional fields so they pass through).
+            # cvss_score: ensure float type when present
+            if "cvss_score" in mapped:
+                try:
+                    mapped["cvss_score"] = float(mapped["cvss_score"]) if mapped["cvss_score"] else None
+                except (ValueError, TypeError):
+                    mapped["cvss_score"] = None
+            # cve_ids (list) → cves (comma-string) for v1.1 baseline compat,
+            # but keep the list around too via cve_examples
+            if isinstance(mapped.get("cve_ids"), list) and not mapped.get("cves"):
+                mapped["cves"] = ",".join(mapped["cve_ids"])
+            # tools_used list → source_tools (v1.1 catalogue lineage field)
+            if isinstance(mapped.get("tools_used"), list):
+                mapped["source_tools"] = mapped["tools_used"]
+            raw_findings.append(mapped)
+
+        n = _us.write_universal_findings(
+            project_dir, raw_findings,
+            tool=tool, scope=None, phase="",
+        )
+
+        risk_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
+        for f in raw_findings:
+            r = str(f.get("risk", "INFO")).upper()
+            if r in risk_counts:
+                risk_counts[r] += 1
+        from datetime import datetime as _dt, timezone as _tz
+        now = _dt.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        _us.write_summary(project_dir, _us.make_summary(
+            tool=tool, version=version,
+            scan_start=now, scan_end=now,
+            target=(config.get("targets") or config.get("target") or ""),
+            success=True, total_findings=n, risk_counts=risk_counts,
+        ))
+    except Exception as e:
+        try:
+            console.log(f"universal output synthesis failed: {e}", "WARNING")
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------

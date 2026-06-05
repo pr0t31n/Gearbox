@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.8.0"
+VERSION = "1.9.0"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -3915,12 +3915,14 @@ class NetworkUtils:
 # ---------------------------------------------------------------------------
 
 def _u_write_tool_log(*, cmd, started, ended, exit_code, stdout, stderr,
-                      tool_name, tool_path, output_file, extra_header=None) -> None:
+                      tool_name, tool_path, output_file, extra_header=None,
+                      errors_log=None) -> None:
     """Best-effort universal .log emission via /opt/pr0t31n/shared/pr0t31n_tool_runner.
 
     Silent no-op if the shared module is not installed — never breaks the scan.
-    Per CLAUDE.md Section 15, every third-party tool invocation must emit a
-    sibling .log file containing the exact bash-prompted transcript.
+    Per CLAUDE.md Section 14, every third-party tool invocation emits a
+    sibling .log + tool-output errors are auto-detected and appended to the
+    *errors_log* path when provided (CLAUDE.md Section 14).
     """
     try:
         import sys as _s
@@ -3933,6 +3935,7 @@ def _u_write_tool_log(*, cmd, started, ended, exit_code, stdout, stderr,
             tool_name=tool_name, tool_path=tool_path,
             output_file=output_file,
             extra_header=extra_header,
+            errors_log=errors_log,
         )
     except Exception:
         pass
@@ -3969,6 +3972,9 @@ def run_tool(
     _tool_path = cmd[0] if cmd else (tool_name or "")
     _started = _dt.now().astimezone()
     _log_dir = output_file.parent if output_file else (ctx.instance_dir if hasattr(ctx, "instance_dir") else None)
+    # errors.log path: per-instance, so tool-output errors detected by the
+    # shared runner land in the same errors.log the rest of Gearbox uses.
+    _errors_log = (ctx.instance_dir / "errors.log") if hasattr(ctx, "instance_dir") else None
     _subproc_sem.acquire()
     try:
         result = subprocess.run(
@@ -3995,6 +4001,7 @@ def run_tool(
             tool_name=(tool_name or Path(_tool_path).name),
             tool_path=_tool_path,
             output_file=output_file if output_file else None,
+            errors_log=_errors_log,
         )
         return result.returncode, stdout, stderr
 
@@ -4009,6 +4016,7 @@ def run_tool(
             tool_path=_tool_path,
             output_file=output_file if output_file else None,
             extra_header={"Note": f"TIMEOUT after {timeout}s"},
+            errors_log=_errors_log,
         )
         return -1, "", f"{tool_name} timed out"
     except FileNotFoundError:
@@ -4019,6 +4027,7 @@ def run_tool(
             tool_path=_tool_path,
             output_file=output_file if output_file else None,
             extra_header={"Note": "FileNotFoundError — binary not on PATH"},
+            errors_log=_errors_log,
         )
         return -1, "", f"{tool_name} not found"
     except Exception as e:
@@ -4030,6 +4039,7 @@ def run_tool(
             tool_path=_tool_path,
             output_file=output_file if output_file else None,
             extra_header={"Note": f"EXCEPTION: {type(e).__name__}"},
+            errors_log=_errors_log,
         )
         return -1, "", str(e)
     finally:
@@ -4950,6 +4960,26 @@ class ConfigDiscoveryModule(BaseModule):
                     self.ctx, tool_name="tcpdump", timeout=40)
                 _log(f"  Capture saved → {tcpdump_out.name}")
 
+                # Trawler post-capture pass (CLAUDE.md Section 16) ───────
+                if tcpdump_out.exists() and tcpdump_out.stat().st_size > 0:
+                    try:
+                        import sys as _s
+                        if "/opt/pr0t31n/shared" not in _s.path:
+                            _s.path.insert(0, "/opt/pr0t31n/shared")
+                        import pr0t31n_trawler as _pt
+                        _pt.run_trawler_on_pcap(
+                            tcpdump_out, out_dir,
+                            targets=None, scope="int",
+                            findings_path=(self.ctx.instance_dir / "findings.json"
+                                            if hasattr(self.ctx, "instance_dir") else None),
+                            errors_log=(self.ctx.instance_dir / "errors.log"
+                                         if hasattr(self.ctx, "instance_dir") else None),
+                        )
+                    except Exception as _tw_exc:
+                        self.ctx.logger.warn(
+                            f"Trawler integration error (non-fatal): {_tw_exc}",
+                            tool="trawler")
+
                 configs = self._infer_configs(net_utils)
                 if configs:
                     ip, gw, prefix = configs[0]
@@ -5232,6 +5262,41 @@ class TrafficCollectorModule(BaseModule):
                     tool="tshark")
 
             if pcap_file.exists() and pcap_file.stat().st_size > 0:
+                # ── Trawler post-capture pass (CLAUDE.md Section 16) ──────────
+                # Every pcap-producing tool MUST hand the capture to Trawler so
+                # protocol-level findings (cleartext creds, unencrypted mgmt
+                # protocols, etc.) are surfaced in the originating tool's
+                # findings.json.  Best-effort: failures don't block the scan.
+                try:
+                    import sys as _s
+                    if "/opt/pr0t31n/shared" not in _s.path:
+                        _s.path.insert(0, "/opt/pr0t31n/shared")
+                    import pr0t31n_trawler as _pt
+                    _tw_findings_path = (self.ctx.instance_dir / "findings.json"
+                                          if hasattr(self.ctx, "instance_dir") else None)
+                    _tw_errors_log    = (self.ctx.instance_dir / "errors.log"
+                                          if hasattr(self.ctx, "instance_dir") else None)
+                    _tw_res = _pt.run_trawler_on_pcap(
+                        pcap_file, out_dir,
+                        targets=None,    # auto-extract top talkers from pcap
+                        scope="int",
+                        findings_path=_tw_findings_path,
+                        errors_log=_tw_errors_log,
+                    )
+                    if _tw_res.get("ran"):
+                        _n = len(_tw_res.get("findings", []))
+                        self.ctx.logger.info(
+                            f"Trawler analysed {pcap_file.name}: {_n} finding(s)",
+                            tool="trawler")
+                    elif _tw_res.get("skipped_reason"):
+                        self.ctx.logger.warn(
+                            f"Trawler skipped: {_tw_res['skipped_reason']}",
+                            tool="trawler")
+                except Exception as _tw_exc:
+                    self.ctx.logger.warn(
+                        f"Trawler integration error (non-fatal): {_tw_exc}",
+                        tool="trawler")
+
                 # ── Filter: treat server-only traffic as empty ────────────────
                 # If every IP in the capture belongs to a server interface, the
                 # pcap is self-traffic (e.g. ARP from the server itself).

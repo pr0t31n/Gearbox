@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.7.0"
+VERSION = "1.8.0"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -3914,6 +3914,30 @@ class NetworkUtils:
 # run_tool  (subprocess runner with logging)
 # ---------------------------------------------------------------------------
 
+def _u_write_tool_log(*, cmd, started, ended, exit_code, stdout, stderr,
+                      tool_name, tool_path, output_file, extra_header=None) -> None:
+    """Best-effort universal .log emission via /opt/pr0t31n/shared/pr0t31n_tool_runner.
+
+    Silent no-op if the shared module is not installed — never breaks the scan.
+    Per CLAUDE.md Section 15, every third-party tool invocation must emit a
+    sibling .log file containing the exact bash-prompted transcript.
+    """
+    try:
+        import sys as _s
+        if "/opt/pr0t31n/shared" not in _s.path:
+            _s.path.insert(0, "/opt/pr0t31n/shared")
+        import pr0t31n_tool_runner as _ur
+        _ur.write_tool_log(
+            cmd=cmd, started=started, ended=ended, exit_code=exit_code,
+            stdout=stdout, stderr=stderr,
+            tool_name=tool_name, tool_path=tool_path,
+            output_file=output_file,
+            extra_header=extra_header,
+        )
+    except Exception:
+        pass
+
+
 def run_tool(
     cmd:         list[str],
     ctx:         ModuleContext,
@@ -3926,7 +3950,13 @@ def run_tool(
     Run an external tool as a subprocess.
     Logs the command, streams output, and writes to output_file if provided.
     Returns (returncode, stdout, stderr).
+
+    Also emits a sibling .log file (output_file + '.log', or
+    <tool>_<ts>.log when no output_file is given) containing a bash-prompted
+    transcript, start/end timestamps, exit code, and tool version — per
+    CLAUDE.md Section 15.
     """
+    from datetime import datetime as _dt
     cmd_str  = " ".join(cmd)
     ctx.logger.cmd(cmd, tool=tool_name)
     # Log tool version on first use (cached after first call)
@@ -3936,6 +3966,9 @@ def run_tool(
             ctx.logger.info(f"{tool_name} version: {_tv}", tool=tool_name)
 
     proc_env = {**os.environ, **(env or {})}
+    _tool_path = cmd[0] if cmd else (tool_name or "")
+    _started = _dt.now().astimezone()
+    _log_dir = output_file.parent if output_file else (ctx.instance_dir if hasattr(ctx, "instance_dir") else None)
     _subproc_sem.acquire()
     try:
         result = subprocess.run(
@@ -3956,15 +3989,48 @@ def run_tool(
                     f.write("\n--- STDERR ---\n")
                     f.write(stderr)
 
+        _u_write_tool_log(
+            cmd=cmd, started=_started, ended=_dt.now().astimezone(),
+            exit_code=result.returncode, stdout=stdout, stderr=stderr,
+            tool_name=(tool_name or Path(_tool_path).name),
+            tool_path=_tool_path,
+            output_file=output_file if output_file else None,
+        )
         return result.returncode, stdout, stderr
 
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as _te:
         ctx.logger.warn(f"{tool_name} timed out after {timeout}s", tool=tool_name)
+        _u_write_tool_log(
+            cmd=cmd, started=_started, ended=_dt.now().astimezone(),
+            exit_code=None,
+            stdout=(_te.stdout.decode(errors="replace") if isinstance(_te.stdout, bytes) else (_te.stdout or "")),
+            stderr=(_te.stderr.decode(errors="replace") if isinstance(_te.stderr, bytes) else (_te.stderr or "")),
+            tool_name=(tool_name or Path(_tool_path).name),
+            tool_path=_tool_path,
+            output_file=output_file if output_file else None,
+            extra_header={"Note": f"TIMEOUT after {timeout}s"},
+        )
         return -1, "", f"{tool_name} timed out"
     except FileNotFoundError:
+        _u_write_tool_log(
+            cmd=cmd, started=_started, ended=_dt.now().astimezone(),
+            exit_code=None, stdout="", stderr=f"{tool_name} not found",
+            tool_name=(tool_name or Path(_tool_path).name),
+            tool_path=_tool_path,
+            output_file=output_file if output_file else None,
+            extra_header={"Note": "FileNotFoundError — binary not on PATH"},
+        )
         return -1, "", f"{tool_name} not found"
     except Exception as e:
         ctx.logger.error(f"{tool_name} execution failed: {e}", exc=e, tool=tool_name)
+        _u_write_tool_log(
+            cmd=cmd, started=_started, ended=_dt.now().astimezone(),
+            exit_code=None, stdout="", stderr=str(e),
+            tool_name=(tool_name or Path(_tool_path).name),
+            tool_path=_tool_path,
+            output_file=output_file if output_file else None,
+            extra_header={"Note": f"EXCEPTION: {type(e).__name__}"},
+        )
         return -1, "", str(e)
     finally:
         _subproc_sem.release()
@@ -7315,9 +7381,19 @@ class WebModule(BaseModule):
 
         return targets
 
+    _TLS_PORTS_WEB = {443, 8443, 4443, 9443, 10443}
+
     def _probe_port(self, ip: str, port: int) -> Optional[str]:
-        """Quick HTTP probe — returns URL if port responds to HTTP or HTTPS."""
-        for scheme in ("https", "http"):
+        """Quick HTTP probe — returns URL if port responds to HTTP or HTTPS.
+
+        On a canonical TLS port (443/8443/etc.) only HTTPS is attempted.  If
+        the TLS handshake fails but the server still answers plain HTTP with
+        any code, we must NOT mis-classify the port as scheme=http — that
+        would feed shcheck a URL like http://host:443/ and produce false-
+        positive "missing header" findings for every header.
+        """
+        schemes = ("https",) if port in self._TLS_PORTS_WEB else ("https", "http")
+        for scheme in schemes:
             url = f"{scheme}://{ip}:{port}"
             try:
                 rc, stdout, _ = run_tool(

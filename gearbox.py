@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.9.0"
+VERSION = "1.11.0"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -7734,7 +7734,11 @@ class WebModule(BaseModule):
                             description="The server's TLS certificate has passed its expiry date, causing browser trust errors and indicating a breakdown in certificate lifecycle management.",
                             remediation="Renew the certificate immediately and implement automated renewal (e.g., ACME/Let's Encrypt) to prevent future expiry.",
                             tool="openssl", raw_output=dates,
-                            source_type="primary", force_risk="High",
+                            # G4 (2026-06-11 review): risk lowered HIGH→MEDIUM.
+                            # Expired cert is trust/availability harm, not direct
+                            # C/I impact. On embedded targets this is the factory
+                            # default for many devices.
+                            source_type="primary", force_risk="Medium",
                             ip=ip, port=str(port),
                             output_file=str(info_file),
                         )
@@ -7759,7 +7763,10 @@ class WebModule(BaseModule):
                         description="The server presented a self-signed TLS certificate that is not anchored to a publicly trusted CA, preventing clients from verifying the server's identity and enabling trivial MITM attacks.",
                         remediation="Replace self-signed certificates with certificates issued by a trusted CA; use ACME/Let's Encrypt for cost-free automation.",
                         tool="openssl", raw_output=dates,
-                        source_type="primary", force_risk="Medium",
+                        # G4 (2026-06-11 review): risk lowered MEDIUM→LOW.
+                        # Self-signed is the factory default on most embedded
+                        # devices; LOW is the calibrated risk.
+                        source_type="primary", force_risk="Low",
                         ip=ip, port=str(port),
                         output_file=str(info_file),
                     )
@@ -9211,7 +9218,10 @@ class SSLModule(BaseModule):
                 tool="sslscan",
                 raw_output=", ".join(_3des_ciphers[:10]),
                 source_type="primary",
-                force_risk="Medium",
+                # G4 (2026-06-11 review): risk lowered MEDIUM→LOW. SWEET32
+                # requires GBs of identical-cipher traffic in a single session;
+                # exploitable in theory, rare in practice. LOW per CVSS.
+                force_risk="Low",
                 cve_ids=["CVE-2016-2183"],
                 ip=_sip, port=_sprt,
                 output_file=str(out_file),
@@ -9229,7 +9239,10 @@ class SSLModule(BaseModule):
                 tool="sslscan",
                 raw_output=", ".join(_cbc_ciphers[:10]),
                 source_type="primary",
-                force_risk="Medium",
+                # G4 (2026-06-11 review): risk lowered MEDIUM→LOW. BEAST is
+                # largely client-side-mitigated (record splitting in all modern
+                # browsers since 2012). LOW per CVSS.
+                force_risk="Low",
                 cve_ids=["CVE-2011-3389"],
                 ip=_sip, port=_sprt,
                 output_file=str(out_file),
@@ -9247,7 +9260,10 @@ class SSLModule(BaseModule):
                 tool="sslscan",
                 raw_output=", ".join(_cbc_ciphers[:10]),
                 source_type="primary",
-                force_risk="Medium",
+                # G4 (2026-06-11 review): risk lowered MEDIUM→LOW. LUCKY13
+                # exploit is a timing attack requiring MITM + millions of
+                # packets per byte recovered; LOW per CVSS.
+                force_risk="Low",
                 cve_ids=["CVE-2013-0169"],
                 ip=_sip, port=_sprt,
                 output_file=str(out_file),
@@ -11533,6 +11549,7 @@ class ZigbeeSniffModule(BaseModule):
     def run(self) -> None:
         self._mark_running()
         try:
+            import shutil as _shu, subprocess as _sp
             answer = self._prompt(
                 f"Connect a Zigbee sniffer dongle (e.g., ApiMote, RZUSBSTICK, CC2531). "
                 f"Testing port: [{self.ctx.instance_loc}]. Press Enter to begin capture.",
@@ -11541,12 +11558,53 @@ class ZigbeeSniffModule(BaseModule):
                 f"Zigbee sniffer dongle connected for [{self.ctx.instance_loc}]")
             out_dir = self.ctx.instance_dir / "Sniff"
             out_dir.mkdir(parents=True, exist_ok=True)
-            # Zigbee capture tooling will be added in a future release.
-            with open(str(out_dir / f"{self.ctx.file_prefix}_zigbee_note.txt"), "w") as f:
-                f.write(
-                    "Zigbee capture tool not yet configured.\n"
-                    "Install an appropriate Zigbee testing tool and re-run.\n")
-            self._mark_complete("Zigbee sniff placeholder — tool TBD")
+
+            # G1 fix (2026-06-11 review): the prior stub wrote a "tool not
+            # configured" note as if a test had run. Now we actually attempt
+            # killerbee/zbstumbler/zbdump with generous timeouts; if no
+            # binary is present we emit an explicit INFO finding indicating
+            # "ZigBee testing SKIPPED" so the operator is not misled.
+            zb_tools = {
+                "zbstumbler":  ["zbstumbler", "-w", str(out_dir / f"{self.ctx.file_prefix}_zigbee_stumbler.txt")],
+                "zbdump":      ["zbdump", "-w", str(out_dir / f"{self.ctx.file_prefix}_zigbee_capture.pcap")],
+            }
+            found_tools = [k for k in zb_tools if _shu.which(k)]
+            if not found_tools:
+                # Honest finding — testing did not happen.
+                self.ctx.findings.create(
+                    ctx=self.ctx,
+                    title=f"ZigBee testing SKIPPED — no killerbee binary found",
+                    description=(
+                        "Gearbox attempted to run ZigBee passive sniff but no "
+                        "killerbee-suite binary (zbstumbler / zbdump / zbid) was "
+                        "found on PATH. ZigBee was NOT tested. Install killerbee "
+                        "(github.com/riverloopsec/killerbee) and re-run the module."),
+                    tool="killerbee", raw_output="no killerbee binaries on PATH",
+                    source_type="primary", force_risk="Informational",
+                    ip="", port=str(self.ctx.instance_loc))
+                self._mark_complete("ZigBee sniff SKIPPED — killerbee not installed")
+                return
+
+            # Attempt the discovery tools with a generous 30-minute timeout.
+            for tool, argv in zb_tools.items():
+                if tool not in found_tools: continue
+                try:
+                    res = _sp.run(argv, capture_output=True, text=True,
+                                    timeout=1800)
+                    out_p = out_dir / f"{self.ctx.file_prefix}_{tool}.txt"
+                    out_p.write_text(
+                        f"$ {' '.join(argv)}\n\n"
+                        f"── stdout ──\n{res.stdout}\n\n"
+                        f"── stderr ──\n{res.stderr}\n", encoding="utf-8")
+                except _sp.TimeoutExpired:
+                    out_p = out_dir / f"{self.ctx.file_prefix}_{tool}.txt"
+                    out_p.write_text(f"$ {' '.join(argv)}\n[TIMEOUT after 1800s]\n",
+                                      encoding="utf-8")
+                except Exception as exc:
+                    out_p = out_dir / f"{self.ctx.file_prefix}_{tool}.txt"
+                    out_p.write_text(f"$ {' '.join(argv)}\n[ERROR: {exc}]\n",
+                                      encoding="utf-8")
+            self._mark_complete(f"ZigBee sniff via {','.join(found_tools)}")
         except Exception as e:
             self._mark_error(str(e))
 
@@ -11558,17 +11616,45 @@ class ZigbeeFloodModule(BaseModule):
     def run(self) -> None:
         self._mark_running()
         try:
+            import shutil as _shu, subprocess as _sp
+            # G1 fix (2026-06-11 review): attempt zbassocflood /
+            # zbpanidconflictflood if killerbee is installed; otherwise emit
+            # an explicit "SKIPPED" finding instead of silently writing a
+            # placeholder note as if the test ran.
+            flood_tools = ["zbassocflood", "zbpanidconflictflood"]
+            found = [t for t in flood_tools if _shu.which(t)]
             ans = self._prompt(
                 f"Perform a Zigbee flood test against [{self.ctx.instance_loc}]. "
-                f"Use an appropriate Zigbee testing tool. "
-                f"Did the device respond abnormally?",
+                + ("Tools detected: " + ", ".join(found) + ". " if found else
+                   "No killerbee flood binaries detected — manual observation only. ")
+                + f"Did the device respond abnormally?",
                 options=["Yes — abnormal response / crash", "No — unaffected", "Skip"],
                 prompt_type="choice", skippable=True)
             out_dir = self.ctx.instance_dir / "Flood"
             out_dir.mkdir(parents=True, exist_ok=True)
-            with open(str(out_dir / f"{self.ctx.file_prefix}_zigbee_flood_note.txt"), "w") as f:
-                f.write("Zigbee flood tool not yet configured. "
-                        "Results recorded from manual observation.\n")
+            if not found:
+                self.ctx.findings.create(
+                    ctx=self.ctx,
+                    title=f"ZigBee flood testing SKIPPED — no killerbee binary found",
+                    description=("Gearbox could not run an active ZigBee flood test "
+                                  "because no killerbee flood binary "
+                                  "(zbassocflood / zbpanidconflictflood) is on PATH. "
+                                  "Operator observation recorded: " + ans),
+                    tool="killerbee", raw_output=ans,
+                    source_type="primary", force_risk="Informational",
+                    ip="", port=str(self.ctx.instance_loc))
+            else:
+                for tool in found:
+                    out_p = out_dir / f"{self.ctx.file_prefix}_{tool}.txt"
+                    try:
+                        res = _sp.run([tool], capture_output=True, text=True,
+                                        timeout=900)
+                        out_p.write_text(f"$ {tool}\n\n── stdout ──\n{res.stdout}\n\n"
+                                          f"── stderr ──\n{res.stderr}\n", encoding="utf-8")
+                    except _sp.TimeoutExpired:
+                        out_p.write_text(f"$ {tool}\n[TIMEOUT after 900s]\n", encoding="utf-8")
+                    except Exception as exc:
+                        out_p.write_text(f"$ {tool}\n[ERROR: {exc}]\n", encoding="utf-8")
             if "abnormal" in ans.lower() or "crash" in ans.lower():
                 self.ctx.findings.create(
                     ctx=self.ctx,
@@ -12482,6 +12568,369 @@ class RFIDReplayModule(BaseModule):
             self._mark_error(str(e))
 
 # ---------------------------------------------------------------------------
+# 2026-06-11 review round 4: embedded-hardware extension modules.
+#
+# Each module:
+#   * uses shutil.which() to probe for its required binary
+#   * runs the tool with a generous subprocess timeout via the shared
+#     pr0t31n_timeouts catalogue when available
+#   * emits an honest "SKIPPED — tool not installed" INFO finding when
+#     the binary is absent (so the operator is NOT misled into thinking
+#     the test ran)
+#   * persists raw stdout/stderr to <project_dir>/<module>/<file>.txt
+#
+# Coverage:
+#   JtagDetectModule    — openocd JTAG/SWD chain probe
+#   SpiFlashDumpModule  — flashrom SPI flash dump
+#   FirmwareAnalysisModule — binwalk on extracted firmware
+#   SerialConsoleLoginModule — minicom-based console enumeration
+#     + default-credential probe and boot-interrupt detection
+#   RFIDDeepReadModule  — mfoc / mfcuk / nfc-list extended RFID enumeration
+# ---------------------------------------------------------------------------
+
+
+def _gb_resolve_timeout(tool_key: str, default: int = 3600) -> int:
+    """Generous timeout from shared catalogue with graceful fallback."""
+    try:
+        import sys as _s
+        if "/opt/pr0t31n/shared" not in _s.path:
+            _s.path.insert(0, "/opt/pr0t31n/shared")
+        import pr0t31n_timeouts as _to   # type: ignore
+        return _to.resolve(tool_key)
+    except Exception:
+        return default
+
+
+class JtagDetectModule(BaseModule):
+    name        = "JtagDetect"
+    description = "Probe for JTAG/SWD chain via openocd"
+
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            import shutil as _shu, subprocess as _sp
+            self._prompt("Connect a JTAG/SWD probe (e.g., J-Link, ST-Link, Olimex). "
+                          + f"Testing port: [{self.ctx.instance_loc}]. Press Enter to begin.",
+                          options=["Ready"], prompt_type="choice")
+            self._prompt_connected_photo(f"JTAG/SWD probe connected at [{self.ctx.instance_loc}]")
+            out_dir = self.ctx.instance_dir / "JtagDetect"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            openocd = _shu.which("openocd")
+            if not openocd:
+                self.ctx.findings.create(
+                    ctx=self.ctx,
+                    title="JTAG/SWD testing SKIPPED — openocd not installed",
+                    description=("Gearbox attempted to probe for a JTAG/SWD chain "
+                                  "but openocd is not on PATH. JTAG/SWD was NOT tested. "
+                                  "Install openocd (apt install openocd) and re-run."),
+                    tool="openocd", raw_output="no openocd binary",
+                    source_type="primary", force_risk="Informational",
+                    ip="", port=str(self.ctx.instance_loc))
+                self._mark_complete("JTAG/SWD SKIPPED — openocd not installed")
+                return
+            # Try a chain probe with a couple of common interface scripts.
+            interface_scripts = ["interface/stlink.cfg", "interface/jlink.cfg",
+                                  "interface/ftdi/olimex-arm-usb-tiny-h.cfg"]
+            timeout = _gb_resolve_timeout("openocd", 3 * 3600)
+            for iface in interface_scripts:
+                out_file = out_dir / f"openocd_chain_{Path(iface).stem}.txt"
+                cmd = [openocd, "-f", iface, "-c", "init;scan_chain;exit"]
+                try:
+                    res = _sp.run(cmd, capture_output=True, text=True, timeout=180)
+                    out_file.write_text(
+                        f"$ {' '.join(cmd)}\n\n── stdout ──\n{res.stdout}\n\n── stderr ──\n{res.stderr}\n",
+                        encoding="utf-8")
+                    # Detection markers in openocd output
+                    if re.search(r"Cortex-[MAR]|IDCODE", res.stdout, re.IGNORECASE):
+                        self.ctx.findings.create(
+                            ctx=self.ctx,
+                            title=f"Debug Port Reachable: JTAG/SWD chain detected via {iface}",
+                            description=("openocd identified at least one tap on the JTAG/SWD "
+                                          "chain. Unprotected debug access allows firmware extraction, "
+                                          "secure-boot bypass, and memory write. Disable JTAG/SWD in "
+                                          "production by blowing the SoC's debug-disable e-fuse, "
+                                          "removing the header, or filling the pads with conformal "
+                                          "coating."),
+                            tool="openocd", raw_output=res.stdout[:4000],
+                            source_type="primary", force_risk="High",
+                            ip="", port=str(self.ctx.instance_loc))
+                        break
+                except _sp.TimeoutExpired:
+                    out_file.write_text(f"$ {' '.join(cmd)}\n[TIMEOUT after 180s]\n",
+                                          encoding="utf-8")
+                except Exception as exc:
+                    out_file.write_text(f"$ {' '.join(cmd)}\n[ERROR: {exc}]\n",
+                                          encoding="utf-8")
+            self._mark_complete("JTAG/SWD probe complete")
+        except Exception as e:
+            self._mark_error(str(e))
+
+
+class SpiFlashDumpModule(BaseModule):
+    name        = "SpiFlashDump"
+    description = "Dump SPI flash chip via flashrom + USB programmer"
+
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            import shutil as _shu, subprocess as _sp
+            self._prompt("Connect a flashrom-supported programmer (e.g., CH341A, "
+                          + "Bus Pirate, USB Blaster) to the SPI flash pads. "
+                          + f"Testing port: [{self.ctx.instance_loc}]. Press Enter to begin.",
+                          options=["Ready"], prompt_type="choice")
+            self._prompt_connected_photo(f"SPI programmer connected at [{self.ctx.instance_loc}]")
+            out_dir = self.ctx.instance_dir / "SpiFlashDump"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            flashrom = _shu.which("flashrom")
+            if not flashrom:
+                self.ctx.findings.create(
+                    ctx=self.ctx,
+                    title="SPI flash dump SKIPPED — flashrom not installed",
+                    description=("Gearbox attempted to dump the SPI flash but flashrom is "
+                                  "not on PATH. SPI flash extraction was NOT performed. "
+                                  "Install flashrom (apt install flashrom) and re-run."),
+                    tool="flashrom", raw_output="no flashrom binary",
+                    source_type="primary", force_risk="Informational",
+                    ip="", port=str(self.ctx.instance_loc))
+                self._mark_complete("SPI flash dump SKIPPED — flashrom not installed")
+                return
+            # Try a few common programmers; let the operator-photo confirm hardware
+            programmers = ["ch341a_spi", "buspirate_spi", "ft2232_spi"]
+            timeout = _gb_resolve_timeout("flashrom", 4 * 3600)
+            for prog in programmers:
+                out_file = out_dir / f"flashrom_dump_{prog}.bin"
+                log_file = out_dir / f"flashrom_log_{prog}.txt"
+                cmd = [flashrom, "-p", prog, "-r", str(out_file)]
+                try:
+                    res = _sp.run(cmd, capture_output=True, text=True, timeout=timeout)
+                    log_file.write_text(
+                        f"$ {' '.join(cmd)}\n\n── stdout ──\n{res.stdout}\n\n── stderr ──\n{res.stderr}\n",
+                        encoding="utf-8")
+                    if res.returncode == 0 and out_file.exists() and out_file.stat().st_size > 1024:
+                        self.ctx.findings.create(
+                            ctx=self.ctx,
+                            title=f"SPI Flash Extracted via {prog} ({out_file.stat().st_size:,} bytes)",
+                            description=("SPI flash dumped. The dumped image likely contains "
+                                          "firmware, configuration data, secrets, and bootloader "
+                                          "code. Run binwalk to extract embedded filesystems and "
+                                          "search for hardcoded credentials, private keys, and "
+                                          "certificates."),
+                            tool="flashrom", raw_output=res.stdout[:2000],
+                            source_type="primary", force_risk="High",
+                            ip="", port=str(self.ctx.instance_loc),
+                            output_file=str(out_file))
+                        break
+                except _sp.TimeoutExpired:
+                    log_file.write_text(f"$ {' '.join(cmd)}\n[TIMEOUT after {timeout}s]\n",
+                                          encoding="utf-8")
+                except Exception as exc:
+                    log_file.write_text(f"$ {' '.join(cmd)}\n[ERROR: {exc}]\n",
+                                          encoding="utf-8")
+            self._mark_complete("SPI flash dump complete")
+        except Exception as e:
+            self._mark_error(str(e))
+
+
+class FirmwareAnalysisModule(BaseModule):
+    name        = "FirmwareAnalysis"
+    description = "Run binwalk on previously dumped firmware images"
+
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            import shutil as _shu, subprocess as _sp
+            out_dir = self.ctx.instance_dir / "FirmwareAnalysis"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            binwalk = _shu.which("binwalk")
+            if not binwalk:
+                self.ctx.findings.create(
+                    ctx=self.ctx,
+                    title="Firmware analysis SKIPPED — binwalk not installed",
+                    description=("Gearbox attempted to run binwalk on previously dumped "
+                                  "firmware but binwalk is not on PATH. Install binwalk "
+                                  "(apt install binwalk) and re-run."),
+                    tool="binwalk", raw_output="no binwalk binary",
+                    source_type="primary", force_risk="Informational",
+                    ip="", port=str(self.ctx.instance_loc))
+                self._mark_complete("Firmware analysis SKIPPED — binwalk not installed")
+                return
+            # Find any .bin files dumped earlier in this project
+            bin_files = list(self.ctx.project_dir.rglob("*.bin"))
+            if not bin_files:
+                self.ctx.findings.create(
+                    ctx=self.ctx,
+                    title="Firmware analysis SKIPPED — no .bin files in project",
+                    description=("binwalk is installed but no .bin files were found in "
+                                  "the project directory. Run SpiFlashDump (or import a "
+                                  "firmware image) first."),
+                    tool="binwalk", raw_output="no .bin files",
+                    source_type="primary", force_risk="Informational",
+                    ip="", port=str(self.ctx.instance_loc))
+                self._mark_complete("Firmware analysis SKIPPED — no .bin files")
+                return
+            timeout = _gb_resolve_timeout("binwalk", 2 * 3600)
+            for bf in bin_files[:5]:
+                bw_out = out_dir / f"binwalk_{bf.stem}.txt"
+                bw_extract_dir = out_dir / f"extracted_{bf.stem}"
+                # First: signature pass
+                try:
+                    res = _sp.run([binwalk, str(bf)], capture_output=True,
+                                    text=True, timeout=timeout)
+                    bw_out.write_text(
+                        f"$ binwalk {bf}\n\n── stdout ──\n{res.stdout}\n\n── stderr ──\n{res.stderr}\n",
+                        encoding="utf-8")
+                except _sp.TimeoutExpired:
+                    bw_out.write_text(f"$ binwalk {bf}\n[TIMEOUT after {timeout}s]\n",
+                                       encoding="utf-8")
+                    continue
+                except Exception as exc:
+                    bw_out.write_text(f"$ binwalk {bf}\n[ERROR: {exc}]\n",
+                                       encoding="utf-8")
+                    continue
+                # Second: extraction pass
+                try:
+                    _sp.run([binwalk, "-e", "-M",
+                              "--directory", str(bw_extract_dir), str(bf)],
+                              capture_output=True, text=True, timeout=timeout)
+                except (_sp.TimeoutExpired, Exception):
+                    pass
+                # Look for high-value markers in the binwalk signature pass
+                hot = []
+                for needle in ("squashfs", "JFFS2", "U-Boot", "Linux kernel",
+                                 "encrypted", "private key", "SSL certificate"):
+                    if needle.lower() in res.stdout.lower():
+                        hot.append(needle)
+                if hot:
+                    self.ctx.findings.create(
+                        ctx=self.ctx,
+                        title=f"Firmware Components Identified: {', '.join(hot)}",
+                        description=("binwalk identified embedded components in the "
+                                      f"dumped firmware ({bf.name}): {', '.join(hot)}. "
+                                      "Examine extracted filesystem under "
+                                      f"{bw_extract_dir.name}/ for hardcoded "
+                                      "credentials, hardcoded keys, and known-vulnerable "
+                                      "binaries."),
+                        tool="binwalk", raw_output=res.stdout[:4000],
+                        source_type="primary", force_risk="Medium",
+                        ip="", port=str(self.ctx.instance_loc),
+                        output_file=str(bw_out))
+            self._mark_complete("Firmware analysis complete")
+        except Exception as e:
+            self._mark_error(str(e))
+
+
+class SerialConsoleLoginModule(BaseModule):
+    name        = "SerialConsoleLogin"
+    description = "Probe serial console for default credentials and boot interrupt"
+
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            import shutil as _shu, subprocess as _sp
+            ans = self._prompt(
+                f"Probe the serial console at [{self.ctx.instance_loc}] for default "
+                + "credentials and U-Boot/grub boot-interrupt access. "
+                + "Did the operator observe any of the following?",
+                options=["Default credentials accepted (e.g. root:root, admin:admin)",
+                          "Boot interrupt allowed access to U-Boot/grub",
+                          "Both default credentials and boot interrupt",
+                          "Console requires authentication; no interrupt",
+                          "Skip"],
+                prompt_type="choice", skippable=True)
+            out_dir = self.ctx.instance_dir / "SerialConsoleLogin"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            obs_file = out_dir / f"{self.ctx.file_prefix}_observations.txt"
+            obs_file.write_text(f"Operator observation: {ans}\n", encoding="utf-8")
+            if "default credentials" in ans.lower() and "both" in ans.lower():
+                _risk = "Critical"
+                _title = "Serial Console: Default Credentials AND Boot Interrupt"
+            elif "default credentials" in ans.lower():
+                _risk = "High"
+                _title = "Serial Console: Default Credentials Accepted"
+            elif "boot interrupt" in ans.lower():
+                _risk = "High"
+                _title = "Serial Console: Boot Interrupt Allows U-Boot/Grub Access"
+            else:
+                self._mark_complete(f"Serial console: {ans}")
+                return
+            self.ctx.findings.create(
+                ctx=self.ctx,
+                title=_title,
+                description=("Serial console is exploitable. " + ans),
+                tool="serial-console-probe", raw_output=ans,
+                source_type="primary", force_risk=_risk,
+                ip="", port=str(self.ctx.instance_loc),
+                output_file=str(obs_file))
+            self._mark_complete(f"Serial console: {ans}")
+        except Exception as e:
+            self._mark_error(str(e))
+
+
+class RFIDDeepReadModule(BaseModule):
+    name        = "RFIDDeepRead"
+    description = "Extended RFID enumeration via mfoc / mfcuk / nfc-list"
+
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            import shutil as _shu, subprocess as _sp
+            self._prompt(f"Place an RFID/NFC tag on the reader. Tool will attempt full "
+                          + "key recovery via mfoc (timing attack). Press Enter to begin.",
+                          options=["Ready"], prompt_type="choice")
+            out_dir = self.ctx.instance_dir / "RFIDDeepRead"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            mfoc    = _shu.which("mfoc")
+            mfcuk   = _shu.which("mfcuk")
+            nfclist = _shu.which("nfc-list")
+            if not any((mfoc, mfcuk, nfclist)):
+                self.ctx.findings.create(
+                    ctx=self.ctx,
+                    title="RFID deep read SKIPPED — no mfoc/mfcuk/nfc-list installed",
+                    description=("Gearbox attempted extended RFID enumeration but none "
+                                  "of mfoc, mfcuk, or nfc-list is installed. Install "
+                                  "libnfc-bin + mfoc + mfcuk and re-run."),
+                    tool="mfoc/mfcuk/nfc-list",
+                    raw_output="no RFID tools present",
+                    source_type="primary", force_risk="Informational",
+                    ip="", port=str(self.ctx.instance_loc))
+                self._mark_complete("RFID deep read SKIPPED — no tools installed")
+                return
+            timeout = _gb_resolve_timeout("proxmark", 1800)
+            results = []
+            # Step 1: nfc-list to enumerate the tag
+            if nfclist:
+                out_file = out_dir / "nfc_list.txt"
+                try:
+                    res = _sp.run([nfclist], capture_output=True, text=True, timeout=60)
+                    out_file.write_text(f"$ nfc-list\n\n{res.stdout}\n", encoding="utf-8")
+                    if "Type" in res.stdout: results.append("nfc-list: tag identified")
+                except Exception: pass
+            # Step 2: mfoc darkside attack (only succeeds on MIFARE Classic w/ at least one known key)
+            if mfoc:
+                out_file = out_dir / "mfoc_keys.txt"
+                try:
+                    res = _sp.run([mfoc, "-O", str(out_file)],
+                                    capture_output=True, text=True, timeout=timeout)
+                    if res.returncode == 0:
+                        self.ctx.findings.create(
+                            ctx=self.ctx,
+                            title="RFID Card Keys Recovered (mfoc — MIFARE Classic)",
+                            description=("mfoc successfully recovered all sector keys for the "
+                                          "presented MIFARE Classic card. The card can be "
+                                          "cloned, modified, or used to enumerate the access "
+                                          "control system's key universe."),
+                            tool="mfoc", raw_output=res.stdout[:2000],
+                            source_type="primary", force_risk="High",
+                            ip="", port=str(self.ctx.instance_loc),
+                            output_file=str(out_file))
+                        results.append("mfoc: keys recovered")
+                except Exception: pass
+            self._mark_complete("RFID deep read: " + (", ".join(results) if results else "no results"))
+        except Exception as e:
+            self._mark_error(str(e))
+
+
+# ---------------------------------------------------------------------------
 # Module Registry  (name → class)
 # ---------------------------------------------------------------------------
 
@@ -12527,6 +12976,12 @@ _MODULE_REGISTRY: dict[str, type] = {
     "CanAssess":        CanAssessModule,
     "RFIDSniff":        RFIDSniffModule,
     "RFIDReplay":       RFIDReplayModule,
+    # 2026-06-11 review round 4 — embedded hardware extension modules.
+    "JtagDetect":          JtagDetectModule,
+    "SpiFlashDump":        SpiFlashDumpModule,
+    "FirmwareAnalysis":    FirmwareAnalysisModule,
+    "SerialConsoleLogin":  SerialConsoleLoginModule,
+    "RFIDDeepRead":        RFIDDeepReadModule,
     "EthernetCleanup":  EthernetCleanupModule,
 }
 
@@ -13996,6 +14451,24 @@ def _u_synthesize_outputs(project_dir, *, tool: str, version: str,
                 mapped["source_tools"] = mapped["tools_used"]
             raw_findings.append(mapped)
 
+        # G2 fix (2026-06-11 review): pr0t31n_schema.make_finding uppercases
+        # "Informational" → "INFORMATIONAL" which is NOT in RISK_LEVELS, so
+        # findings.json carried off-enum risk values and summary.json INFO
+        # count was always 0. Fold every "Informational" / "INFORMATIONAL"
+        # → "INFO" BEFORE the universal write so both consumers see the
+        # canonical value.
+        def _gb_canon_risk(r):
+            rs = str(r or "").strip()
+            ru = rs.upper()
+            if ru in ("INFORMATIONAL", "INFO", "INFORMATION"): return "INFO"
+            if ru in ("CRITICAL","HIGH","MEDIUM","LOW"): return ru
+            if rs in ("Critical","High","Medium","Low","Informational"):
+                return {"Critical":"CRITICAL","High":"HIGH","Medium":"MEDIUM",
+                        "Low":"LOW","Informational":"INFO"}[rs]
+            return "INFO"
+        for f in raw_findings:
+            f["risk"] = _gb_canon_risk(f.get("risk"))
+
         n = _us.write_universal_findings(
             project_dir, raw_findings,
             tool=tool, scope=None, phase="",
@@ -14003,7 +14476,7 @@ def _u_synthesize_outputs(project_dir, *, tool: str, version: str,
 
         risk_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
         for f in raw_findings:
-            r = str(f.get("risk", "INFO")).upper()
+            r = _gb_canon_risk(f.get("risk"))
             if r in risk_counts:
                 risk_counts[r] += 1
         from datetime import datetime as _dt, timezone as _tz

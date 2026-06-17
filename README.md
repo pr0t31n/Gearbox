@@ -283,6 +283,10 @@ Phase 3 — Cleanup (sequential)
 
 ```
 <project_dir>/
+├── meta.json                              ← tool identity + version (§13b)
+├── scan.log / scan.log.json               ← timestamped audit log: own version +
+│                                             phase EVENTs + all messages (§13b/§14j/§14k)
+├── errors.log / errors.log.json           ← ERROR-level + TOOL_ERROR entries
 └── CLIENT_SHORT/
     └── device/
         └── <subdevice>/

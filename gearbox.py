@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.11.0"
+VERSION = "1.13.0"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -34,6 +34,14 @@ from dataclasses import dataclass, field  # stdlib — ModuleContext and finding
 from datetime import datetime           # stdlib — timestamps in findings and logs
 from pathlib import Path                # stdlib — cross-platform output directory management
 from typing import Any, Optional        # stdlib — type hints
+
+# §13b/§14j/§14k: run-dir audit logger (scan.log + scan.log.json + errors.log).
+try:
+    if "/opt/pr0t31n/shared" not in sys.path:
+        sys.path.insert(0, "/opt/pr0t31n/shared")
+    import pr0t31n_event_log as _el
+except Exception:
+    _el = None
 
 
 def _clients_base() -> Path:
@@ -2331,6 +2339,21 @@ class Console:
     def __init__(self) -> None:
         self._tty  = sys.stdout.isatty()
         self._lock = threading.Lock()
+        self._runlog = None   # §13b/§14j: run-dir EventLogger, attached in main()
+
+    def attach_run_dir(self, run_dir) -> None:
+        """§13b/§14j/§14k: bring up the on-disk audit log for this run and record
+        the tool's own version as a startup EVENT. Console.log()/status_update()
+        forward here so every message + phase transition is persisted with a
+        timestamp (the __GB_* token stream is ephemeral / live-UI only)."""
+        if _el is None:
+            return
+        try:
+            self._runlog = _el.EventLogger(Path(run_dir) / "scan.log",
+                                            errors_path=Path(run_dir) / "errors.log")
+            self._runlog.event(f"GearBox v{VERSION} started")
+        except Exception:
+            self._runlog = None
 
     def start(self) -> None:
         """Initialise the display. Call once at script start."""
@@ -2340,6 +2363,15 @@ class Console:
         self._render_banner()
 
     def log(self, message: str, level: str = "INFO") -> None:
+        # §13b: persist every message to the run-dir audit log with a timestamp.
+        if self._runlog is not None:
+            try:
+                lv = (level or "INFO").upper()
+                if lv == "ERROR":     self._runlog.error(message)
+                elif lv == "WARNING": self._runlog.warn(message)
+                else:                 self._runlog.info(message)
+            except Exception:
+                pass
         with self._lock:
             if not self._tty:
                 sys.stdout.write(GB_LOG_PREFIX + f"[{level}] {message}\n")
@@ -2464,6 +2496,15 @@ class Console:
             "detail":    detail,
             "timestamp": datetime.now().isoformat(),
         }
+        # §14j: persist the phase/module transition to the audit log with a
+        # timestamp (the __GB_STATUS__ token below is ephemeral / live-UI only).
+        if self._runlog is not None:
+            try:
+                self._runlog.event(
+                    f"phase {interface}/{instance}/{module}: {status}"
+                    + (f" — {detail}" if detail else ""))
+            except Exception:
+                pass
         if not self._tty:
             sys.stdout.write(GB_STATUS_PREFIX + json.dumps(payload) + "\n")
             sys.stdout.flush()
@@ -3216,6 +3257,12 @@ class FindingManager:
         all_files = list(output_files)
         if output_file and output_file not in all_files:
             all_files.insert(0, output_file)
+        # §13c: store evidence paths relative to the run directory root.
+        try:
+            _gb_root = Path(self._jsonl_path).resolve().parent
+            all_files = [_gb_rel(_f, _gb_root) for _f in all_files if _f]
+        except Exception:
+            pass
 
         instance_key = f"{ctx.subdevice_key}.{ctx.interface}.{ctx.instance_key}"
         dedup_key = f"{instance_key}::{title.lower()}::{ip}::{port}"
@@ -3939,6 +3986,55 @@ def _u_write_tool_log(*, cmd, started, ended, exit_code, stdout, stderr,
         )
     except Exception:
         pass
+
+
+def _gb_rel(p, root) -> str:
+    """§13c: return path relative to the run root, or the original on failure."""
+    try:
+        return str(Path(p).resolve().relative_to(Path(root).resolve()))
+    except Exception:
+        return str(p)
+
+
+def _hw_run(cmd, ctx=None, tool_name: str = "", output_file=None,
+            timeout: int = 60, text: bool = True, **kw):
+    """§14: drop-in subprocess.run for hardware tools (get-edid / edid-decode /
+    cec-client) that don't go through run_tool — ALSO emits a .log sibling via
+    pr0t31n_tool_runner. Returns the CompletedProcess unchanged."""
+    import subprocess as _sp
+    from datetime import datetime as _dt, timezone as _tz
+    started = _dt.now(_tz.utc)
+    proc = None
+    rc, out, err = -1, "", ""
+    try:
+        proc = _sp.run(cmd, capture_output=True, text=text, timeout=timeout, **kw)
+        rc = proc.returncode
+        out = proc.stdout if isinstance(proc.stdout, str) else ""   # binary → empty (noted)
+        err = proc.stderr if isinstance(proc.stderr, str) else (
+            (proc.stderr or b"").decode("utf-8", "replace") if proc.stderr else "")
+    except _sp.TimeoutExpired:
+        err, rc = "(timeout)", -1
+        proc = _sp.CompletedProcess(cmd, rc, b"" if not text else "", b"" if not text else "")
+    ended = _dt.now(_tz.utc)
+    try:
+        import sys as _s
+        if "/opt/pr0t31n/shared" not in _s.path:
+            _s.path.insert(0, "/opt/pr0t31n/shared")
+        import pr0t31n_tool_runner as _ur
+        _logdir = None
+        if output_file is None and ctx is not None:
+            _logdir = getattr(ctx, "instance_dir", None)
+        _ur.write_tool_log(
+            cmd=cmd, started=started, ended=ended, exit_code=rc,
+            stdout=out, stderr=err,
+            tool_name=tool_name or (cmd[0] if cmd else "tool"),
+            output_file=str(output_file) if output_file else None,
+            log_dir=str(_logdir) if _logdir else None,
+            extra_header=(None if text else {"Note": "binary output — see primary artifact"}),
+        )
+    except Exception:
+        pass
+    return proc
 
 
 def run_tool(
@@ -10635,7 +10731,7 @@ class EDIDModule(BaseModule):
         if not _auto_install_video_tool("get-edid"):
             return b""
         try:
-            r = subprocess.run(["get-edid"], capture_output=True, timeout=15)
+            r = _hw_run(["get-edid"], self.ctx, tool_name="get-edid", timeout=15, text=False)
             if r.returncode == 0 and r.stdout:
                 self.ctx.logger.info("EDID read via get-edid", tool="get-edid")
                 return r.stdout
@@ -10649,9 +10745,9 @@ class EDIDModule(BaseModule):
         bin_path = out_dir / f"{self.ctx.file_prefix}_edid.bin"
         bin_path.write_bytes(edid_bytes)
         try:
-            r = subprocess.run(
-                ["edid-decode", str(bin_path)],
-                capture_output=True, text=True, timeout=15)
+            r = _hw_run(
+                ["edid-decode", str(bin_path)], self.ctx,
+                tool_name="edid-decode", output_file=bin_path, timeout=15)
             return (r.stdout + r.stderr).strip()
         except Exception as e:
             self.ctx.logger.warn(f"edid-decode failed: {e}", tool="edid-decode")
@@ -11173,9 +11269,9 @@ class HdmiCECModule(BaseModule):
         # ── 2. cec-client -l ─────────────────────────────────────────────
         list_output = ""
         try:
-            r = subprocess.run(
-                ["cec-client", "-l"],
-                capture_output=True, text=True, timeout=10)
+            r = _hw_run(
+                ["cec-client", "-l"], self.ctx,
+                tool_name="cec-client", timeout=10)
             list_output = (r.stdout + r.stderr).strip()
             lines.append(f"\ncec-client -l output:\n{list_output}")
             self.ctx.logger.info(
@@ -14289,6 +14385,8 @@ def main() -> None:
                 ", ".join(sd.get("name", "?") if isinstance(sd, dict) else str(sd)
                           for sd in (config.get("subdevices") or []))[:200]),
     )
+    # §13b/§14j/§14k: bring up the on-disk audit log now that the run dir exists.
+    console.attach_run_dir(project_dir)
     console.log(f"Project output directory: {project_dir}", "INFO")
 
     # Expose local IP for QR / join URL generation

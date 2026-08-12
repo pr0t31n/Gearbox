@@ -2,13 +2,14 @@
 
 **Device security assessment orchestrator** — multi-interface hardware testing from photo capture through Nessus vulnerability scanning, in a single structured pipeline.
 
-Gearbox automates security assessments of physical devices across Ethernet, USB, HDMI, serial, RFID, Zigbee, and CAN bus interfaces. It reads a YAML project file defining device subcomponents and interface instances, then runs a phased pipeline of 40+ testing modules against each instance: network discovery and DHCP server setup, Nessus scanning, LLMNR/NBT-NS poisoning, per-host port scanning, banner grabbing, TLS/SSL analysis, SSH hardening, SMB enumeration, web vulnerability scanning, and interface-specific hardware tests. All findings are deduplicated, CVE-enriched, and written to structured JSONL and SQLite output. When launched by [Gauntlet](../gauntlet/), Gearbox switches to protocol token mode for live streaming to the web UI.
+Gearbox automates security assessments of physical devices across Ethernet, USB, HDMI, serial, RFID, Zigbee, Bluetooth (BR/EDR + BLE), and CAN bus interfaces. It reads a YAML project file defining device subcomponents and interface instances, then runs a phased pipeline of 40+ testing modules against each instance: network discovery and DHCP server setup, Nessus scanning, LLMNR/NBT-NS poisoning, per-host port scanning, banner grabbing, TLS/SSL analysis, SSH hardening, SMB enumeration, web vulnerability scanning, and interface-specific hardware tests. All findings are deduplicated, CVE-enriched, and written to structured JSONL and SQLite output. When launched by [Gauntlet](../gauntlet/), Gearbox switches to protocol token mode for live streaming to the web UI.
 
 ---
 
 ## Features
 
-- **Multi-interface pipeline** — Ethernet, USB, HDMI, Serial/CAN, RFID, Zigbee, and network tap interfaces each get their own module set
+- **Multi-interface pipeline** — Ethernet, USB, HDMI, Serial/CAN, RFID, Zigbee, Bluetooth (BR/EDR + BLE), and network tap interfaces each get their own module set
+- **Zero-knowledge Bluetooth assessment** — seven-phase BR/EDR + BLE chain (discovery → pairing/SMP triage → passive sniff + crackle → active exploitation) with oracle-driven detection across Bluetooth 2.0 through BLE 5.4; hardware-picker with Quiver firmware-flash guidance
 - **Per-instance orchestration** — YAML defines subdevices, interfaces, and individual port instances; each instance runs the full pipeline independently with its own output directory and findings context
 - **Background parallelism** — Nessus and Responder run as background threads through phases 1 and 2; per-host service checks (SSL, SSH, SMB, web, NFS, FTP, banner grab) run concurrently (6 workers)
 - **Checkpoint resume** — `progress.json` tracks every completed module; `--resume` skips already-finished work across sessions
@@ -69,6 +70,16 @@ Optional (interface-specific):
 | `candump`, `cansend`, `canplayer` | CAN bus | `apt install can-utils` |
 | `minicom` | Serial | `apt install minicom` |
 | `proxmark3` (`pm3`) | RFID/NFC | Build from source |
+| `bluetoothctl`, `btmgmt`, `btmon`, `gatttool`, `sdptool`, `l2ping` | Bluetooth | `apt install bluez bluez-hcidump` |
+| `bettercap` | Bluetooth (BLE recon/write) | `apt install bettercap` |
+| `crackle` | Bluetooth (LE-Legacy crack) | Build from source (`git clone mikeryan/crackle && make`) |
+| `sniff_receiver.py` (Sniffle) | Bluetooth (passive LE capture) | `git clone nccgroup/Sniffle` + flash board via Quiver |
+| `ubertooth-btle` | Bluetooth (LE sniff) | `apt install ubertooth` + flash via Quiver |
+
+The Bluetooth toolchain is installed by the dedicated **Phase 4b** of `install.py`
+(`--skip-bt` to opt out), which is isolated so a distro-specific package can never abort
+the core install. Passive sniffing requires a flashed sniffer board — provision it with
+**Quiver** before running the Bluetooth module.
 
 Go 1.18+ is required for nuclei and gowitness. Gearbox will detect and offer to install it automatically.
 
@@ -162,7 +173,7 @@ subdevices:
           - location: "DB9 Console Port"
 ```
 
-Supported interface types: `Ethernet`, `USB`, `HDMI`, `Serial`, `Zigbee`, `RFID`, `Ethernet_tap`
+Supported interface types: `Ethernet`, `USB`, `HDMI`, `Serial`, `Zigbee`, `Bluetooth`, `RFID`, `Ethernet_tap`
 
 Each instance gets its own output directory, findings database, and module completion state.
 
@@ -241,6 +252,57 @@ Each instance gets its own output directory, findings database, and module compl
 | **Photo** | Photo capture of Zigbee antenna/port | qrcode |
 | **Sniff** | Capture Zigbee frames (requires hardware sniffer) | wireshark, scapy |
 | **Flood** | Zigbee packet injection and flooding | scapy |
+
+### Bluetooth (`Bluetooth`)
+
+A single **zero-knowledge** BR/EDR + BLE assessment module that runs a seven-phase
+attack chain against whatever the device under test exposes — no target identity is
+assumed. Detection is **oracle-driven**: the SMP AuthReq byte (Secure-Connections /
+MITM / key-size bits), the ATT error opcodes (`0x05`/`0x0F`/`0x08`/`0x0C`), and the
+advertising address type / AD structures are all cleartext-observable, so each
+pairing, GATT, privacy and CVE-family weakness is *ruled out* generically. It surfaces
+findings such as a static-passkey LESC device from generic pairing analysis alone.
+
+| Module | Description | Tools |
+|--------|-------------|-------|
+| **Photo** | Photo capture of the BT test hardware connected to the DUT | qrcode |
+| **Bluetooth** | Full chain: HW setup → discovery → GATT/SDP enum → pairing/SMP triage → passive sniff + crackle → active exploitation → cleanup | bluetoothctl, btmgmt, btmon, gatttool, sdptool, l2ping, bettercap, crackle, sniff_receiver.py (Sniffle), ubertooth-btle |
+
+**Phases**
+
+1. **Hardware setup** — choose the testing hardware from a menu; each option prints
+   its setup steps and the exact **Quiver** firmware-flash payload
+   (`FIRMWARE - Flash Sniffle firmware`, `FIRMWARE - Flash nRF Sniffer firmware`,
+   `FIRMWARE - Flash ButteRFly (BLE MITM)`, `FIRMWARE - Firmware Update (ubertooth-dfu)`).
+2. **Discovery** — zero-knowledge BR/EDR + LE scan (`btmgmt find` / `bluetoothctl` /
+   `hcitool lescan`) with a ground-truth `btmon` OTA capture; per-device inventory and
+   privacy checks (static/public address, identifier leakage in advertising).
+3. **Enumeration** — GATT service/characteristic discovery (`gatttool`) and classic SDP
+   (`sdptool browse`).
+4. **Pairing / SMP triage** — observes the SMP Pairing Request/Response via `btmon`,
+   decoding LESC-vs-Legacy, MITM protection, IO capability and key size; a forced
+   downgrade probe (`btmgmt sc off` / `io-cap NoInputNoOutput`) tests whether the device
+   accepts weaker security.
+5. **Passive sniff + crack** — with a flashed sniffer board, captures a pairing to a
+   crackle-ready pcap (Sniffle / Ubertooth) and runs **crackle**: an LTK recovery
+   confirms LE-Legacy passive decryption; a "LE Secure Connections" result positively
+   confirms LESC (not passively crackable).
+6. **Active exploitation** — unauthenticated GATT read/write/notify tests (safety-gated
+   for medical actuators), operator-driven MITM/GATT-relay, bounded/authorized DoS
+   (BlueSmack / l2ping flood), and chip/OS-fingerprint surface flags for the
+   SweynTooth, BrakTooth, BleedingTooth and BlueBorne CVE families.
+7. **Cleanup** — unpair/forget the device and restore the controller.
+
+Every finding maps to a `findings_catalogue.json` entry (CVE/CWE/CVSS/framework
+mappings) covering pairing (Just Works, LE-Legacy, static passkey, method confusion,
+downgrade, short key, CVE-2018-5383), key negotiation/impersonation (KNOB, BLUFFS,
+BIAS, BLURtooth, BLESA), GATT abuse, privacy, the four memory-corruption families, and
+DoS — across Bluetooth 2.0/2.1/3.0 BR/EDR through BLE 5.4.
+
+> **Hardware note:** a plain BlueZ USB adapter does active GATT + pairing only — it is
+> **not** a promiscuous over-the-air sniffer. Passive capture / crackle / LESC
+> confirmation require a flashed sniffer board (Sniffle, nRF Sniffer, ButteRFly, or
+> Ubertooth), provisioned via Quiver.
 
 ### Network Tap (`Ethernet_tap`)
 

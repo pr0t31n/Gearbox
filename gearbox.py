@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.13.0"
+VERSION = "1.14.0"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -422,6 +422,68 @@ REQUIRED_TOOLS: list[dict] = [
      "extra_paths":["~/shcheck/shcheck.py","/usr/local/bin/shcheck.py",
                     "~/.local/bin/shcheck.py","/usr/bin/shcheck.py"],
      "interfaces":["Ethernet"], "os_support":["linux","darwin"]},
+    # ── Bluetooth / BLE toolchain (see install.py Phase 4b) ──────────────────
+    {"bin":"bluetoothctl", "apt_name":"bluez",              "brew_name":None,
+     "pip_name":None,    "git_repo":None,  "git_subdir":"",
+     "install_note":"Core BlueZ stack — also provides hcitool/sdptool/l2ping/btmgmt/btmon",
+     "required":False,   "needs_sudo":True,
+     "kali_apt_name":"bluez",
+     "extra_paths":["/usr/bin/bluetoothctl","/usr/local/bin/bluetoothctl"],
+     "interfaces":["Bluetooth"], "os_support":["linux"]},
+    {"bin":"btmgmt",     "apt_name":"bluez",                "brew_name":None,
+     "pip_name":None,    "git_repo":None,  "git_subdir":"",
+     "install_note":"BlueZ management CLI (pairing / sc / io-cap control)",
+     "required":False,   "needs_sudo":True,
+     "kali_apt_name":"bluez",
+     "extra_paths":["/usr/bin/btmgmt","/usr/local/bin/btmgmt"],
+     "interfaces":["Bluetooth"], "os_support":["linux"]},
+    {"bin":"btmon",      "apt_name":"bluez",                "brew_name":None,
+     "pip_name":None,    "git_repo":None,  "git_subdir":"",
+     "install_note":"BlueZ HCI/SMP monitor — decoded pairing transcripts",
+     "required":False,   "needs_sudo":True,
+     "kali_apt_name":"bluez",
+     "extra_paths":["/usr/bin/btmon","/usr/local/bin/btmon"],
+     "interfaces":["Bluetooth"], "os_support":["linux"]},
+    {"bin":"gatttool",   "apt_name":"bluez",                "brew_name":None,
+     "pip_name":None,    "git_repo":None,  "git_subdir":"",
+     "install_note":"Deprecated GATT client (still shipped on Kali) — GATT read/write",
+     "required":False,   "needs_sudo":False,
+     "kali_apt_name":"bluez",
+     "extra_paths":["/usr/bin/gatttool","/usr/local/bin/gatttool"],
+     "interfaces":["Bluetooth"], "os_support":["linux"]},
+    {"bin":"bettercap",  "apt_name":"bettercap",            "brew_name":"bettercap",
+     "pip_name":None,    "git_repo":None,  "git_subdir":"",
+     "install_note":"BLE recon/enum/write (ble.* modules)",
+     "required":False,   "needs_sudo":True,
+     "kali_apt_name":"bettercap",
+     "extra_paths":["/usr/bin/bettercap","/usr/local/bin/bettercap"],
+     "interfaces":["Bluetooth"], "os_support":["linux","darwin"]},
+    {"bin":"crackle",    "apt_name":"crackle",              "brew_name":None,
+     "pip_name":None,
+     "git_repo":"https://github.com/mikeryan/crackle.git",
+     "git_subdir":"",
+     "install_note":"BLE legacy-pairing TK/LTK cracker — built from source (make)",
+     "required":False,   "needs_sudo":False,
+     "kali_apt_name":"crackle",
+     "extra_paths":["/opt/crackle/crackle","/usr/local/bin/crackle","/usr/bin/crackle"],
+     "interfaces":["Bluetooth"], "os_support":["linux"]},
+    {"bin":"sniff_receiver.py", "apt_name":None,            "brew_name":None,
+     "pip_name":None,
+     "git_repo":"https://github.com/nccgroup/Sniffle.git",
+     "git_subdir":"python_cli",
+     "install_note":"Sniffle host CLI (TI CC1352/CC26x2) — crackle-ready LE capture",
+     "required":False,   "needs_sudo":False,
+     "kali_apt_name":None,
+     "extra_paths":["/opt/Sniffle/python_cli/sniff_receiver.py",
+                    "~/Sniffle/python_cli/sniff_receiver.py"],
+     "interfaces":["Bluetooth"], "os_support":["linux","darwin"]},
+    {"bin":"ubertooth-btle", "apt_name":"ubertooth",        "brew_name":"ubertooth",
+     "pip_name":None,    "git_repo":None,  "git_subdir":"",
+     "install_note":"Ubertooth One BLE sniffer (crackle-native pcap)",
+     "required":False,   "needs_sudo":True,
+     "kali_apt_name":"ubertooth",
+     "extra_paths":["/usr/bin/ubertooth-btle","/usr/local/bin/ubertooth-btle"],
+     "interfaces":["Bluetooth"], "os_support":["linux"]},
 ]
 
 # ---------------------------------------------------------------------------
@@ -442,6 +504,7 @@ INTERFACE_MODULES: dict[str, list[str]] = {
     "Rca":          ["Photo", "Input", "Output"],
     "Aux":          ["Photo", "Input", "Output"],
     "Zigbee":       ["Photo", "Sniff", "Flood"],
+    "Bluetooth":    ["Photo", "Bluetooth"],
     "DB9":          ["Photo", "SerialDetect", "CanAssess"],
     "RFID":         ["Photo", "RFIDSniff", "RFIDReplay"],
 }
@@ -4178,6 +4241,20 @@ _TOOL_VERSION_CMDS: dict[str, list[str]] = {
     "enum4linux":  ["enum4linux", "--version"],
     "crackmapexec": ["crackmapexec", "--version"],
     "impacket":   ["impacket-wmiexec", "--version"],
+    # Bluetooth / BLE toolchain
+    "bluetoothctl": ["bluetoothctl", "--version"],
+    "btmgmt":      [],                       # no version flag
+    "btmon":       ["btmon", "--version"],
+    "hcitool":     [],                       # deprecated; no version flag
+    "gatttool":    [],                       # deprecated; no version flag
+    "sdptool":     [],                       # no version flag
+    "l2ping":      [],                       # no version flag
+    "hciconfig":   [],                       # no version flag
+    "bettercap":   ["bettercap", "-version"],
+    "crackle":     [],                       # prints usage/version on run
+    "ubertooth-btle": ["ubertooth-util", "-v"],
+    "spooftooph":  [],
+    "sniff_receiver.py": [],                 # Sniffle host CLI
 }
 
 
@@ -11772,6 +11849,1119 @@ class ZigbeeFloodModule(BaseModule):
 
 
 # ---------------------------------------------------------------------------
+# Bluetooth / BLE Module  (zero-knowledge BR/EDR + LE assessment)
+# ---------------------------------------------------------------------------
+# One module, seven phases: hardware setup -> discovery -> enumeration ->
+# pairing/SMP security -> passive sniff + crack -> active exploitation ->
+# cleanup.  Detection is ORACLE-DRIVEN, not target-specific: the SMP AuthReq
+# byte (SC / MITM / key-size bits), the ATT error opcodes (0x05/0x0F/0x08/0x0C)
+# and the advertising address type / AD structures are all cleartext-observable,
+# so the module rules out each pairing / GATT / privacy / CVE-family weakness
+# generically without any prior knowledge of the device under test.
+
+# BLE SIG Company Identifiers (subset) — used to fingerprint the SoC vendor from
+# advertising Manufacturer-Specific Data and flag the matching CVE family.
+_BT_COMPANY_IDS: dict[int, str] = {
+    0x0000: "Ericsson", 0x0002: "Intel", 0x000A: "Cambridge Silicon Radio (CSR/Qualcomm)",
+    0x000F: "Broadcom", 0x004C: "Apple", 0x0059: "Nordic Semiconductor",
+    0x0075: "Samsung", 0x0087: "Garmin", 0x00E0: "Google",
+    0x0107: "Espressif (ESP32)", 0x0134: "Telink Semiconductor",
+    0x0157: "Anhui Huami", 0x0499: "Ruuvi", 0x02E5: "Espressif (ESP32)",
+    0x0501: "Dialog Semiconductor", 0x030A: "STMicroelectronics",
+    0x0018: "Texas Instruments", 0x01A9: "NXP", 0x0362: "Microchip",
+}
+
+# Chip-vendor -> memory-corruption CVE family it is historically exposed to
+# (fingerprint-driven surface flag; confirmed only against SoC + SDK/firmware
+# version, which the operator supplies).
+_BT_VENDOR_CVE_FAMILY: dict[str, dict] = {
+    "telink":     {"family": "SweynTooth", "note": "Telink BLE SoCs — incl. Zero-LTK Installation (CVE-2019-19194, security bypass)."},
+    "espressif":  {"family": "BrakTooth", "note": "Espressif ESP32 BR/EDR — incl. Feature-Pages arbitrary code execution (CVE-2021-28139)."},
+    "cypress":    {"family": "SweynTooth/BrakTooth", "note": "Cypress PSoC — Link-Layer Length Overflow (CVE-2019-16336) and BrakTooth slot overflows."},
+    "nxp":        {"family": "SweynTooth", "note": "NXP KW41Z — Link-Layer Length Overflow (CVE-2019-17519)."},
+    "dialog":     {"family": "SweynTooth", "note": "Dialog DA145xx/DA146xx — Truncated L2CAP / Silent Length Overflow (CVE-2019-17517/17518)."},
+    "texas instruments": {"family": "SweynTooth/BrakTooth", "note": "TI CC2640R2/CC2540/CC2564C — Public-Key crash / AU-Rand flooding (CVE-2019-17520/19193)."},
+    "stmicro":    {"family": "SweynTooth", "note": "STMicro BlueNRG-2/WB55 — Sequential ATT Deadlock (CVE-2019-19192)."},
+    "microchip":  {"family": "SweynTooth", "note": "Microchip ATSAMB11 — Invalid L2CAP Fragment (CVE-2019-19195)."},
+    "qualcomm":   {"family": "BrakTooth", "note": "Qualcomm CSR8811/8510 — LMP 2-DH1 overflow (CVE-2021-35093); some parts 'no fix planned'."},
+    "cambridge silicon radio": {"family": "BrakTooth", "note": "CSR/Qualcomm — BrakTooth LMP overflows."},
+    "broadcom":   {"family": "BleedingTooth/InternalBlue", "note": "Broadcom/Cypress controllers — EIR heap overflow (CVE-2019-11516); InternalBlue-class exposure."},
+    "intel":      {"family": "BrakTooth", "note": "Intel AX200 — Invalid Timing Accuracy / Paging-Scan deadlock (CVE-2021-33139/33155)."},
+}
+
+# Hardware options offered at Phase 0.  quiver = the exact Quiver firmware-flash
+# payload that provisions the board (see /opt/pr0t31n/Quiver).
+_BT_HARDWARE: list[dict] = [
+    {"key": "adapter", "sniffer": False, "crackle_ready": False,
+     "label": "Built-in / USB BlueZ adapter (CSR / Intel / Realtek)",
+     "quiver": None,
+     "setup": ["No firmware flash needed. Plug in and `sudo hciconfig hci0 up`.",
+               "Active GATT client + pairing negotiation ONLY — a normal HCI",
+               "controller sees only its own traffic; it is NOT a promiscuous",
+               "over-the-air sniffer, so it cannot passively capture a pairing",
+               "for crackle. Pair it with a sniffer board (options 2-5) for the",
+               "passive-crack and LESC-confirmation phases."]},
+    {"key": "sniffle", "sniffer": True, "crackle_ready": True,
+     "label": "TI CC1352P-4 / CC26x2R1 / Sonoff CC2652P — NCC Sniffle",
+     "quiver": "FIRMWARE - Flash Sniffle firmware",
+     "setup": ["Flash with Quiver payload: 'FIRMWARE - Flash Sniffle firmware'",
+               "  (targets cc1352p4 / cc26x2r1; Sonoff via cc2538-bsl).",
+               "Capture: sniff_receiver.py -s /dev/ttyACM0 -m <MAC> -o pairing.pcap",
+               "  (omit -a so it FOLLOWS the target into the connection).",
+               "Output linktype LE_LL_WITH_PHDR (256) → directly crackle-readable.",
+               "TOP PICK for the capture→crackle / LESC-confirmation path."]},
+    {"key": "nrfsniffer", "sniffer": True, "crackle_ready": False,
+     "label": "Nordic nRF52840 / nRF52833 — nRF Sniffer for Wireshark",
+     "quiver": "FIRMWARE - Flash nRF Sniffer firmware",
+     "setup": ["Flash with Quiver payload: 'FIRMWARE - Flash nRF Sniffer firmware'",
+               "  (targets nordic_nrf52840 / nrf52833_dk).",
+               "Capture via the Wireshark nRF Sniffer extcap (GUI, follow device).",
+               "Output linktype NORDIC_BLE (272) → NOT directly crackle-readable;",
+               "convert with bsniffhub before cracking. Best Wireshark UX."]},
+    {"key": "butterfly", "sniffer": True, "crackle_ready": True,
+     "label": "Nordic nRF52840 — WHAD / ButteRFly (sniff + inject/MITM)",
+     "quiver": "FIRMWARE - Flash ButteRFly (BLE MITM)",
+     "setup": ["Flash with Quiver payload: 'FIRMWARE - Flash ButteRFly (BLE MITM)'",
+               "  (targets nordic_nrf52840).",
+               "Sniff: wsniff -i uart0 -o ble.pcap ble --follow-connection",
+               "  → LE_LL_WITH_PHDR (256), crackle-ready.",
+               "Also drives active link-layer MITM/injection via WHAD",
+               "  (wble-central / wble-periph / wble-proxy)."]},
+    {"key": "ubertooth", "sniffer": True, "crackle_ready": True,
+     "label": "Ubertooth One — ubertooth-btle",
+     "quiver": "FIRMWARE - Firmware Update (ubertooth-dfu)",
+     "setup": ["Flash/update with Quiver payload: 'FIRMWARE - Firmware Update",
+               "  (ubertooth-dfu)' (match host tools to firmware version).",
+               "Capture: ubertooth-btle -f -t <MAC> -q crack.pcap",
+               "  (-q = LL_WITH_PHDR 256, -c = PPI 192 — both crackle-native)."]},
+    {"key": "microbit", "sniffer": True, "crackle_ready": True,
+     "label": "BBC micro:bit ×1-3 — btlejack (follow / jam / hijack)",
+     "quiver": None,
+     "setup": ["Flash: btlejack -i  (writes firmware to every mounted micro:bit).",
+               "Capture/follow: btlejack -f <access-addr> -x ll_phdr -o cap.pcap.",
+               "Hijack an ESTABLISHED connection: btlejack -f <aa> -t -m 0x1fffffffff.",
+               "micro:bit v2 / nRF52833 needs the separate btlejack-firmware-nrf52 build."]},
+    {"key": "esp32", "sniffer": False, "crackle_ready": False,
+     "label": "ESP32 (ESP-WROVER-KIT) — BrakTooth BR/EDR fuzzing",
+     "quiver": None,
+     "setup": ["Flash: python3 firmware.py flash /dev/ttyUSB1  (esptool).",
+               "Fuzz/exploit BR/EDR: bin/bt_exploiter --host-port=/dev/ttyUSB1",
+               "  --target=<MAC> --exploit=au_rand_flooding  (list: bt_fuzzer",
+               "  --list-exploits). CLASSIC Bluetooth only — not a BLE sniffer."]},
+]
+
+
+def _bt_which(name: str) -> Optional[str]:
+    """Locate a BT tool binary (PATH + common install dirs, incl. Sniffle CLI)."""
+    p = shutil.which(name)
+    if p:
+        return p
+    for cand in (f"/usr/bin/{name}", f"/usr/local/bin/{name}", f"/opt/{name}"):
+        if os.path.exists(cand):
+            return cand
+    if name == "sniff_receiver.py":
+        for cand in ("/opt/Sniffle/python_cli/sniff_receiver.py",
+                     str(Path.home() / "Sniffle/python_cli/sniff_receiver.py")):
+            if os.path.exists(cand):
+                return cand
+    if name == "crackle":
+        for cand in ("/opt/crackle/crackle", "/usr/local/bin/crackle"):
+            if os.path.exists(cand):
+                return cand
+    return None
+
+
+def _bt_classify_address(mac: str, addr_type: str) -> tuple[str, bool, str]:
+    """
+    Classify a Bluetooth address for privacy.  Returns
+    (classification, trackable, detail).
+
+    Public (addr_type 'public') → permanent, trackable + OUI vendor leak.
+    Random: top two bits of the most-significant octet decide the sub-type:
+        0b11 Static Random     (fixed until reboot; often product-lifetime)
+        0b10 Resolvable RPA    (privacy-correct IF it rotates)
+        0b00 Non-Resolvable    (random, not resolvable)
+    """
+    at = (addr_type or "").strip().lower()
+    if at in ("public", "0x00", "00", "le_public", "br/edr"):
+        return ("Public", True,
+                "Permanent factory MAC — trackable across time and location; leaks OUI/vendor.")
+    # Random — inspect the MSB (first octet).
+    try:
+        msb = int(mac.split(":")[0], 16)
+    except Exception:
+        return ("Random (unknown sub-type)", True, "Random address; sub-type undetermined.")
+    top2 = (msb >> 6) & 0b11
+    if top2 == 0b11:
+        return ("Static Random", True,
+                "Static random address — fixed until device reboot; frequently stable for the "
+                "product lifetime, so trackable in practice.")
+    if top2 == 0b10:
+        return ("Resolvable Private Address (RPA)", False,
+                "RPA — privacy-correct provided it actually rotates (confirm with the rotation test).")
+    return ("Non-Resolvable Random", False, "Non-resolvable random address.")
+
+
+def _bt_parse_authreq(byte_val: int) -> dict:
+    """Decode the SMP AuthReq byte (the pairing security-triage byte)."""
+    return {
+        "bonding":  (byte_val & 0b11) == 0b01,
+        "mitm":     bool(byte_val & 0b100),      # bit 2
+        "sc":       bool(byte_val & 0b1000),     # bit 3  (LE Secure Connections)
+        "keypress": bool(byte_val & 0b10000),    # bit 4
+        "ct2":      bool(byte_val & 0b100000),   # bit 5
+    }
+
+
+_BT_IO_CAP = {
+    "0x00": "DisplayOnly", "0x01": "DisplayYesNo", "0x02": "KeyboardOnly",
+    "0x03": "NoInputNoOutput", "0x04": "KeyboardDisplay",
+    "displayonly": "DisplayOnly", "displayyesno": "DisplayYesNo",
+    "keyboardonly": "KeyboardOnly", "noinputnooutput": "NoInputNoOutput",
+    "keyboarddisplay": "KeyboardDisplay",
+}
+
+
+def _bt_parse_btmon_smp(text: str) -> dict:
+    """
+    Best-effort parse of decoded btmon output for SMP Pairing Request/Response
+    security parameters.  Returns whatever it could recover:
+        {sc, mitm, bonding, io_capability, max_key_size, legacy, saw_smp,
+         saw_public_key, saw_confirm}
+    LESC vs Legacy is inferred from the AuthReq SC bit AND the on-wire opcodes
+    (Public Key 0x0c / DHKey Check 0x0d ⇒ LESC; Confirm 0x03 / Random 0x04 ⇒ Legacy).
+    """
+    res: dict = {"saw_smp": False}
+    low = text.lower()
+    if "smp" in low or "pairing request" in low or "pairing response" in low or "authreq" in low:
+        res["saw_smp"] = True
+
+    # Most reliable: btmon prints the raw AuthReq byte in parentheses, e.g.
+    #   "Authentication requirement: Bonding, No MITM, No SC (0x01)"
+    # Decode that byte directly rather than matching ambiguous "No MITM"/"MITM" text.
+    m = re.search(r"authentication requirement:[^\n(]*\((0x[0-9a-f]+)\)", low)
+    if m:
+        bits = _bt_parse_authreq(int(m.group(1), 16))
+        res["sc"], res["mitm"], res["bonding"] = bits["sc"], bits["mitm"], bits["bonding"]
+    else:
+        # Textual fallbacks — anchor on the negated forms first so "No MITM"/"No SC"
+        # are never misread as the positive flag.
+        m = re.search(r"secure connections:\s*(\w+)", low)   # some exporters use this form
+        if m:
+            res["sc"] = m.group(1) in ("true", "yes", "1", "enabled")
+        elif re.search(r"\bno sc\b|no secure connections", low):
+            res["sc"] = False
+        elif re.search(r"\bsc\b|secure connections", low):
+            res["sc"] = True
+        m = re.search(r"\bmitm:\s*(\w+)", low)
+        if m:
+            res["mitm"] = m.group(1) in ("true", "yes", "1", "enabled")
+        elif re.search(r"no mitm", low):
+            res["mitm"] = False
+        elif re.search(r"\bmitm\b", low):
+            res["mitm"] = True
+
+    m = re.search(r"max encryption key size:\s*(\d+)", low) or re.search(r"key size:\s*(\d+)", low)
+    if m:
+        res["max_key_size"] = int(m.group(1))
+    m = re.search(r"io capability:\s*([a-z ]+?)\s*(?:\(0x|$|\n)", low)
+    if m:
+        res["io_capability"] = _BT_IO_CAP.get(m.group(1).strip(), m.group(1).strip().title())
+    # On-wire LESC / Legacy tells (override AuthReq if the actual PDUs are seen).
+    if "public key" in low or "dhkey check" in low:
+        res["saw_public_key"] = True
+        res["sc"] = True
+    if "pairing confirm" in low or "pairing random" in low:
+        res["saw_confirm"] = True
+    if "sc" in res:
+        res["legacy"] = not res["sc"]
+    return res
+
+
+def _bt_scan_btmgmt(ctx, out_dir: Path, secs: int) -> list[dict]:
+    """Run `btmgmt find` and parse dev_found lines into device dicts."""
+    devices: dict[str, dict] = {}
+    out_file = out_dir / f"{ctx.file_prefix}_btmgmt_find.txt"
+    try:
+        rc, out, err = run_tool(["btmgmt", "find"], ctx, tool_name="btmgmt",
+                                output_file=out_file, timeout=max(20, secs + 10))
+    except Exception:
+        return []
+    for line in (out or "").splitlines():
+        m = re.search(r"dev_found:\s*([0-9A-Fa-f:]{17})\s+type\s+(\S+)", line)
+        if not m:
+            continue
+        mac = m.group(1).upper()
+        d = devices.setdefault(mac, {"mac": mac, "addr_type": m.group(2),
+                                     "name": "", "rssi": "", "uuids": [],
+                                     "company_ids": [], "raw": []})
+        rssi = re.search(r"rssi\s+(-?\d+)", line)
+        if rssi:
+            d["rssi"] = rssi.group(1)
+        d["raw"].append(line.strip())
+    # A second pass reads names from `btmgmt` name events if present.
+    for line in (out or "").splitlines():
+        m = re.search(r"([0-9A-Fa-f:]{17}).*name\s+(.+)$", line)
+        if m and m.group(1).upper() in devices:
+            devices[m.group(1).upper()]["name"] = m.group(2).strip()
+    return list(devices.values())
+
+
+def _bt_scan_bluetoothctl(ctx, out_dir: Path, secs: int) -> list[dict]:
+    """Fallback discovery via a fed-stdin bluetoothctl session + `devices`."""
+    out_file = out_dir / f"{ctx.file_prefix}_bluetoothctl_scan.txt"
+    try:
+        # `timeout` bounds the scan; then dump the device list.
+        proc = subprocess.run(
+            ["bash", "-c",
+             f"(echo 'power on'; echo 'scan on'; sleep {max(8, secs)}; "
+             f"echo 'devices'; echo 'scan off'; echo 'quit') | bluetoothctl"],
+            capture_output=True, text=True, timeout=max(20, secs + 15))
+        out = proc.stdout or ""
+    except Exception:
+        return []
+    try:
+        out_file.write_text(out, encoding="utf-8")
+    except Exception:
+        pass
+    devices: dict[str, dict] = {}
+    for line in out.splitlines():
+        m = re.search(r"Device\s+([0-9A-Fa-f:]{17})\s+(.*)$", line)
+        if not m:
+            continue
+        mac = m.group(1).upper()
+        name = m.group(2).strip()
+        d = devices.setdefault(mac, {"mac": mac, "addr_type": "", "name": "",
+                                     "rssi": "", "uuids": [], "company_ids": [],
+                                     "raw": []})
+        if name and not name.startswith(mac):
+            d["name"] = name
+    return list(devices.values())
+
+
+def _bt_parse_gatt_chars(raw: str) -> list[dict]:
+    """
+    Parse `gatttool --characteristics` output into a list of characteristics.
+    gatttool prints e.g.:
+      handle = 0x0002, char properties = 0x20, char value handle = 0x0003, uuid = ...
+    Tolerates both '=' and ':' separators. Properties bitfield:
+      0x02 Read · 0x04 WriteWithoutResp · 0x08 Write · 0x10 Notify · 0x20 Indicate
+      0x40 Authenticated Signed Writes.
+    """
+    chars: list[dict] = []
+    for line in (raw or "").splitlines():
+        h = re.search(r"char value handle\s*[=:]\s*(0x[0-9a-fA-F]+)", line, re.I)
+        if not h:
+            continue
+        p = re.search(r"char properties\s*[=:]\s*(0x[0-9a-fA-F]+)", line, re.I)
+        u = re.search(r"uuid\s*[=:]\s*([0-9a-fA-F-]+)", line, re.I)
+        props = int(p.group(1), 16) if p else 0
+        chars.append({
+            "handle":  h.group(1),
+            "props":   props,
+            "uuid":    (u.group(1) if u else ""),
+            "readable": bool(props & 0x02),
+            "writable": bool(props & (0x04 | 0x08 | 0x40)),
+            "notify":   bool(props & (0x10 | 0x20)),
+        })
+    return chars
+
+
+# ---------------------------------------------------------------------------
+
+class BluetoothModule(BaseModule):
+    """
+    Zero-knowledge Bluetooth (BR/EDR + BLE) security assessment.
+
+    Runs the full chain — hardware setup, discovery, GATT/SDP enumeration,
+    pairing/SMP security triage, passive sniff + crackle, active exploitation,
+    and cleanup — against whatever the device under test exposes, ruling out
+    each known vulnerability class from cleartext-observable signals.  No target
+    identity is assumed, so it surfaces (for example) a static-passkey LESC
+    device from generic pairing analysis alone.
+    """
+    name        = "Bluetooth"
+    description = "Zero-knowledge BR/EDR + BLE assessment (discovery → pairing → exploitation)"
+
+    # ── finding-title constants (kept in lockstep with findings_catalogue.json) ──
+    T_DISCOVERED   = "Bluetooth Device Discovered"
+    T_GATT_ENUM    = "BLE GATT Service Enumerated"
+    T_SDP_ENUM     = "Classic Bluetooth SDP Service Enumerated"
+    T_ADDR_STATIC  = "Static or Public Bluetooth Address — Device Trackable"
+    T_ID_LEAK      = "Sensitive Identifier Broadcast in Advertising Data"
+    T_JUSTWORKS    = "Just Works Pairing — No MITM Protection"
+    T_LEGACY       = "LE Legacy Pairing — Passively Decryptable"
+    T_STATIC_PK    = "Static or Reused BLE Passkey"
+    T_METHOD_CONF  = "Bluetooth Pairing Method Confusion"
+    T_DOWNGRADE    = "Bluetooth Pairing Security Downgrade Accepted"
+    T_SHORT_KEY    = "Short Bluetooth Encryption Key Negotiated"
+    T_INVALID_CURVE= "Bluetooth ECDH Public Key Not Validated (CVE-2018-5383)"
+    T_KNOB         = "KNOB — Bluetooth Encryption Key Entropy Downgrade (CVE-2019-9506)"
+    T_BLUFFS       = "BLUFFS — Bluetooth Forward/Future Secrecy Weakness (CVE-2023-24023)"
+    T_BIAS         = "BIAS — Bluetooth Impersonation (CVE-2020-10135)"
+    T_BLUR         = "BLURtooth — Cross-Transport Key Overwrite (CVE-2020-15802)"
+    T_BLESA        = "BLESA — BLE Reconnection Spoofing (CVE-2020-9770)"
+    T_UNAUTH_READ  = "Unauthenticated GATT Characteristic Read"
+    T_UNAUTH_WRITE = "Unauthenticated GATT Characteristic Write"
+    T_UNAUTH_NOTIFY= "Unauthenticated GATT Notification/Indication Stream"
+    T_SWEYNTOOTH   = "SweynTooth BLE SoC Vulnerability Surface"
+    T_BRAKTOOTH    = "BrakTooth BR/EDR SoC Vulnerability Surface"
+    T_BLEEDINGTOOTH= "BleedingTooth Linux BlueZ Kernel Vulnerability Surface"
+    T_BLUEBORNE    = "BlueBorne Bluetooth Stack Vulnerability Surface"
+    T_LESC_OK      = "LE Secure Connections Confirmed (Passively Uncrackable)"
+    T_BLUESMACK    = "BlueSmack / L2CAP Echo Denial of Service"
+    T_DOS_FLOOD    = "Bluetooth Connection Exhaustion / l2ping Flood"
+    T_LL_FUZZ      = "Bluetooth Link-Layer Malformed-PDU Crash"
+    T_SKIPPED      = "Bluetooth Testing SKIPPED — No Adapter or Sniffer Available"
+
+    # ── convenience wrappers ────────────────────────────────────────────────
+    def _dir(self, sub: str) -> Path:
+        d = self.ctx.instance_dir / "Bluetooth" / sub
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    def _f(self, title: str, description: str, risk: str, **kw) -> None:
+        """Thin findings.create wrapper with sane BLE defaults."""
+        self.ctx.findings.create(
+            ctx=self.ctx, title=title, description=description,
+            tool=kw.pop("tool", "bluetooth"), source_type="primary",
+            force_risk=risk, **kw)
+
+    def _event(self, msg: str) -> None:
+        """Persist a timestamped phase EVENT to the on-disk audit log (§14j)."""
+        try:
+            self.ctx.logger.info(f"EVENT [Bluetooth] {msg}", tool=self.name)
+        except Exception:
+            pass
+
+    # ── main ────────────────────────────────────────────────────────────────
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            self._event(f"BluetoothModule v{VERSION} started for [{self.ctx.instance_loc}]")
+            hw = self._phase0_hardware()
+            if hw is None:
+                return  # skipped — honest finding already emitted
+            devices = self._phase1_discovery(hw)
+            targets = self._phase1_select(devices)
+            if not targets:
+                self._mark_complete("Discovery complete — no in-scope target selected")
+                return
+            for dev in targets:
+                self._assess_device(hw, dev)
+            self._phase6_cleanup(targets)
+            self._mark_complete(
+                f"Bluetooth assessment complete — {len(targets)} device(s) tested")
+        except Exception as e:
+            self._mark_error(str(e))
+
+    # ── Phase 0 — hardware selection + setup ────────────────────────────────
+    def _phase0_hardware(self) -> Optional[dict]:
+        self._event("Phase 0 — hardware selection & setup")
+        labels = [h["label"] for h in _BT_HARDWARE]
+        choice = self._prompt(
+            "Select the Bluetooth testing hardware in use. Passive sniffing / "
+            "crackle / LESC-confirmation require a flashed sniffer board (options "
+            "2-6); option 1 covers active GATT + pairing only.\n"
+            "Refer to Quiver to flash the board's firmware before continuing.",
+            options=labels + ["Skip Bluetooth testing"],
+            prompt_type="choice", skippable=True)
+
+        hw = next((h for h in _BT_HARDWARE if h["label"] == choice), None)
+        if hw is None or (choice or "").lower().startswith("skip"):
+            # Operator skipped, or no hardware — honest SKIPPED finding.
+            self._f(self.T_SKIPPED,
+                    "No Bluetooth adapter or sniffer was selected for this instance, "
+                    "so Bluetooth/BLE testing was NOT performed. Attach a BlueZ adapter "
+                    "for active GATT/pairing work, or flash a sniffer board via Quiver "
+                    "(Sniffle / nRF Sniffer / ButteRFly / Ubertooth) for passive capture "
+                    "and re-run the module.",
+                    "Informational", tool="bluetooth")
+            self._mark_complete("Bluetooth SKIPPED — no hardware selected")
+            return None
+
+        # Print the board-specific setup / Quiver-flash guidance to the log.
+        self.ctx.logger.info(f"Selected BT hardware: {hw['label']}", tool=self.name)
+        if hw.get("quiver"):
+            self.ctx.logger.info(
+                f"Flash via Quiver payload: '{hw['quiver']}'", tool=self.name)
+        for ln in hw["setup"]:
+            self.ctx.logger.info(f"  {ln}", tool=self.name)
+        setup_txt = self._dir("00_setup") / f"{self.ctx.file_prefix}_hardware_setup.txt"
+        try:
+            setup_txt.write_text(
+                f"Bluetooth testing hardware: {hw['label']}\n"
+                + (f"Quiver flash payload: {hw['quiver']}\n" if hw.get("quiver") else "")
+                + "\n" + "\n".join(hw["setup"]) + "\n", encoding="utf-8")
+        except Exception:
+            pass
+        self._prompt_connected_photo(
+            f"{hw['label']} connected for [{self.ctx.instance_loc}]")
+
+        # Verify at least one usable BlueZ tool or the chosen sniffer CLI is present.
+        have_bluez = any(_bt_which(t) for t in ("bluetoothctl", "btmgmt", "hcitool"))
+        if not have_bluez and not hw["sniffer"]:
+            self._f(self.T_SKIPPED,
+                    "The selected adapter option requires the BlueZ stack "
+                    "(bluetoothctl / btmgmt / hcitool) but none was found on PATH. "
+                    "Install bluez (see install.py Phase 4b) and re-run.",
+                    "Informational", tool="bluetooth")
+            self._mark_complete("Bluetooth SKIPPED — BlueZ not installed")
+            return None
+        # Bring the local controller up (best-effort).
+        if have_bluez:
+            try:
+                run_tool(["hciconfig", "hci0", "up"], self.ctx,
+                         tool_name="hciconfig", timeout=15)
+            except Exception:
+                pass
+        return hw
+
+    # ── Phase 1 — discovery (zero-knowledge) ────────────────────────────────
+    def _phase1_discovery(self, hw: dict) -> list[dict]:
+        self._event("Phase 1 — discovery (BR/EDR + LE)")
+        self.ctx.progress.set_module_status(
+            self.ctx.subdevice_key, self.ctx.interface, self.ctx.instance_key,
+            self.name, "running", "Discovering Bluetooth devices…")
+        out_dir = self._dir("01_discovery")
+        # Ground-truth OTA capture during the scan (best-effort; needs root).
+        try:
+            btmon_f = out_dir / f"{self.ctx.file_prefix}_btmon_discovery.btsnoop"
+            if _bt_which("btmon"):
+                run_tool(["bash", "-c",
+                          f"timeout 18 btmon -w {btmon_f} >/dev/null 2>&1 || true"],
+                         self.ctx, tool_name="btmon", timeout=30)
+        except Exception:
+            pass
+
+        devices = _bt_scan_btmgmt(self.ctx, out_dir, 15) if _bt_which("btmgmt") else []
+        if not devices and _bt_which("bluetoothctl"):
+            devices = _bt_scan_bluetoothctl(self.ctx, out_dir, 15)
+        # hcitool lescan fallback (deprecated but ubiquitous).
+        if not devices and _bt_which("hcitool"):
+            try:
+                lescan = out_dir / f"{self.ctx.file_prefix}_hcitool_lescan.txt"
+                run_tool(["bash", "-c",
+                          "timeout 15 hcitool lescan --duplicates || true"],
+                         self.ctx, tool_name="hcitool", output_file=lescan, timeout=25)
+                for line in lescan.read_text(errors="replace").splitlines():
+                    m = re.match(r"\s*([0-9A-Fa-f:]{17})\s+(.*)$", line)
+                    if m:
+                        devices.append({"mac": m.group(1).upper(),
+                                        "addr_type": "", "name": m.group(2).strip(),
+                                        "rssi": "", "uuids": [], "company_ids": [],
+                                        "raw": []})
+            except Exception:
+                pass
+
+        # Deduplicate by MAC.
+        uniq: dict[str, dict] = {}
+        for d in devices:
+            uniq.setdefault(d["mac"], d)
+        devices = list(uniq.values())
+        self.ctx.logger.info(f"Discovered {len(devices)} Bluetooth device(s)", tool=self.name)
+
+        for d in devices:
+            loc = d["mac"] + (f" ({d['name']})" if d.get("name") else "")
+            self._f(self.T_DISCOVERED,
+                    f"A Bluetooth device was discovered during zero-knowledge scanning: "
+                    f"{loc}. Address type: {d.get('addr_type') or 'unknown'}; "
+                    f"RSSI: {d.get('rssi') or 'n/a'}; name: {d.get('name') or 'n/a'}. "
+                    f"Its presence and advertising data expand the wireless attack surface.",
+                    "Informational", tool="bluetooth", ip=d["mac"],
+                    affected_component=d.get("name", ""))
+            self._privacy_checks(d)
+        return devices
+
+    def _privacy_checks(self, d: dict) -> None:
+        """E.1 static/public address + E.2 identifier leakage in advertising."""
+        klass, trackable, detail = _bt_classify_address(d["mac"], d.get("addr_type", ""))
+        if trackable:
+            self._f(self.T_ADDR_STATIC,
+                    f"Device {d['mac']} advertises with a {klass} address. {detail} A "
+                    f"body-worn or clinical device with a stable address can be tracked "
+                    f"and correlated to a person across time and location. Only a rotating "
+                    f"Resolvable Private Address (RPA) provides LE privacy.",
+                    "Medium", tool="bluetooth", ip=d["mac"],
+                    remediation="Enable LE Privacy with frequently-rotating Resolvable "
+                                "Private Addresses; distribute the IRK only to bonded peers.")
+        name = (d.get("name") or "")
+        if re.search(r"\b(sn|serial|s/n)\b", name, re.I) or re.search(r"\d{4,}", name):
+            self._f(self.T_ID_LEAK,
+                    f"Device {d['mac']} broadcasts a potentially sensitive identifier in its "
+                    f"advertising name/data ('{name}'). Serial numbers, patient IDs or per-unit "
+                    f"tokens in the clear defeat address privacy (the stable string becomes the "
+                    f"tracking key) and disclose asset information to any passive listener.",
+                    "High", tool="bluetooth", ip=d["mac"],
+                    remediation="Remove serials/patient identifiers from the advertised device "
+                                "name and manufacturer data; expose per-unit IDs only via an "
+                                "authenticated, bonded GATT read.")
+
+    def _phase1_select(self, devices: list[dict]) -> list[dict]:
+        if not devices:
+            return []
+        opts = [f"{d['mac']} — {d.get('name') or '(no name)'} "
+                f"[{d.get('addr_type') or '?'}, RSSI {d.get('rssi') or '?'}]"
+                for d in devices]
+        ans = self._prompt(
+            "Select the in-scope device(s) under test to assess (zero-knowledge — "
+            "pick the target Bluetooth interface). Choose 'All discovered' to assess "
+            "every device, or 'None' to stop after discovery.",
+            options=["All discovered"] + opts + ["None"],
+            prompt_type="choice", skippable=True)
+        if not ans or ans.lower().startswith("none"):
+            return []
+        if ans.lower().startswith("all"):
+            return devices
+        for d, o in zip(devices, opts):
+            if o == ans:
+                return [d]
+        return devices[:1]
+
+    # ── per-device assessment (phases 2-5) ──────────────────────────────────
+    def _assess_device(self, hw: dict, dev: dict) -> None:
+        mac = dev["mac"]
+        self._event(f"Assessing {mac} — phases 2-5")
+        self.ctx.progress.set_module_status(
+            self.ctx.subdevice_key, self.ctx.interface, self.ctx.instance_key,
+            self.name, "running", f"Assessing {mac}…")
+        self._phase2_enumerate(dev)
+        smp = self._phase3_pairing(dev)
+        self._phase4_sniff_crack(hw, dev, smp)
+        self._phase5_active(hw, dev, smp)
+        self._phase5_cve_surface(dev)
+
+    # ── Phase 2 — GATT / SDP enumeration ────────────────────────────────────
+    def _phase2_enumerate(self, dev: dict) -> None:
+        mac = dev["mac"]
+        self._event(f"Phase 2 — enumeration {mac}")
+        out_dir = self._dir("02_enumeration")
+        atype = "random" if "random" in (dev.get("addr_type") or "").lower() else "public"
+
+        # BLE GATT (gatttool — deprecated but ubiquitous; bleak/bluetoothctl also work).
+        if _bt_which("gatttool"):
+            prim = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_gatt_primary.txt"
+            chars = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_gatt_chars.txt"
+            try:
+                run_tool(["gatttool", "-b", mac, "-t", atype, "--primary"],
+                         self.ctx, tool_name="gatttool", output_file=prim, timeout=40)
+                rc, out, err = run_tool(
+                    ["gatttool", "-b", mac, "-t", atype, "--characteristics"],
+                    self.ctx, tool_name="gatttool", output_file=chars, timeout=60)
+                svc_ct = len([l for l in (out or "").splitlines() if "handle" in l.lower()])
+                self._f(self.T_GATT_ENUM,
+                        f"The GATT server on {mac} was enumerated without prior knowledge, "
+                        f"exposing {svc_ct or 'multiple'} characteristic(s)/service(s). Service "
+                        f"and characteristic layout discloses device function and defines the "
+                        f"read/write attack surface tested in later phases.",
+                        "Informational", tool="gatttool", ip=mac,
+                        output_file=str(chars))
+                dev["_gatt_chars_file"] = str(chars)
+                dev["_gatt_raw"] = out or ""
+                dev["_chars"] = _bt_parse_gatt_chars(out or "")
+            except Exception as e:
+                self.ctx.logger.warn(f"gatttool enumeration failed for {mac}: {e}", tool=self.name)
+
+        # Classic SDP (BR/EDR).
+        if _bt_which("sdptool"):
+            sdp = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_sdp.txt"
+            try:
+                rc, out, err = run_tool(["sdptool", "browse", mac], self.ctx,
+                                        tool_name="sdptool", output_file=sdp, timeout=40)
+                if out and "Service Name" in out:
+                    self._f(self.T_SDP_ENUM,
+                            f"Classic Bluetooth (BR/EDR) SDP services were enumerated on {mac}. "
+                            f"Exposed service records (RFCOMM/L2CAP channels, profiles such as "
+                            f"SPP/DUN/PAN) widen the BR/EDR attack surface.",
+                            "Informational", tool="sdptool", ip=mac, output_file=str(sdp))
+            except Exception:
+                pass
+
+    # ── Phase 3 — pairing / SMP security triage ─────────────────────────────
+    def _phase3_pairing(self, dev: dict) -> dict:
+        mac = dev["mac"]
+        self._event(f"Phase 3 — pairing/SMP {mac}")
+        out_dir = self._dir("03_pairing")
+        smp: dict = {}
+
+        # Capture a decoded btmon transcript while attempting to pair, so the SMP
+        # Pairing Request/Response security bits are observed on the wire.
+        smp_txt = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_smp_btmon.txt"
+        btmon_proc = None
+        btmon_fh = None
+        try:
+            if _bt_which("btmon"):
+                btmon_fh = open(smp_txt, "w")
+                btmon_proc = subprocess.Popen(
+                    ["btmon"], stdout=btmon_fh, stderr=subprocess.STDOUT)
+                time.sleep(0.5)
+        except Exception:
+            btmon_proc = None
+
+        # Attempt a normal pairing (records the negotiated model regardless of outcome).
+        try:
+            subprocess.run(
+                ["bash", "-c",
+                 f"(echo 'power on'; echo 'agent KeyboardDisplay'; echo 'default-agent'; "
+                 f"echo 'pair {mac}'; sleep 8; echo 'quit') | bluetoothctl"],
+                capture_output=True, text=True, timeout=30)
+        except Exception:
+            pass
+        time.sleep(1.0)
+        if btmon_proc:
+            try:
+                btmon_proc.terminate(); btmon_proc.wait(timeout=5)
+            except Exception:
+                try: btmon_proc.kill()
+                except Exception: pass
+        if btmon_fh:
+            try: btmon_fh.close()
+            except Exception: pass
+
+        text = ""
+        try:
+            text = smp_txt.read_text(errors="replace")
+        except Exception:
+            pass
+        smp = _bt_parse_btmon_smp(text)
+
+        # If btmon gave us nothing usable, fall back to an operator observation prompt.
+        if not smp.get("saw_smp"):
+            ans = self._prompt(
+                f"SMP could not be auto-captured for {mac}. From a Wireshark/btmon capture "
+                f"of the pairing, what did the SMP Pairing Request/Response show? "
+                f"(LE Secure Connections bit, MITM bit, association model).",
+                options=["LESC (SC=1) + MITM/Passkey/NumComp",
+                         "LESC (SC=1) + Just Works (MITM=0)",
+                         "LE Legacy (SC=0)",
+                         "Could not determine / not captured"],
+                prompt_type="choice", skippable=True)
+            a = (ans or "").lower()
+            if "legacy" in a:
+                smp = {"sc": False, "legacy": True, "saw_smp": True, "_operator": True}
+            elif "just works" in a:
+                smp = {"sc": True, "mitm": False, "legacy": False, "saw_smp": True, "_operator": True}
+            elif "lesc" in a:
+                smp = {"sc": True, "mitm": True, "legacy": False, "saw_smp": True, "_operator": True}
+
+        self._emit_pairing_findings(dev, smp, str(smp_txt))
+        self._downgrade_probe(dev, out_dir)
+        return smp
+
+    def _emit_pairing_findings(self, dev: dict, smp: dict, evidence: str) -> None:
+        mac = dev["mac"]
+        sc = smp.get("sc")
+        mitm = smp.get("mitm")
+        keysz = smp.get("max_key_size")
+        io = smp.get("io_capability", "")
+
+        # A.2 — LE Legacy (SC=0) → passively decryptable if sniffed.
+        if sc is False or smp.get("legacy") is True:
+            self._f(self.T_LEGACY,
+                    f"{mac} negotiated LE Legacy pairing (SMP Secure Connections bit = 0). "
+                    f"Legacy pairing derives the session key from a weak Temporary Key "
+                    f"(Just Works TK=0; Passkey Entry TK is a ~20-bit 6-digit value), so a "
+                    f"passively-sniffed pairing can be decrypted offline with crackle, "
+                    f"recovering the LTK and all future bonded traffic.",
+                    "High", tool="bluetooth", ip=mac, output_file=evidence,
+                    cve_ids=[], remediation="Require LE Secure Connections (ECDH P-256); "
+                    "reject SC=0 on hardware that supports LESC (BLE 4.2+).")
+        # A.1 — Just Works / no MITM.
+        if mitm is False or _BT_IO_CAP.get(str(io).lower(), io) == "NoInputNoOutput":
+            self._f(self.T_JUSTWORKS,
+                    f"{mac} accepted Just Works pairing (SMP MITM-protection bit = 0"
+                    + (f", IO capability {io}" if io else "") + "). Just Works provides no "
+                    f"man-in-the-middle protection, so an active attacker in range can "
+                    f"interpose during pairing and relay/modify the connection.",
+                    "High", tool="bluetooth", ip=mac, output_file=evidence,
+                    remediation="Provision real IO capability and set MITM=1 (LESC Numeric "
+                    "Comparison or Passkey Entry); where no IO exists, use OOB pairing.")
+        # A.5b — short encryption key.
+        if isinstance(keysz, int) and keysz < 16:
+            self._f(self.T_SHORT_KEY,
+                    f"{mac} negotiated a maximum encryption key size of {keysz} bytes "
+                    f"(< 16). Short keys reduce brute-force cost and are the BLE analogue of "
+                    f"the KNOB attack; a value near the 7-byte floor is a serious weakness.",
+                    "High", tool="bluetooth", ip=mac, output_file=evidence,
+                    remediation="Enforce a 16-byte encryption key floor and abort pairing "
+                    "on any shorter negotiated size.")
+        # LESC confirmed (good) — informational, and the passkey/static-credential check.
+        if sc is True and not smp.get("legacy"):
+            self._f(self.T_LESC_OK,
+                    f"{mac} completed LE Secure Connections pairing (ECDH P-256). The session "
+                    f"key is never transmitted, so the pairing is NOT passively crackable — "
+                    f"crackle cannot recover the key. Residual risk shifts to implementation "
+                    f"flaws (static passkey, debug keys, downgrade acceptance).",
+                    "Informational", tool="bluetooth", ip=mac, output_file=evidence)
+            # A.3 — static/reused passkey under LESC Passkey Entry (the static-passkey-class finding).
+            ans = self._prompt(
+                f"{mac} uses LE Secure Connections. Is the 6-digit pairing passkey FIXED — "
+                f"printed on the enclosure, in the manual/firmware, or identical across units "
+                f"— rather than a fresh random value shown per pairing?",
+                options=["Yes — fixed/printed/shared passkey", "No — fresh random per pairing",
+                         "Unknown"], prompt_type="choice", skippable=True)
+            if (ans or "").lower().startswith("yes"):
+                self._f(self.T_STATIC_PK,
+                        f"{mac} authenticates LESC pairing with a static/reused passkey. A "
+                        f"hard-coded or shared passkey (CWE-798) defeats the MITM protection "
+                        f"of LESC Passkey Entry: anyone who can read the printed/ documented "
+                        f"value can complete an authenticated man-in-the-middle relay, "
+                        f"reducing LESC to Just Works in practice.",
+                        "High", tool="bluetooth", ip=mac, output_file=evidence,
+                        remediation="Use a fresh, random, per-pairing passkey that is never "
+                        "hard-coded, printed, or reused across units; prefer Numeric "
+                        "Comparison or OOB where the UI allows.")
+        # A.4 — method confusion (operator-observed; only asked when a display+keyboard mix exists).
+        # A.6 — invalid-curve is a re-pair-window probe; flagged as surface below.
+
+    def _downgrade_probe(self, dev: dict, out_dir: Path) -> None:
+        """A.5 — does the device accept a forced Legacy / Just Works / short-key offer?"""
+        mac = dev["mac"]
+        if not _bt_which("btmgmt"):
+            return
+        log = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_downgrade.txt"
+        accepted = None
+        try:
+            # Force Secure-Connections OFF and NoInputNoOutput, then attempt to pair.
+            rc, out, err = run_tool(
+                ["bash", "-c",
+                 f"btmgmt sc off; btmgmt io-cap NoInputNoOutput; "
+                 f"(echo 'pair {mac}'; sleep 6; echo quit) | bluetoothctl; btmgmt sc on"],
+                self.ctx, tool_name="btmgmt", output_file=log, timeout=40)
+            blob = (out or "") + (err or "")
+            if re.search(r"pairing successful|paired: yes|bonded: yes", blob, re.I):
+                accepted = True
+            elif re.search(r"pairing failed|authentication failed|rejected|not available", blob, re.I):
+                accepted = False
+        except Exception:
+            pass
+        if accepted:
+            self._f(self.T_DOWNGRADE,
+                    f"{mac} completed pairing after a forced downgrade offer (Secure "
+                    f"Connections cleared and IO capability set to NoInputNoOutput). A device "
+                    f"that silently accepts SC=0 / Just Works / a reduced key when it can "
+                    f"support stronger security is exploitable via an active downgrade MITM.",
+                    "High", tool="bluetooth", ip=mac, output_file=str(log),
+                    remediation="Enforce a security floor (SC=1, MITM for sensitive functions, "
+                    "16-byte key) and ABORT pairing on any weaker offer; re-verify the "
+                    "negotiated level before exposing sensitive GATT.")
+
+    # ── Phase 4 — passive sniff + crackle ───────────────────────────────────
+    def _phase4_sniff_crack(self, hw: dict, dev: dict, smp: dict) -> None:
+        mac = dev["mac"]
+        self._event(f"Phase 4 — sniff + crack {mac}")
+        out_dir = self._dir("04_sniff_crack")
+
+        if not hw.get("sniffer"):
+            self.ctx.logger.info(
+                "Selected hardware is not a passive sniffer — skipping capture→crack. "
+                "Flash a Sniffle/Ubertooth/ButteRFly board via Quiver for this phase.",
+                tool=self.name)
+            return
+
+        pcap = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_pairing.pcap"
+        captured = False
+
+        # Sniffle host CLI (crackle-ready LE_LL_WITH_PHDR).
+        sniffle = _bt_which("sniff_receiver.py")
+        if hw["key"] in ("sniffle", "butterfly") and sniffle:
+            self._prompt(
+                f"Ready to passively capture a pairing for {mac}. When you press Ready, "
+                f"trigger a fresh pairing on the device under test (e.g. open its app and "
+                f"pair) so the SMP exchange is captured. Press Ready to start the sniffer.",
+                options=["Ready"], prompt_type="choice")
+            port = next((p for p in ("/dev/ttyACM0", "/dev/ttyUSB0", "/dev/ttyACM1")
+                         if os.path.exists(p)), "/dev/ttyACM0")
+            try:
+                run_tool(["bash", "-c",
+                          f"timeout 45 python3 {sniffle} -s {port} -m {mac} "
+                          f"-o {pcap} >/dev/null 2>&1 || true"],
+                         self.ctx, tool_name="sniff_receiver.py", timeout=60)
+                captured = pcap.exists() and pcap.stat().st_size > 0
+            except Exception:
+                pass
+        elif hw["key"] == "ubertooth" and _bt_which("ubertooth-btle"):
+            self._prompt(f"Trigger a pairing on {mac} after pressing Ready (Ubertooth capture).",
+                         options=["Ready"], prompt_type="choice")
+            try:
+                run_tool(["bash", "-c",
+                          f"timeout 45 ubertooth-btle -f -t {mac} -q {pcap} "
+                          f">/dev/null 2>&1 || true"],
+                         self.ctx, tool_name="ubertooth-btle", timeout=60)
+                captured = pcap.exists() and pcap.stat().st_size > 0
+            except Exception:
+                pass
+        else:
+            self.ctx.logger.info(
+                f"No capture CLI found for hardware '{hw['key']}'. Capture the pairing to "
+                f"{pcap.name} manually (see hardware setup notes) then re-run crackle.",
+                tool=self.name)
+
+        # crackle — attempt to recover the key from the captured pairing.
+        crackle = _bt_which("crackle")
+        if captured and crackle:
+            crk = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_crackle.txt"
+            dec = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_decrypted.pcap"
+            try:
+                rc, out, err = run_tool([crackle, "-i", str(pcap), "-o", str(dec)],
+                                        self.ctx, tool_name="crackle", output_file=crk, timeout=120)
+                blob = (out or "") + (err or "")
+                if re.search(r"ltk found|tk found|cracked", blob, re.I):
+                    self._f(self.T_LEGACY,
+                            f"A passively-captured pairing for {mac} was decrypted with crackle "
+                            f"— the Long-Term Key was recovered from sniffed traffic, confirming "
+                            f"the link is passively decryptable. Evidence: {crk.name}. All data "
+                            f"exchanged under this key (and future bonded sessions) is exposed.",
+                            "High", tool="crackle", ip=mac, output_file=str(crk),
+                            output_files=[str(pcap), str(dec)],
+                            force_classification="Validated",
+                            remediation="Require LE Secure Connections; a device whose pairing "
+                            "crackle can decrypt is using crackable LE Legacy pairing.")
+                elif re.search(r"secure connections|not.*legacy|unable to crack", blob, re.I):
+                    self._f(self.T_LESC_OK,
+                            f"crackle could NOT decrypt the captured pairing for {mac} — it "
+                            f"reported LE Secure Connections. This positively confirms LESC "
+                            f"(ECDH P-256): the session key never crossed the air and the link "
+                            f"is not passively crackable. Evidence: {crk.name}.",
+                            "Informational", tool="crackle", ip=mac, output_file=str(crk),
+                            output_files=[str(pcap)])
+            except Exception as e:
+                self.ctx.logger.warn(f"crackle failed for {mac}: {e}", tool=self.name)
+        elif captured and not crackle:
+            self.ctx.logger.info(
+                "crackle not installed — pcap captured but not analysed. Build crackle "
+                "(install.py Phase 4b) and run: crackle -i <pcap>.", tool=self.name)
+
+    # ── Phase 5 — active exploitation ───────────────────────────────────────
+    def _phase5_active(self, hw: dict, dev: dict, smp: dict) -> None:
+        mac = dev["mac"]
+        self._event(f"Phase 5 — active exploitation {mac}")
+        out_dir = self._dir("05_active")
+        atype = "random" if "random" in (dev.get("addr_type") or "").lower() else "public"
+
+        # D.1 — unauthenticated GATT read (read every readable characteristic on an
+        # UNPAIRED link). ATT Read Response with a value (no 0x05/0x0F error) = exposed.
+        chars = dev.get("_chars", [])
+        if _bt_which("gatttool") and chars:
+            readable = [c for c in chars if c["readable"]]
+            read_ok, read_denied = [], 0
+            rd = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_unauth_read.txt"
+            lines = []
+            for c in readable[:40]:
+                h = c["handle"]
+                try:
+                    rc, out, err = run_tool(["gatttool", "-b", mac, "-t", atype,
+                                             "--char-read", "-a", h],
+                                            self.ctx, tool_name="gatttool", timeout=20)
+                    blob = (out or "") + (err or "")
+                    lines.append(f"{h} ({c['uuid']}): {blob.strip()}")
+                    if re.search(r"characteristic value/descriptor:\s*[0-9a-f]", blob, re.I):
+                        read_ok.append(h)
+                    elif re.search(r"insufficient authentication|insufficient encryption|"
+                                   r"authoriz", blob, re.I):
+                        read_denied += 1
+                except Exception:
+                    pass
+            try: rd.write_text("\n".join(lines), encoding="utf-8")
+            except Exception: pass
+            if read_ok:
+                self._f(self.T_UNAUTH_READ,
+                        f"{len(read_ok)} GATT characteristic(s) on {mac} returned data over an "
+                        f"UNPAIRED, unencrypted link (ATT Read Response with a value, no 0x05/"
+                        f"0x0F error). Handles: {', '.join(read_ok[:12])}. Any listener in range "
+                        f"can read this data; if it is PHI/telemetry the exposure is severe.",
+                        "High", tool="gatttool", ip=mac, output_file=str(rd),
+                        remediation="Set encryption/authentication-required permissions on "
+                        "sensitive characteristics; gate PHI behind LESC-authenticated bonding.")
+
+        # D.2 — unauthenticated WRITE. SAFETY: never blind-fuzz a live medical actuator.
+        writable = [c["handle"] for c in chars if c["writable"]]
+        if writable:
+            ans = self._prompt(
+                f"{len(writable)} writable characteristic(s) were found on {mac}. Attempting a "
+                f"write on an UNPAIRED link tests for unauthenticated device control (CWE-306). "
+                f"SAFETY: only proceed on a bench unit or with a known-benign/no-op value — do "
+                f"NOT blind-write a control point on a live medical device. Attempt a benign "
+                f"test write now?",
+                options=["Yes — benign write authorized (bench/no-op)",
+                         "No — record as untested"], prompt_type="choice", skippable=True)
+            if (ans or "").lower().startswith("yes"):
+                wr = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_unauth_write.txt"
+                h = writable[0]
+                try:
+                    rc, out, err = run_tool(["gatttool", "-b", mac, "-t", atype,
+                                             "--char-write-req", "-a", h, "-n", "00"],
+                                            self.ctx, tool_name="gatttool",
+                                            output_file=wr, timeout=20)
+                    blob = (out or "") + (err or "")
+                    if re.search(r"written successfully", blob, re.I):
+                        self._f(self.T_UNAUTH_WRITE,
+                                f"A GATT write to {mac} handle {h} SUCCEEDED over an unpaired, "
+                                f"unencrypted link (ATT Write Response, no security error). "
+                                f"Unauthenticated write access to device characteristics permits "
+                                f"configuration change, actuation, or firmware/OTA abuse without "
+                                f"any credential — the highest-impact GATT finding.",
+                                "Critical", tool="gatttool", ip=mac, output_file=str(wr),
+                                force_classification="Validated",
+                                remediation="Require an authenticated + encrypted + bonded link "
+                                "(LESC + MITM) for all writes; add application-layer "
+                                "authorization (signed/challenge-response commands) to control "
+                                "points and OTA.")
+                except Exception:
+                    pass
+
+        # Active MITM relay — requires 2 adapters / relay tooling; operator-driven.
+        mitm_tools = [t for t in ("gattacker", "btlejuice", "mirage", "wble-proxy") if _bt_which(t)]
+        ans = self._prompt(
+            f"Active MITM/GATT-relay against {mac}: interpose a cloned peripheral between the "
+            f"central (phone/app) and the device to relay & modify traffic. "
+            + ("Detected relay tooling: " + ", ".join(mitm_tools) + ". " if mitm_tools
+               else "No relay framework (gattacker/btlejuice/WHAD) detected on PATH. ")
+            + "Was an active MITM successfully established (traffic relayed / device actuated "
+            "through the relay)?",
+            options=["Yes — MITM established / device actuated via relay",
+                     "No — MITM blocked / not attempted",
+                     "Not tested (no second adapter)"],
+            prompt_type="choice", skippable=True)
+        if (ans or "").lower().startswith("yes"):
+            self._f(self.T_METHOD_CONF,
+                    f"An active man-in-the-middle relay was established against {mac}: an "
+                    f"attacker interposed between the central and the device and relayed/modified "
+                    f"GATT traffic. Combined with a Just-Works/static-passkey/downgrade weakness "
+                    f"this yields full control of the session (see the pairing findings for the "
+                    f"enabling condition).",
+                    "High", tool="bluetooth", ip=mac, force_classification="Validated",
+                    remediation="Enforce LESC with real MITM protection (Numeric Comparison / "
+                    "unique per-pairing passkey / OOB) and authenticated reconnection so a "
+                    "relayed peripheral cannot complete pairing.")
+
+        # DoS — BlueSmack / l2ping flood. Authorized + bounded only.
+        if _bt_which("l2ping"):
+            ans = self._prompt(
+                f"Denial-of-service probe against {mac} (BlueSmack — oversized L2CAP echo / "
+                f"l2ping flood). This can hang or reboot the device. Run a BOUNDED, authorized "
+                f"DoS probe now?",
+                options=["Yes — authorized, bounded DoS probe", "No — skip DoS"],
+                prompt_type="choice", skippable=True)
+            if (ans or "").lower().startswith("yes"):
+                dz = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_l2ping.txt"
+                degraded = None
+                try:
+                    run_tool(["bash", "-c",
+                              f"timeout 20 l2ping -i hci0 -s 600 -c 30 -f {mac} || true"],
+                             self.ctx, tool_name="l2ping", output_file=dz, timeout=35)
+                    obs = self._prompt(
+                        f"Did {mac} become unresponsive, disconnect, or reboot during the probe?",
+                        options=["Yes — device degraded/rebooted", "No — unaffected"],
+                        prompt_type="choice", skippable=True)
+                    degraded = (obs or "").lower().startswith("yes")
+                except Exception:
+                    pass
+                if degraded:
+                    self._f(self.T_BLUESMACK,
+                            f"{mac} degraded or reset under a bounded L2CAP echo/l2ping flood "
+                            f"(BlueSmack). The stack does not rate-limit or bound oversized echo "
+                            f"requests, allowing an in-range attacker to deny service.",
+                            "Medium", tool="l2ping", ip=mac, output_file=str(dz),
+                            force_classification="Validated",
+                            remediation="Patch the stack (input-length validation), rate-limit/"
+                            "throttle L2CAP echo and connection requests, and make the radio "
+                            "non-connectable when unused.")
+
+    # ── Phase 5b — CVE-family surface from chip / stack fingerprint ──────────
+    def _phase5_cve_surface(self, dev: dict) -> None:
+        mac = dev["mac"]
+        # Vendor from OUI (first 3 octets) — best-effort via btmgmt/company data.
+        vendor = ""
+        for cid in dev.get("company_ids", []):
+            nm = _BT_COMPANY_IDS.get(cid, "")
+            if nm:
+                vendor = nm.lower(); break
+        if not vendor:
+            ans = self._prompt(
+                f"To rule out chip-specific memory-corruption CVE families for {mac}, provide "
+                f"the Bluetooth SoC vendor if known (from FCC ID / teardown / DIS manufacturer). "
+                f"Select the closest match.",
+                options=["Telink", "Espressif (ESP32)", "Cypress/Infineon", "Nordic",
+                         "Texas Instruments", "Dialog", "NXP", "STMicro", "Qualcomm/CSR",
+                         "Broadcom", "Intel", "Unknown / skip"],
+                prompt_type="choice", skippable=True)
+            vendor = (ans or "").lower()
+
+        for key, info in _BT_VENDOR_CVE_FAMILY.items():
+            if key in vendor:
+                fam = info["family"]
+                title = (self.T_SWEYNTOOTH if "SweynTooth" in fam and "Brak" not in fam
+                         else self.T_BRAKTOOTH if fam == "BrakTooth"
+                         else self.T_SWEYNTOOTH)
+                if fam.startswith("BleedingTooth"):
+                    title = self.T_BLEEDINGTOOTH
+                self._f(title,
+                        f"The Bluetooth SoC in {mac} ({vendor}) belongs to a vendor with known "
+                        f"{fam} firmware vulnerabilities. {info['note']} Exposure is decided by "
+                        f"the exact SoC part and SDK/firmware version — confirm the running "
+                        f"firmware against the vendor advisory (several are safety-relevant per "
+                        f"the FDA/CISA SweynTooth advisory ICS-ALERT-20-063-01). Validate on a "
+                        f"non-production unit with the corresponding PoC (SweynTooth / BrakTooth).",
+                        "High", tool="bluetooth", ip=mac,
+                        force_classification="Potential",
+                        remediation="Update the Bluetooth controller firmware/SDK to a patched "
+                        "release; where the SoC is end-of-life ('no fix planned'), apply "
+                        "architectural mitigations (disable unused profiles, restrict pairing, "
+                        "physical/RF controls).")
+                break
+
+        # BleedingTooth / BlueBorne are host-stack (the DUT's OS/kernel) — operator-supplied.
+        ans = self._prompt(
+            f"Host Bluetooth stack of {mac}'s controller-side software, if it is a "
+            f"Linux/Android system (rules out BleedingTooth / BlueBorne). What is the OS / "
+            f"kernel / patch level?",
+            options=["Linux kernel < 5.9 (unpatched BlueZ)",
+                     "Android security patch < 2017-09",
+                     "Patched / current",
+                     "Not applicable / embedded RTOS",
+                     "Unknown"], prompt_type="choice", skippable=True)
+        a = (ans or "").lower()
+        if "kernel < 5.9" in a:
+            self._f(self.T_BLEEDINGTOOTH,
+                    f"The Linux host behind {mac} runs an unpatched BlueZ kernel (< 5.9), exposing "
+                    f"the BleedingTooth family — BadKarma (CVE-2020-12351, L2CAP heap type-"
+                    f"confusion → zero-click kernel RCE), BadChoice (CVE-2020-12352 info leak), "
+                    f"BadVibes (CVE-2020-24490 BLE ext-advertising heap overflow).",
+                    "High", tool="bluetooth", ip=mac, force_classification="Potential",
+                    remediation="Patch the kernel to 5.9+ (or vendor backport); set "
+                    "CONFIG_BT_HS=n to remove the A2MP path; rfkill unused radios.")
+        elif "android security patch < 2017-09" in a:
+            self._f(self.T_BLUEBORNE,
+                    f"The Android host behind {mac} predates the 2017-09 security patch, exposing "
+                    f"BlueBorne (CVE-2017-0781/0782 BNEP heap overflow → RCE; CVE-2017-0785 SDP "
+                    f"info leak; CVE-2017-1000251 Linux L2CAP RCE). BlueBorne needs only that "
+                    f"Bluetooth is on — 'non-discoverable' is not a mitigation.",
+                    "High", tool="bluetooth", ip=mac, force_classification="Potential",
+                    remediation="Apply the 2017-09+ vendor security patches; disable Bluetooth "
+                    "when unused.")
+
+    # ── Phase 6 — cleanup ───────────────────────────────────────────────────
+    def _phase6_cleanup(self, targets: list[dict]) -> None:
+        self._event("Phase 6 — cleanup (unpair / restore)")
+        if not _bt_which("bluetoothctl"):
+            return
+        for dev in targets:
+            try:
+                subprocess.run(
+                    ["bash", "-c",
+                     f"(echo 'remove {dev['mac']}'; echo 'quit') | bluetoothctl"],
+                    capture_output=True, text=True, timeout=15)
+            except Exception:
+                pass
+        try:
+            run_tool(["bash", "-c", "btmgmt sc on || true"], self.ctx,
+                     tool_name="btmgmt", timeout=15)
+        except Exception:
+            pass
+
+
+# ---------------------------------------------------------------------------
 # DB9 / Serial + CAN Modules
 # ---------------------------------------------------------------------------
 # Dynamic imports of helper scripts (same directory as gearbox.py).
@@ -13068,6 +14258,7 @@ _MODULE_REGISTRY: dict[str, type] = {
     "HdmiCEC":          HdmiCECModule,
     "Sniff":            ZigbeeSniffModule,
     "Flood":            ZigbeeFloodModule,
+    "Bluetooth":        BluetoothModule,
     "SerialDetect":     SerialDetectModule,
     "CanAssess":        CanAssessModule,
     "RFIDSniff":        RFIDSniffModule,

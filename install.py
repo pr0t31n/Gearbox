@@ -163,6 +163,64 @@ PIP_PACKAGES = [
 ]
 
 # ---------------------------------------------------------------------------
+# Bluetooth / BLE testing toolchain (Section: BluetoothModule)
+# ---------------------------------------------------------------------------
+# Installed by a dedicated best-effort phase so a distro-specific or Kali-only
+# package can never abort the core package batch. Core BlueZ packages exist on
+# every supported distro; the "extras" are attempted one-by-one and skipped
+# silently when unavailable.
+
+# Core BlueZ stack — provides bluetoothctl, hcitool, hciconfig, sdptool,
+# l2ping, btmon, btmgmt (bluez) + hcidump (bluez-hcidump) + bt-adapter/bt-device
+# (bluez-tools) + headers for pybluez (libbluetooth-dev).
+BT_APT_CORE = ["bluez", "bluez-tools", "bluez-hcidump", "libbluetooth-dev"]
+BT_DNF_CORE = ["bluez", "bluez-libs", "bluez-tools", "bluez-hcidump"]
+BT_ZYPPER_CORE = ["bluez", "bluez-devel"]
+
+# Best-effort extras — Kali/pentest-repo BT tooling. Installed individually.
+BT_APT_EXTRAS = [
+    "bettercap",     # BLE recon / enum / write (ble.* modules)
+    "spooftooph",    # BD_ADDR spoofing / device cloning
+    "bluelog",       # BR/EDR site survey logger
+    "bluesnarfer",   # OBEX/AT bluesnarf test (legacy BR/EDR)
+    "redfang",       # non-discoverable device brute (fang)
+    "btscanner",     # interactive BR/EDR scanner + SDP dump
+]
+
+# Python BLE libraries — pure/near-pure, safe under --break-system-packages.
+BT_PIP_PACKAGES = [
+    "bleak>=0.21.1",   # async cross-platform BLE GATT client (scan + enum + read/write)
+    "btlejack>=2.1.0", # BLE connection sniff / jam / hijack (Micro:Bit backend)
+    "pygatt>=4.0.5",   # GATT client over BlueZ gatttool / BGAPI
+    "pybluez2>=0.46",  # classic BR/EDR sockets + SDP (best-effort; may need libbluetooth-dev)
+]
+
+# Source-build BT tooling with no distro package.
+BT_GIT_REPOS = [
+    {
+        "url":        "https://github.com/mikeryan/crackle.git",
+        "dest":       "/opt/crackle",
+        "label":      "crackle (BLE legacy-pairing TK/LTK cracker)",
+        "linux_only": True,
+        "post_cmds":  ["crackle_build"],
+    },
+    {
+        "url":        "https://github.com/nccgroup/Sniffle.git",
+        "dest":       "/opt/Sniffle",
+        "label":      "Sniffle (TI CC1352/CC26x2 BLE sniffer host CLI)",
+        "linux_only": False,
+        "post_cmds":  [],   # host-side python_cli/sniff_receiver.py — no build
+    },
+    {
+        "url":        "https://github.com/seemoo-lab/internalblue.git",
+        "dest":       "/opt/internalblue",
+        "label":      "InternalBlue (Broadcom/Cypress HCI research framework)",
+        "linux_only": True,
+        "post_cmds":  [],
+    },
+]
+
+# ---------------------------------------------------------------------------
 # Phase 1 — System packages
 # ---------------------------------------------------------------------------
 
@@ -355,6 +413,21 @@ def _build_ethtool(dry_run: bool) -> None:
     run(["make", "install"], cwd="/opt/ethtool", dry_run=dry_run)
 
 
+def _build_crackle(dry_run: bool) -> None:
+    info("Building crackle (make)…")
+    rc = run(["make"], cwd="/opt/crackle", dry_run=dry_run)
+    if rc == 0 and not dry_run:
+        # Expose the built binary on PATH.
+        src = Path("/opt/crackle/crackle")
+        link = Path("/usr/local/bin/crackle")
+        if src.exists() and not link.exists():
+            try:
+                link.symlink_to(src)
+                success(f"Symlinked crackle → {link}")
+            except OSError as exc:
+                warn(f"Could not symlink crackle: {exc}")
+
+
 def clone_or_update(repo: dict, os_id: str, dry_run: bool) -> None:
     url   = repo["url"]
     dest  = repo["dest"]
@@ -385,6 +458,8 @@ def clone_or_update(repo: dict, os_id: str, dry_run: bool) -> None:
             warn(f"{label}: skipping Linux build on {os_id}.")
         elif post == "ethtool_build":
             _build_ethtool(dry_run)
+        elif post == "crackle_build":
+            _build_crackle(dry_run)
 
 
 def phase_git(os_id: str, dry_run: bool) -> None:
@@ -392,6 +467,71 @@ def phase_git(os_id: str, dry_run: bool) -> None:
     for repo in GIT_REPOS_ALL:
         clone_or_update(repo, os_id, dry_run)
     success("Git phase complete.")
+
+
+# ---------------------------------------------------------------------------
+# Phase 4b — Bluetooth / BLE testing toolchain
+# ---------------------------------------------------------------------------
+
+def _install_individually(base_cmd: list, pkgs: list, dry_run: bool) -> None:
+    """Install packages one-by-one so a single unavailable package cannot abort
+    the whole batch (extras differ across Kali / Ubuntu / RHEL)."""
+    for pkg in pkgs:
+        rc = run(base_cmd + [pkg], dry_run=dry_run)
+        if rc == 0:
+            success(f"  {pkg} installed")
+        else:
+            warn(f"  {pkg} unavailable on this distro — skipped")
+
+
+def phase_bluetooth(os_id: str, dry_run: bool) -> None:
+    phase_header("PHASE 4b — Bluetooth / BLE Testing Toolchain")
+
+    # ── Core BlueZ stack (batch; present on every supported distro) ──────────
+    if os_id in ("kali", "ubuntu"):
+        require_root()
+        info("Installing core BlueZ stack (bluez, bluez-tools, hcidump, libbluetooth-dev)…")
+        run(["apt-get", "install", "-y"] + BT_APT_CORE, dry_run=dry_run)
+        info("Installing best-effort BT extras (bettercap, spooftooph, bluelog, …)…")
+        _install_individually(["apt-get", "install", "-y"], BT_APT_EXTRAS, dry_run)
+    elif os_id == "rhel":
+        require_root()
+        run(["dnf", "install", "-y"] + BT_DNF_CORE, dry_run=dry_run)
+        _install_individually(["dnf", "install", "-y"], ["bettercap"], dry_run)
+    elif os_id == "suse":
+        require_root()
+        run(["zypper", "install", "-y"] + BT_ZYPPER_CORE, dry_run=dry_run)
+    elif os_id == "macos":
+        warn("macOS has no BlueZ stack — Bluetooth link-layer testing requires Linux.")
+        warn("Only the Python BLE client (bleak) and blueutil will be usable here.")
+        brew_bin = shutil.which("brew")
+        if brew_bin and os.environ.get("SUDO_USER"):
+            run(["sudo", "-u", os.environ["SUDO_USER"], brew_bin, "install", "blueutil"],
+                dry_run=dry_run)
+        else:
+            info("Install blueutil manually:  brew install blueutil")
+    else:
+        warn(f"Unknown OS '{os_id}' — install bluez / bluez-tools manually.")
+
+    # ── Python BLE libraries (best-effort) ───────────────────────────────────
+    info("Installing Python BLE libraries (bleak, btlejack, pygatt, pybluez2)…")
+    pip_cmd = find_pip()
+    for pkg in BT_PIP_PACKAGES:
+        rc = run(pip_cmd + ["install", "--break-system-packages", pkg], dry_run=dry_run)
+        if rc == 0:
+            success(f"  {pkg} installed")
+        else:
+            warn(f"  {pkg} failed (needs build deps?) — BLE features degrade gracefully")
+
+    # ── Source-build BT tooling (crackle, Sniffle host CLI, InternalBlue) ────
+    for repo in BT_GIT_REPOS:
+        clone_or_update(repo, os_id, dry_run)
+
+    success("Bluetooth toolchain phase complete.")
+    info("Passive link-layer sniffing needs a flashed sniffer board — flash it with")
+    info("Quiver:  'FIRMWARE - Flash Sniffle firmware' (TI CC1352P-4 / CC26x2R1) for")
+    info("crackle-readable pcaps, or 'FIRMWARE - Flash nRF Sniffer firmware' (nRF52840/")
+    info("nRF52833) for Wireshark, or 'FIRMWARE - Flash ButteRFly (BLE MITM)' for injection.")
 
 
 # ---------------------------------------------------------------------------
@@ -520,6 +660,9 @@ def phase_service(os_id: str, dry_run: bool) -> None:
 
 VERIFY_TOOLS = [
     "nmap", "tcpdump", "curl", "openssl", "sslscan", "nuclei", "gowitness",
+    # Bluetooth / BLE
+    "bluetoothctl", "hcitool", "hciconfig", "sdptool", "l2ping", "btmgmt",
+    "gatttool", "bettercap", "crackle",
 ]
 
 VERIFY_PY_MODULES = [
@@ -529,6 +672,8 @@ VERIFY_PY_MODULES = [
     ("PIL",         "PIL"),
     ("serial",      "serial"),
     ("cryptography","cryptography"),
+    ("bleak",       "bleak"),
+    ("btlejack",    "btlejack"),
 ]
 
 
@@ -585,6 +730,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--skip-pip",  action="store_true", help="Skip pip package installation")
     p.add_argument("--skip-go",   action="store_true", help="Skip Go tool installation")
     p.add_argument("--skip-git",  action="store_true", help="Skip git repository cloning")
+    p.add_argument("--skip-bt",   action="store_true", help="Skip Bluetooth/BLE toolchain installation")
     p.add_argument("--check",     action="store_true", help="Dry-run — print commands without executing")
     return p.parse_args()
 
@@ -644,6 +790,12 @@ def main() -> None:
         phase_git(os_id, dry_run)
     else:
         info("Skipping git phase (--skip-git).")
+
+    # Phase 4b — Bluetooth / BLE toolchain
+    if not args.skip_bt:
+        phase_bluetooth(os_id, dry_run)
+    else:
+        info("Skipping Bluetooth phase (--skip-bt).")
 
     # Phase 5 — Symlinks
     if is_root() or dry_run:

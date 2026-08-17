@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.14.0"
+VERSION = "1.18.0"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export
@@ -506,6 +506,12 @@ INTERFACE_MODULES: dict[str, list[str]] = {
     "Zigbee":       ["Photo", "Sniff", "Flood"],
     "Bluetooth":    ["Photo", "Bluetooth"],
     "DB9":          ["Photo", "SerialDetect", "CanAssess"],
+    "WiFi":         ["Photo", "WiFi"],
+    "SubGHz":       ["Photo", "SubGHz"],
+    "UWB":          ["Photo", "UWB"],
+    "SmartCard":    ["Photo", "SmartCard"],
+    "ZWave":        ["Photo", "ZWave"],
+    "LoRa":         ["Photo", "LoRa"],
     "RFID":         ["Photo", "RFIDSniff", "RFIDReplay"],
 }
 
@@ -11724,41 +11730,46 @@ class ZigbeeSniffModule(BaseModule):
         try:
             import shutil as _shu, subprocess as _sp
             answer = self._prompt(
-                f"Connect a Zigbee sniffer dongle (e.g., ApiMote, RZUSBSTICK, CC2531). "
-                f"Testing port: [{self.ctx.instance_loc}]. Press Enter to begin capture.",
+                f"Connect a Zigbee sniffer dongle. Supported: CC2531 / Sonoff ZBDongle-E "
+                f"(sniffer firmware → whsniff), CatSniffer (Zigbee firmware), RZUSBSTICK / "
+                f"AVR Raven or ApiMote (KillerBee). Flash the board's sniffer firmware with "
+                f"Quiver first. Testing port: [{self.ctx.instance_loc}]. Press Enter to begin.",
                 options=["Ready"], prompt_type="choice")
             self._prompt_connected_photo(
                 f"Zigbee sniffer dongle connected for [{self.ctx.instance_loc}]")
             out_dir = self.ctx.instance_dir / "Sniff"
             out_dir.mkdir(parents=True, exist_ok=True)
 
-            # G1 fix (2026-06-11 review): the prior stub wrote a "tool not
-            # configured" note as if a test had run. Now we actually attempt
-            # killerbee/zbstumbler/zbdump with generous timeouts; if no
-            # binary is present we emit an explicit INFO finding indicating
-            # "ZigBee testing SKIPPED" so the operator is not misled.
+            # Capture tooling, in priority order:
+            #   killerbee (zbstumbler/zbdump) — ApiMote / RZUSBSTICK / Raven
+            #   whsniff                        — CC2531 / Sonoff ZBDongle-E / CatSniffer
+            # If none is present we emit an explicit INFO "SKIPPED" finding so the
+            # operator is never misled that a test ran.
             zb_tools = {
                 "zbstumbler":  ["zbstumbler", "-w", str(out_dir / f"{self.ctx.file_prefix}_zigbee_stumbler.txt")],
                 "zbdump":      ["zbdump", "-w", str(out_dir / f"{self.ctx.file_prefix}_zigbee_capture.pcap")],
             }
             found_tools = [k for k in zb_tools if _shu.which(k)]
-            if not found_tools:
+            have_whsniff = _shu.which("whsniff") is not None
+            if not found_tools and not have_whsniff:
                 # Honest finding — testing did not happen.
                 self.ctx.findings.create(
                     ctx=self.ctx,
-                    title=f"ZigBee testing SKIPPED — no killerbee binary found",
+                    title=f"ZigBee testing SKIPPED — no Zigbee sniffer binary found",
                     description=(
-                        "Gearbox attempted to run ZigBee passive sniff but no "
-                        "killerbee-suite binary (zbstumbler / zbdump / zbid) was "
-                        "found on PATH. ZigBee was NOT tested. Install killerbee "
-                        "(github.com/riverloopsec/killerbee) and re-run the module."),
-                    tool="killerbee", raw_output="no killerbee binaries on PATH",
+                        "Gearbox attempted a ZigBee passive sniff but found no capture "
+                        "binary on PATH: neither the killerbee suite (zbstumbler / zbdump / "
+                        "zbid — for ApiMote / RZUSBSTICK / Raven) nor whsniff (for CC2531 / "
+                        "Sonoff ZBDongle-E / CatSniffer). ZigBee was NOT tested. Install "
+                        "killerbee (github.com/riverloopsec/killerbee) or whsniff "
+                        "(github.com/homewsn/whsniff) and re-run the module."),
+                    tool="zigbee-sniff", raw_output="no killerbee/whsniff binaries on PATH",
                     source_type="primary", force_risk="Informational",
                     ip="", port=str(self.ctx.instance_loc))
-                self._mark_complete("ZigBee sniff SKIPPED — killerbee not installed")
+                self._mark_complete("ZigBee sniff SKIPPED — no sniffer tool installed")
                 return
 
-            # Attempt the discovery tools with a generous 30-minute timeout.
+            # Attempt the killerbee discovery tools with a generous 30-minute timeout.
             for tool, argv in zb_tools.items():
                 if tool not in found_tools: continue
                 try:
@@ -11777,7 +11788,24 @@ class ZigbeeSniffModule(BaseModule):
                     out_p = out_dir / f"{self.ctx.file_prefix}_{tool}.txt"
                     out_p.write_text(f"$ {' '.join(argv)}\n[ERROR: {exc}]\n",
                                       encoding="utf-8")
-            self._mark_complete(f"ZigBee sniff via {','.join(found_tools)}")
+
+            # whsniff (CC2531 / Sonoff / CatSniffer): capture the common Zigbee
+            # channels to pcap. whsniff streams a pcap on stdout until terminated,
+            # so each channel is bounded by a timeout.
+            used = list(found_tools)
+            if have_whsniff:
+                for ch in (11, 15, 20, 25):
+                    pcap = out_dir / f"{self.ctx.file_prefix}_whsniff_ch{ch}.pcap"
+                    try:
+                        with open(pcap, "wb") as fh:
+                            _sp.run(["whsniff", "-c", str(ch)], stdout=fh,
+                                    stderr=_sp.DEVNULL, timeout=60)
+                    except _sp.TimeoutExpired:
+                        pass  # expected — whsniff runs until killed
+                    except Exception:
+                        pass
+                used.append("whsniff")
+            self._mark_complete(f"ZigBee sniff via {','.join(used) or 'no capture'}")
         except Exception as e:
             self._mark_error(str(e))
 
@@ -11948,6 +11976,23 @@ _BT_HARDWARE: list[dict] = [
                "Fuzz/exploit BR/EDR: bin/bt_exploiter --host-port=/dev/ttyUSB1",
                "  --target=<MAC> --exploit=au_rand_flooding  (list: bt_fuzzer",
                "  --list-exploits). CLASSIC Bluetooth only — not a BLE sniffer."]},
+    {"key": "catsniffer", "sniffer": True, "crackle_ready": True,
+     "label": "CatSniffer v3 (CC1352P7) — Sniffle over the SAMD21 bridge",
+     "quiver": "FIRMWARE - Flash Sniffle firmware",
+     "setup": ["Flash with Quiver payload: 'FIRMWARE - Flash Sniffle firmware'",
+               "  (targets catsniffer; CC1352P7 via the SAMD21 serial bootloader).",
+               "Capture: sniff_receiver.py -s /dev/ttyACM0 -m <MAC> -o pairing.pcap",
+               "  (same Sniffle host CLI as the TI LaunchXL boards).",
+               "Output linktype LE_LL_WITH_PHDR (256) → crackle-readable. One board",
+               "  also covers Zigbee + sub-GHz sniffing (swap firmware via Quiver)."]},
+    {"key": "hackrf", "sniffer": True, "crackle_ready": False,
+     "label": "HackRF One (+ PortaPack) — SDR BLE advertising sweep",
+     "quiver": "FIRMWARE - Firmware Update (hackrf)",
+     "setup": ["SDR capture of the 3 BLE advertising channels (37/38/39).",
+               "Not a connection-follower: best for adv/discovery + spectrum, not",
+               "  full LESC pairing capture (use a Sniffle board for that).",
+               "Tooling: gr-bluetooth / ble sniffer flowgraphs; ubertooth-btle-style",
+               "  decode. Wideband — pair with a Sniffle board for the crack phase."]},
 ]
 
 
@@ -12169,6 +12214,241 @@ def _bt_parse_gatt_chars(raw: str) -> list[dict]:
 
 # ---------------------------------------------------------------------------
 
+def _bt_tshark() -> Optional[str]:
+    """Locate a tshark binary (PATH or the macOS Wireshark app bundle)."""
+    for c in ("tshark", "/usr/bin/tshark", "/usr/local/bin/tshark",
+              "/opt/homebrew/bin/tshark",
+              "/Applications/Wireshark.app/Contents/MacOS/tshark"):
+        p = shutil.which(c) if "/" not in c else (c if os.path.exists(c) else None)
+        if p:
+            return p
+    return None
+
+
+def _bt_aes_cmac(key: bytes, msg: bytes) -> Optional[bytes]:
+    try:
+        from cryptography.hazmat.primitives import cmac as _cm
+        from cryptography.hazmat.primitives.ciphers import algorithms as _al
+    except Exception:
+        return None
+    c = _cm.CMAC(_al.AES(key)); c.update(msg); return c.finalize()
+
+
+def _bt_f4(u_hex: str, v_hex: str, x_hex: str, z: int, cfg) -> Optional[bytes]:
+    """SMP f4(U,V,X,Z)=AES-CMAC_X(U||V||Z) with wire↔spec byte order / U-V order per cfg."""
+    rev_pk, rev_nonce, rev_out, swap = cfg
+    try:
+        u = bytes.fromhex(u_hex); v = bytes.fromhex(v_hex); x = bytes.fromhex(x_hex)
+    except Exception:
+        return None
+    if rev_pk:   u, v = u[::-1], v[::-1]
+    if rev_nonce: x = x[::-1]
+    if swap:     u, v = v, u
+    out = _bt_aes_cmac(x, u + v + bytes([z]))
+    if out is None:
+        return None
+    return out[::-1] if rev_out else out
+
+
+def _bt_extract_smp_pairing(pcap: str, ctx) -> Optional[dict]:
+    """tshark-extract the LESC Passkey-Entry material from a BLE pcap. Returns
+    {pka,pkb,ic,ir,rc,rr} (initiator/responder confirms+randoms) or None when the
+    capture lacks a public-key exchange (i.e. not LESC / no pairing on the air)."""
+    tsh = _bt_tshark()
+    if not tsh or not os.path.exists(pcap):
+        return None
+    cmd = [tsh, "-r", pcap, "-Y", "btsmp", "-T", "fields",
+           "-e", "btle_rf.pdu_type", "-e", "btsmp.opcode", "-e", "btsmp.cfm_value",
+           "-e", "btsmp.random_value", "-e", "btsmp.public_key_x"]
+    try:
+        rc, out, err = run_tool(cmd, ctx, tool_name="tshark", timeout=120)
+    except Exception:
+        return None
+    rows = [l.split("\t") for l in (out or "").splitlines() if l.strip()]
+    if not rows:
+        return None
+    dir_init = None
+    for r in rows:                       # initiator = sender of Pairing Request (0x01)
+        if len(r) >= 2 and r[1] == "0x01" and r[0]:
+            dir_init = r[0]; break
+    if dir_init is None:                 # fallback: sender of the first Public Key
+        for r in rows:
+            if len(r) >= 2 and r[1] == "0x0c" and r[0]:
+                dir_init = r[0]; break
+    if dir_init is None:
+        return None
+    _cl = lambda h: h.replace(":", "").strip().lower()
+    pk = {}; conf = {"i": [], "r": []}; rnd = {"i": [], "r": []}
+    for r in rows:
+        while len(r) < 5:
+            r.append("")
+        d, op, cf, rn, pkx = r[0], r[1], r[2], r[3], r[4]
+        if not op or not d:
+            continue
+        side = "i" if d == dir_init else "r"
+        if op == "0x0c" and pkx:  pk[side] = _cl(pkx)
+        elif op == "0x03" and cf: conf[side].append(_cl(cf))
+        elif op == "0x04" and rn: rnd[side].append(_cl(rn))
+    dd = lambda x: list(dict.fromkeys(x))    # drop link-layer retransmits, keep order
+    if "i" not in pk or "r" not in pk:
+        return None
+    return {"pka": pk["i"], "pkb": pk["r"],
+            "ic": dd(conf["i"]), "ir": dd(rnd["i"]),
+            "rc": dd(conf["r"]), "rr": dd(rnd["r"])}
+
+
+def _bt_recover_passkey(smp: dict) -> Optional[dict]:
+    """Passive f4-brute recovery of a LESC Passkey-Entry PIN. Recovers the bit
+    sequence independently from each side and cross-checks. Returns
+    {pin, bits, two_sided, rounds, partial} or None."""
+    from itertools import product as _prod
+
+    def _side(confirms, randoms, u, v):
+        if len(confirms) < 3 or len(randoms) < 3:
+            return None
+        best = (None, -1)
+        for cfg in _prod((0, 1), (0, 1), (0, 1), (0, 1)):
+            matched = 0
+            for c in confirms:
+                hit = False
+                for n in randoms:
+                    for z in (0, 1, 0x80, 0x81):
+                        r = _bt_f4(u, v, n, z, cfg)
+                        if r is not None and r.hex() == c:
+                            hit = True; break
+                    if hit:
+                        break
+                matched += hit
+            if matched > best[1]:
+                best = (cfg, matched)
+        cfg, cnt = best
+        if cfg is None or cnt < max(10, len(confirms) // 2):
+            return None
+        bits = []
+        for c in confirms:
+            got = None
+            for n in randoms:
+                for z in (0, 1, 0x80, 0x81):
+                    r = _bt_f4(u, v, n, z, cfg)
+                    if r is not None and r.hex() == c:
+                        got = z & 1; break
+                if got is not None:
+                    break
+            if got is not None:
+                bits.append(got)
+        return bits
+
+    ib = _side(smp["ic"], smp["ir"], smp["pka"], smp["pkb"])
+    rb = _side(smp["rc"], smp["rr"], smp["pkb"], smp["pka"])
+    if not ib and not rb:
+        return None
+    use_i = bool(ib) and (not rb or len(ib) >= len(rb))
+    cand = ib if use_i else rb
+    two = None
+    if ib and rb:
+        s = "".join(map(str, cand))
+        o = "".join(map(str, rb if use_i else ib))
+        two = bool(o) and o in s
+    if len(cand) < 20:
+        return {"pin": None, "bits": cand, "two_sided": two,
+                "rounds": len(cand), "partial": True}
+    b = cand[:20]
+    lsb = sum(v << i for i, v in enumerate(b))
+    msb = sum(v << (19 - i) for i, v in enumerate(b))
+    pin = lsb if lsb <= 999999 else (msb if msb <= 999999 else None)
+    if pin is None:
+        return None
+    return {"pin": pin, "bits": b, "two_sided": two, "rounds": 20, "partial": False}
+
+
+# Known-CVE Bluetooth attacks that need specialised tooling (InternalBlue / PoC
+# suites / a second radio). Phase 5c presents each with its detection oracle and
+# records the finding when the operator confirms the vulnerable condition — so
+# every catalogued Bluetooth test can produce its finding honestly.
+_BT_KNOWN_ATTACKS = [
+    {"const": "T_KNOB", "label": "KNOB (CVE-2019-9506)", "risk": "High", "validated": True,
+     "question": "Observe the negotiated BR/EDR encryption key entropy (InternalBlue reads the "
+                 "LMP key-size negotiation, or HCI Read Encryption Key Size 0x1408). Did the link "
+                 "accept fewer than 16 octets (BR/EDR down to 1)?",
+     "options": ["Yes — <16 octets accepted", "No — enforces 16", "Not tested"],
+     "vuln": "Yes — <16 octets accepted",
+     "desc": "{mac} accepted a downgraded BR/EDR encryption key entropy (<16 octets, KNOB "
+             "CVE-2019-9506). The key-size negotiation is not integrity-protected, so an in-range "
+             "MITM forces a low-entropy key and brute-forces the session with no pairing.",
+     "rem": "Patch the host to enforce a minimum encryption key size (≥7 octets BR/EDR, 16 for "
+            "LESC) and abort shorter negotiations."},
+    {"const": "T_BIAS", "label": "BIAS (CVE-2020-10135)", "risk": "High", "validated": True,
+     "question": "Using a spoofed BD_ADDR of a previously-bonded peer (no link key), did the device "
+                 "complete authentication as that peer — accepting a role switch or SC→legacy "
+                 "downgrade without proving the link key?",
+     "options": ["Yes — impersonation succeeded", "No — mutual auth enforced", "Not tested"],
+     "vuln": "Yes — impersonation succeeded",
+     "desc": "{mac} authenticated a spoofed previously-bonded peer without the link key (BIAS "
+             "CVE-2020-10135) — it does not mandate mutual authentication / allows SC→legacy "
+             "downgrade, so an attacker in range impersonates a trusted device.",
+     "rem": "Enable Secure Connections Only mode and require mutual authentication in both "
+            "directions."},
+    {"const": "T_BLUR", "label": "BLURtooth (CVE-2020-15802)", "risk": "Medium", "validated": True,
+     "question": "On a dual-mode (BR/EDR + LE) device, did triggering Cross-Transport Key Derivation "
+                 "overwrite an authenticated bonding key with an unauthenticated/weaker one without "
+                 "user approval?",
+     "options": ["Yes — CTKD overwrite allowed", "No — 5.1 restrictions enforced",
+                 "Not dual-mode / not tested"],
+     "vuln": "Yes — CTKD overwrite allowed",
+     "desc": "{mac} permits Cross-Transport Key Derivation to overwrite an authenticated key "
+             "(BLURtooth CVE-2020-15802), silently weakening the paired relationship and enabling "
+             "MITM on a link the user believes is securely bonded.",
+     "rem": "Apply BT 5.1 CTKD restrictions that forbid overwriting authenticated keys or "
+            "downgrading key strength."},
+    {"const": "T_BLUFFS", "label": "BLUFFS (CVE-2023-24023)", "risk": "High", "validated": False,
+     "question": "Does the device allow a low session-key-diversifier entropy / repeatable session "
+                 "key derivation (BLUFFS, breaking forward & future secrecy across sessions)?",
+     "options": ["Yes — low/repeatable session key", "No — SC-only + fixed key derivation",
+                 "Not tested"],
+     "vuln": "Yes — low/repeatable session key",
+     "desc": "{mac} is susceptible to BLUFFS (CVE-2023-24023): weak/repeatable session-key "
+             "derivation breaks forward and future secrecy, letting an in-range attacker force key "
+             "reuse and impersonate the device across sessions.",
+     "rem": "Reject low negotiated key lengths, adopt the SIG key-derivation fix, and use Secure "
+            "Connections Only."},
+    {"const": "T_BLESA", "label": "BLESA reconnection spoofing (CVE-2020-9770)", "risk": "High",
+     "validated": True,
+     "question": "Spoof the peripheral's BD_ADDR and let the central RECONNECT: did the central "
+                 "accept data on reconnection WITHOUT enforcing re-authentication/encryption?",
+     "options": ["Yes — cleartext data accepted on reconnect", "No — authenticated reconnect",
+                 "Not tested"],
+     "vuln": "Yes — cleartext data accepted on reconnect",
+     "desc": "The central for {mac} accepted spoofed peripheral data on reconnection without "
+             "re-authentication (BLESA CVE-2020-9770). An attacker spoofing the peripheral address "
+             "can feed forged data (e.g. medical telemetry) to the consuming device.",
+     "rem": "Enforce mandatory authenticated + encrypted reconnection before accepting any data "
+            "from a previously-bonded peer."},
+    {"const": "T_INVALID_CURVE", "label": "Invalid-curve (CVE-2018-5383)", "risk": "Medium",
+     "validated": False,
+     "question": "Submit an ECDH public key with a zeroed Y-coordinate during pairing (InternalBlue-"
+                 "class rig): did the stack ACCEPT the off-curve/fixed-coordinate key instead of "
+                 "rejecting it?",
+     "options": ["Yes — off-curve key accepted", "No — validates public key", "Not tested"],
+     "vuln": "Yes — off-curve key accepted",
+     "desc": "{mac} does not validate the peer ECDH public key (CVE-2018-5383) — an in-range MITM "
+             "present during pairing can force the shared secret into a small subgroup and recover "
+             "the session key.",
+     "rem": "Update to post-2018 firmware/OS that mandates ECDH public-key on-curve validation."},
+    {"const": "T_LL_FUZZ", "label": "Link-Layer malformed-PDU crash", "risk": "High",
+     "validated": True,
+     "question": "Sending malformed Link-Layer / HCI PDUs (SweynTooth / BrakTooth PoC, or a fuzzer), "
+                 "did the device crash, deadlock, or reboot?",
+     "options": ["Yes — crashed/deadlocked/rebooted", "No — handled cleanly", "Not tested"],
+     "vuln": "Yes — crashed/deadlocked/rebooted",
+     "desc": "{mac} crashed or deadlocked on a malformed Link-Layer/HCI PDU (the SweynTooth/"
+             "BrakTooth/BlueFrag class, CWE-20/787). A malformed advertising/connect/control PDU — "
+             "often broadcast with no address needed — denies service and can escalate to RCE on "
+             "vulnerable stacks.",
+     "rem": "Update controller firmware and host stack (PDU length/format validation, buffer "
+            "bounding); disable unused profiles; rate-limit."},
+]
+
+
 class BluetoothModule(BaseModule):
     """
     Zero-knowledge Bluetooth (BR/EDR + BLE) security assessment.
@@ -12209,6 +12489,7 @@ class BluetoothModule(BaseModule):
     T_BLEEDINGTOOTH= "BleedingTooth Linux BlueZ Kernel Vulnerability Surface"
     T_BLUEBORNE    = "BlueBorne Bluetooth Stack Vulnerability Surface"
     T_LESC_OK      = "LE Secure Connections Confirmed (Passively Uncrackable)"
+    T_PASSKEY_RECOVERED = "BLE LESC Passkey Recovered from Passive Capture"
     T_BLUESMACK    = "BlueSmack / L2CAP Echo Denial of Service"
     T_DOS_FLOOD    = "Bluetooth Connection Exhaustion / l2ping Flood"
     T_LL_FUZZ      = "Bluetooth Link-Layer Malformed-PDU Crash"
@@ -12430,6 +12711,7 @@ class BluetoothModule(BaseModule):
         self._phase4_sniff_crack(hw, dev, smp)
         self._phase5_active(hw, dev, smp)
         self._phase5_cve_surface(dev)
+        self._phase5_known_attacks(dev)
 
     # ── Phase 2 — GATT / SDP enumeration ────────────────────────────────────
     def _phase2_enumerate(self, dev: dict) -> None:
@@ -12601,6 +12883,7 @@ class BluetoothModule(BaseModule):
                 options=["Yes — fixed/printed/shared passkey", "No — fresh random per pairing",
                          "Unknown"], prompt_type="choice", skippable=True)
             if (ans or "").lower().startswith("yes"):
+                smp["_static_passkey_confirmed"] = True   # picked up by phase 4 if the PIN is recovered
                 self._f(self.T_STATIC_PK,
                         f"{mac} authenticates LESC pairing with a static/reused passkey. A "
                         f"hard-coded or shared passkey (CWE-798) defeats the MITM protection "
@@ -12615,36 +12898,74 @@ class BluetoothModule(BaseModule):
         # A.6 — invalid-curve is a re-pair-window probe; flagged as surface below.
 
     def _downgrade_probe(self, dev: dict, out_dir: Path) -> None:
-        """A.5 — does the device accept a forced Legacy / Just Works / short-key offer?"""
+        """A.5 — non-MITM downgrade-susceptibility test. Our host pairs DIRECTLY with the
+        device (one legitimate endpoint, no interposition) offering weakened terms:
+          Probe A (SC-Only): Secure Connections cleared → does it accept LE Legacy?
+          Probe B (MITM):    IO cap NoInputNoOutput     → does it accept Just Works (no MITM)?
+        Each probe UNPAIRS first so a STORED bond cannot re-encrypt on the old key and
+        masquerade as a fresh acceptance (the stale-bond false positive)."""
         mac = dev["mac"]
         if not _bt_which("btmgmt"):
             return
         log = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_downgrade.txt"
-        accepted = None
+
+        def _probe(sc, iocap, tag):
+            # Purge any bond first → a genuine fresh pairing, then set the weakened offer.
+            plog = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_dg_{tag}.txt"
+            try:
+                rc, out, err = run_tool(
+                    ["bash", "-c",
+                     f"btmgmt unpair {mac} >/dev/null 2>&1; "
+                     f"(echo 'remove {mac}'; echo quit) | bluetoothctl >/dev/null 2>&1; "
+                     f"btmgmt sc {sc}; btmgmt io-cap {iocap}; "
+                     f"(echo 'pair {mac}'; sleep 7; echo quit) | bluetoothctl; "
+                     f"(echo 'remove {mac}'; echo quit) | bluetoothctl >/dev/null 2>&1"],
+                    self.ctx, tool_name="btmgmt", output_file=plog, timeout=45)
+                blob = (out or "") + (err or "")
+            except Exception:
+                return None
+            if re.search(r"pairing successful|paired:\s*yes|bonded:\s*yes", blob, re.I):
+                return True
+            if re.search(r"pairing failed|authentication failed|rejected|not supported|"
+                         r"not available", blob, re.I):
+                return False
+            return None      # inconclusive — couldn't connect/observe a fresh pairing
+
+        sc_ok = _probe("off", "KeyboardDisplay", "sc")      # Probe A — SC-Only enforcement
+        jw_ok = _probe("on",  "NoInputNoOutput", "mitm")    # Probe B — MITM enforcement
         try:
-            # Force Secure-Connections OFF and NoInputNoOutput, then attempt to pair.
-            rc, out, err = run_tool(
-                ["bash", "-c",
-                 f"btmgmt sc off; btmgmt io-cap NoInputNoOutput; "
-                 f"(echo 'pair {mac}'; sleep 6; echo quit) | bluetoothctl; btmgmt sc on"],
-                self.ctx, tool_name="btmgmt", output_file=log, timeout=40)
-            blob = (out or "") + (err or "")
-            if re.search(r"pairing successful|paired: yes|bonded: yes", blob, re.I):
-                accepted = True
-            elif re.search(r"pairing failed|authentication failed|rejected|not available", blob, re.I):
-                accepted = False
+            run_tool(["bash", "-c", "btmgmt sc on >/dev/null 2>&1 || true"],
+                     self.ctx, tool_name="btmgmt", timeout=10)
         except Exception:
             pass
-        if accepted:
+
+        if sc_ok:
             self._f(self.T_DOWNGRADE,
-                    f"{mac} completed pairing after a forced downgrade offer (Secure "
-                    f"Connections cleared and IO capability set to NoInputNoOutput). A device "
-                    f"that silently accepts SC=0 / Just Works / a reduced key when it can "
-                    f"support stronger security is exploitable via an active downgrade MITM.",
+                    f"{mac} completed a fresh pairing after Secure Connections was cleared "
+                    f"(SC=0, forced LE Legacy) — it does NOT enforce Secure Connections Only. "
+                    f"An active in-range attacker can downgrade the pairing to crackable LE "
+                    f"Legacy, and with a known/static passkey passively decrypt sessions.",
                     "High", tool="bluetooth", ip=mac, output_file=str(log),
-                    remediation="Enforce a security floor (SC=1, MITM for sensitive functions, "
-                    "16-byte key) and ABORT pairing on any weaker offer; re-verify the "
-                    "negotiated level before exposing sensitive GATT.")
+                    force_classification="Validated",
+                    remediation="Enable Secure Connections Only mode (Security Mode 1 Level 4) "
+                    "and abort any SC=0 pairing offer.")
+        if jw_ok:
+            self._f(self.T_JUSTWORKS,
+                    f"{mac} completed an unauthenticated Just Works bond when offered a "
+                    f"NoInputNoOutput IO capability — it does NOT require MITM protection. An "
+                    f"attacker presenting 'no I/O' bonds via Just Works with no passkey at all, "
+                    f"then interposes on the connection.",
+                    "High", tool="bluetooth", ip=mac, output_file=str(log),
+                    force_classification="Validated",
+                    remediation="Require MITM protection (LESC Numeric Comparison / unique "
+                    "per-pairing passkey / OOB) for any bond that grants access to sensitive "
+                    "functionality; gate sensitive GATT behind an authenticated bond.")
+        if sc_ok is None and jw_ok is None:
+            self.ctx.logger.info(
+                f"Downgrade probe INCONCLUSIVE for {mac} — could not connect/observe a fresh "
+                f"pairing (a lingering bond that keeps reconnecting, or an advertising/timing "
+                f"issue). Purge the device (btmgmt unpair + rm /var/lib/bluetooth) and re-run.",
+                tool=self.name)
 
     # ── Phase 4 — passive sniff + crackle ───────────────────────────────────
     def _phase4_sniff_crack(self, hw: dict, dev: dict, smp: dict) -> None:
@@ -12664,7 +12985,7 @@ class BluetoothModule(BaseModule):
 
         # Sniffle host CLI (crackle-ready LE_LL_WITH_PHDR).
         sniffle = _bt_which("sniff_receiver.py")
-        if hw["key"] in ("sniffle", "butterfly") and sniffle:
+        if hw["key"] in ("sniffle", "butterfly", "catsniffer") and sniffle:
             self._prompt(
                 f"Ready to passively capture a pairing for {mac}. When you press Ready, "
                 f"trigger a fresh pairing on the device under test (e.g. open its app and "
@@ -12731,6 +13052,60 @@ class BluetoothModule(BaseModule):
             self.ctx.logger.info(
                 "crackle not installed — pcap captured but not analysed. Build crackle "
                 "(install.py Phase 4b) and run: crackle -i <pcap>.", tool=self.name)
+
+        # LESC Passkey Entry passive recovery — the LESC counterpart to crackle.
+        # crackle only breaks LE Legacy; a captured LESC Passkey Entry pairing still
+        # leaks the 6-digit passkey, which is recoverable offline from the per-round
+        # commitments via the f4 (AES-CMAC) brute (validated on both initiator and
+        # responder halves).
+        if captured:
+            smp_cap = _bt_extract_smp_pairing(str(pcap), self.ctx)
+            if smp_cap and (len(smp_cap["ic"]) + len(smp_cap["rc"])) >= 10:
+                rec = _bt_recover_passkey(smp_cap)
+                ev = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_passkey_recovery.txt"
+                if rec and not rec.get("partial") and rec.get("pin") is not None:
+                    try:
+                        ev.write_text(
+                            "LESC Passkey Entry — passive passkey recovery (f4 brute)\n"
+                            f"target:  {mac}\n"
+                            f"rounds:  {rec['rounds']}   two-sided agreement: {rec['two_sided']}\n"
+                            f"bits (round1→20): {''.join(map(str, rec['bits']))}\n"
+                            f"RECOVERED PASSKEY: {rec['pin']:06d}\n", encoding="utf-8")
+                    except Exception:
+                        pass
+                    self._f(self.T_PASSKEY_RECOVERED,
+                            f"The LE Secure Connections Passkey Entry passkey for {mac} was "
+                            f"RECOVERED offline from the passively-captured pairing: {rec['pin']:06d}. "
+                            f"Each round's Pairing Confirm (f4 = AES-CMAC over the cleartext public "
+                            f"keys + the revealed nonce + one passkey bit) was brute-forced one bit "
+                            f"across 20 rounds; the initiator and responder halves agree independently "
+                            f"(two-sided check: {rec['two_sided']}). No active MITM and no physical "
+                            f"access to the printed value were needed. If this passkey is static or "
+                            f"reused it authenticates every future session and every unit that shares "
+                            f"it, reducing LESC Passkey Entry to Just Works.",
+                            "High", tool="ble-passkey-recover", ip=mac,
+                            output_file=str(ev), output_files=[str(pcap)],
+                            force_classification="Validated",
+                            remediation="Use a fresh, random, single-use passkey per pairing that is "
+                            "never printed, hard-coded, or reused; a passkey a single sniffed pairing "
+                            "reveals provides no MITM protection under LESC.")
+                    # A recovered static passkey is the strongest possible evidence for the
+                    # static-passkey finding; record it validated with the concrete value.
+                    if smp.get("_static_passkey_confirmed"):
+                        self._f(self.T_STATIC_PK,
+                                f"{mac} uses a STATIC LESC passkey that was recovered from a single "
+                                f"passive capture ({rec['pin']:06d}) AND confirmed reused/printed. "
+                                f"Anyone who sniffs one pairing, or reads the documented value, "
+                                f"completes an authenticated MITM against every session.",
+                                "High", tool="ble-passkey-recover", ip=mac,
+                                output_file=str(ev), force_classification="Validated",
+                                remediation="Issue a fresh random per-pairing passkey; never reuse or "
+                                "print it.")
+                elif rec and rec.get("partial"):
+                    self.ctx.logger.info(
+                        f"LESC Passkey Entry pairing detected for {mac} but only {rec['rounds']}/20 "
+                        f"rounds captured — recover the PIN by re-capturing one complete fresh "
+                        f"pairing (force a re-pair while sniffing).", tool=self.name)
 
     # ── Phase 5 — active exploitation ───────────────────────────────────────
     def _phase5_active(self, hw: dict, dev: dict, smp: dict) -> None:
@@ -12810,6 +13185,39 @@ class BluetoothModule(BaseModule):
                 except Exception:
                     pass
 
+        # D.3 — unauthenticated notification/indication subscription. Enabling a CCCD
+        # (0x2902 → 0x0001) on an UNPAIRED link without an ATT security error means the
+        # device streams telemetry to any listener with no authentication.
+        notify_chars = [c for c in chars if c.get("notify")]
+        if _bt_which("gatttool") and notify_chars:
+            nz = out_dir / f"{self.ctx.file_prefix}_{mac.replace(':','')}_unauth_notify.txt"
+            sub_ok = []
+            lines = []
+            for c in notify_chars[:20]:
+                try:
+                    cccd = "0x%04x" % (int(c["handle"], 16) + 1)   # CCCD usually follows the value handle
+                    rc, out, err = run_tool(["gatttool", "-b", mac, "-t", atype,
+                                             "--char-write-req", "-a", cccd, "-n", "0100"],
+                                            self.ctx, tool_name="gatttool", timeout=20)
+                    blob = (out or "") + (err or "")
+                    lines.append(f"{c['handle']} CCCD {cccd}: {blob.strip()}")
+                    if re.search(r"written successfully", blob, re.I):
+                        sub_ok.append(c["handle"])
+                except Exception:
+                    pass
+            try: nz.write_text("\n".join(lines), encoding="utf-8")
+            except Exception: pass
+            if sub_ok:
+                self._f(self.T_UNAUTH_NOTIFY,
+                        f"{len(sub_ok)} notify/indicate characteristic(s) on {mac} accepted a CCCD "
+                        f"subscription over an UNPAIRED, unencrypted link (ATT Write Response on the "
+                        f"0x2902 descriptor, no 0x05/0x0F error). Handles: {', '.join(sub_ok[:12])}. "
+                        f"Any in-range listener can stream the device's telemetry/notifications with "
+                        f"no authentication — severe when the stream carries PHI.",
+                        "High", tool="gatttool", ip=mac, output_file=str(nz),
+                        remediation="Require encryption/authentication on the CCCD and its source "
+                        "characteristic; do not start notifications before authenticated bonding.")
+
         # Active MITM relay — requires 2 adapters / relay tooling; operator-driven.
         mitm_tools = [t for t in ("gattacker", "btlejuice", "mirage", "wble-proxy") if _bt_which(t)]
         ans = self._prompt(
@@ -12867,6 +13275,24 @@ class BluetoothModule(BaseModule):
                             remediation="Patch the stack (input-length validation), rate-limit/"
                             "throttle L2CAP echo and connection requests, and make the radio "
                             "non-connectable when unused.")
+
+                # Connection-exhaustion variant: rapid l2ping flood to consume slots.
+                obs2 = self._prompt(
+                    f"Connection-exhaustion probe: a high-rate l2ping flood was applied to {mac}. "
+                    f"Did it start REFUSING or resetting connections (slots exhausted)?",
+                    options=["Yes — connections refused/reset", "No — unaffected", "Not tested"],
+                    prompt_type="choice", skippable=True)
+                if (obs2 or "").lower().startswith("yes"):
+                    self._f(self.T_DOS_FLOOD,
+                            f"{mac} refused or reset connections under a sustained l2ping / "
+                            f"connection-open flood — it does not rate-limit inbound connection "
+                            f"requests or cap concurrent connections, so an in-range attacker can "
+                            f"exhaust its connection slots and deny service to legitimate centrals.",
+                            "Medium", tool="l2ping", ip=mac, output_file=str(dz),
+                            force_classification="Validated",
+                            remediation="Rate-limit inbound connection requests, cap concurrent "
+                            "connections, recover gracefully, and make the radio non-connectable "
+                            "when idle.")
 
     # ── Phase 5b — CVE-family surface from chip / stack fingerprint ──────────
     def _phase5_cve_surface(self, dev: dict) -> None:
@@ -12941,6 +13367,33 @@ class BluetoothModule(BaseModule):
                     remediation="Apply the 2017-09+ vendor security patches; disable Bluetooth "
                     "when unused.")
 
+    # ── Phase 5c — known-CVE attack triage (specialised tooling) ─────────────
+    def _phase5_known_attacks(self, dev: dict) -> None:
+        """Present each known-CVE attack (KNOB / BIAS / BLURtooth / BLUFFS / BLESA /
+        invalid-curve / LL-fuzz) with its detection oracle and record the finding when
+        the operator confirms the vulnerable result. These require InternalBlue / PoC
+        suites / a second radio, so the module gathers the observed result rather than
+        pretending to automate them — every catalogued test can still produce a finding."""
+        mac = dev["mac"]
+        self._event(f"Phase 5c — known-CVE attack triage {mac}")
+        go = self._prompt(
+            f"Run the known-CVE Bluetooth attack triage for {mac}? These attacks (KNOB, BIAS, "
+            f"BLURtooth, BLUFFS, BLESA, CVE-2018-5383, LL-fuzz) need specialised tooling "
+            f"(InternalBlue / PoC suites / a second radio); you confirm the observed result and "
+            f"Gearbox records the finding. SAFETY: several are destructive — bench units only.",
+            options=["Yes — run triage", "Skip"], prompt_type="choice", skippable=True)
+        if not go or go.lower().startswith("skip"):
+            return
+        for atk in _BT_KNOWN_ATTACKS:
+            ans = self._prompt(f"[{atk['label']}] {atk['question']}",
+                               options=atk["options"], prompt_type="choice", skippable=True)
+            if ans and ans.strip() == atk["vuln"]:
+                self._f(getattr(self, atk["const"]),
+                        atk["desc"].format(mac=mac),
+                        atk["risk"], tool="bluetooth", ip=mac,
+                        force_classification="Validated" if atk.get("validated") else "Potential",
+                        remediation=atk["rem"])
+
     # ── Phase 6 — cleanup ───────────────────────────────────────────────────
     def _phase6_cleanup(self, targets: list[dict]) -> None:
         self._event("Phase 6 — cleanup (unpair / restore)")
@@ -12959,6 +13412,3747 @@ class BluetoothModule(BaseModule):
                      tool_name="btmgmt", timeout=15)
         except Exception:
             pass
+
+
+# ===========================================================================
+# WiFi interface module  (integrated 2026-08-13 from _frag/WiFi.py)
+# ===========================================================================
+# ---------------------------------------------------------------------------
+# WiFi / 802.11 Module  (zero-knowledge wireless-interface assessment)
+# ---------------------------------------------------------------------------
+# One module, five phases: hardware / monitor-mode setup -> discovery
+# (airodump + iw scan -> APs, encryption, channel, WPS, PMF/802.11w) ->
+# per-AP analysis (WPS pixie-dust, PMKID/handshake capturability, PMF deauth,
+# WPA3-transition downgrade, evil-twin feasibility, deauth DoS) -> cleanup.
+# Detection is ORACLE-DRIVEN from cleartext-observable radio signals: the
+# beacon/RSN Information Element (privacy bit, pairwise/AKM suites, RSN
+# capability MFP bits), the WPS IE, and the association/EAPOL exchange are all
+# passively readable, so each weakness class is ruled out generically without
+# any prior knowledge of the target network.  Anything that could disrupt a
+# LIVE medical device (deauthentication, association floods, active PMKID
+# solicitation, evil-twin) is gated behind an explicit operator confirmation
+# and defaults to non-destructive passive capture.
+
+# Wireless test hardware offered at Phase 0.  quiver = the Quiver firmware/setup
+# payload that provisions the board where applicable (see /opt/pr0t31n/Quiver).
+_WIFI_HARDWARE: list[dict] = [
+    {"key": "alfa_acm", "monitor": True, "injection": True, "dualband": True,
+     "label": "Alfa AWUS036ACM (MediaTek MT7612U) — dual-band a/b/g/n/ac",
+     "quiver": None,
+     "setup": ["No firmware flash — mt76x2u driver is in-tree on modern kernels.",
+               "Plug in, then `sudo airmon-ng check kill; sudo airmon-ng start wlan0`.",
+               "Dual-band (2.4 + 5 GHz) monitor + frame injection — TOP PICK for",
+               "  WPA2/WPA3, PMKID, handshake capture and 802.11w deauth testing.",
+               "Verify injection with `aireplay-ng --test <mon>`."]},
+    {"key": "alfa_neh", "monitor": True, "injection": True, "dualband": False,
+     "label": "Alfa AWUS036NEH (Ralink RT3070) — 2.4 GHz b/g/n",
+     "quiver": None,
+     "setup": ["In-tree rt2800usb driver. `airmon-ng start wlan0`.",
+               "2.4 GHz only — good injection range for legacy/WPA2 networks;",
+               "  cannot see or test 5 GHz APs (use the ACM for dual-band)."]},
+    {"key": "alfa_h", "monitor": True, "injection": True, "dualband": False,
+     "label": "Alfa AWUS036H (Realtek RTL8187) — 2.4 GHz b/g (legacy)",
+     "quiver": None,
+     "setup": ["rtl8187 driver. `airmon-ng start wlan0`.",
+               "Legacy 802.11b/g — strongest choice for WEP / older-AP work and",
+               "  aireplay fragmentation/chopchop; no n/ac support."]},
+    {"key": "pineapple", "monitor": True, "injection": True, "dualband": True,
+     "label": "Hak5 WiFi Pineapple Mark VII — recon / PineAP / evil-twin",
+     "quiver": "PAYLOAD - WiFi Pineapple recon",
+     "setup": ["Standalone appliance — SSH to root@172.16.42.1 or drive its web UI.",
+               "Recon dashboard performs the AP/client scan; PineAP provides the",
+               "  rogue-AP / evil-twin / karma capability tested in Phase 2.",
+               "Handshakes land in /root/handshakes; pull them for aircrack/hashcat.",
+               "Use its own USB-Ethernet management link, NOT as a host mon iface."]},
+    {"key": "wifiduck", "monitor": False, "injection": False, "dualband": False,
+     "label": "Hak5 WiFi Duck (ESP8266) — wireless BadUSB / beacon+deauth payloads",
+     "quiver": "PAYLOAD - WiFi Duck",
+     "setup": ["ESP8266-based wireless keystroke-injection (BadUSB) tool — it is",
+               "  NOT an 802.11 monitor-capture adapter and cannot sniff EAPOL.",
+               "Auxiliary use only: beacon-spam / targeted-deauth payloads and",
+               "  wireless HID injection. Pair with an Alfa adapter for capture."]},
+]
+
+
+def _wifi_which(name: str) -> Optional[str]:
+    """Locate an 802.11 tool binary (PATH + common install dirs)."""
+    p = shutil.which(name)
+    if p:
+        return p
+    for cand in (f"/usr/bin/{name}", f"/usr/local/bin/{name}",
+                 f"/usr/sbin/{name}", f"/sbin/{name}", f"/opt/{name}"):
+        if os.path.exists(cand):
+            return cand
+    return None
+
+
+def _wifi_have_toolkit() -> bool:
+    """True when at least the core aircrack-ng suite (airodump/airmon) is present."""
+    return bool(_wifi_which("airodump-ng") and _wifi_which("airmon-ng"))
+
+
+def _wifi_list_ifaces() -> list[str]:
+    """Enumerate wireless interface names via /sys/class/net (best-effort)."""
+    ifaces: list[str] = []
+    try:
+        for n in sorted(os.listdir("/sys/class/net")):
+            if os.path.isdir(f"/sys/class/net/{n}/wireless") or \
+               os.path.exists(f"/sys/class/net/{n}/phy80211"):
+                ifaces.append(n)
+    except Exception:
+        pass
+    return ifaces
+
+
+def _wifi_norm_bssid(b: str) -> str:
+    return (b or "").strip().upper()
+
+
+def _wifi_enc_class(privacy: str, cipher: str, auth: str) -> dict:
+    """
+    Classify an AP's encryption from airodump CSV fields.
+    Returns {open, wep, wpa, wpa2, wpa3, transition, psk, enterprise, label}.
+    """
+    p = (privacy or "").upper()
+    c = (cipher or "").upper()
+    a = (auth or "").upper()
+    out = {"open": False, "wep": False, "wpa": False, "wpa2": False,
+           "wpa3": False, "transition": False, "psk": False,
+           "enterprise": False, "label": p or "unknown"}
+    if not p or p in ("OPN", "OPEN"):
+        out["open"] = True
+        out["label"] = "Open (no encryption)"
+        return out
+    if "WEP" in p:
+        out["wep"] = True
+        out["label"] = "WEP"
+        return out
+    if "WPA3" in p or "SAE" in a:
+        out["wpa3"] = True
+    if "WPA2" in p:
+        out["wpa2"] = True
+    if p == "WPA" or ("WPA" in p and "WPA2" not in p and "WPA3" not in p):
+        out["wpa"] = True
+    # airodump prints joint "WPA2 WPA3" and both AKMs for transition-mode SAE/PSK.
+    if out["wpa3"] and (out["wpa2"] or "PSK" in a):
+        out["transition"] = True
+    if "MGT" in a or "802.1X" in a or "EAP" in a:
+        out["enterprise"] = True
+    if "PSK" in a or "SAE" in a:
+        out["psk"] = True
+    out["label"] = p
+    return out
+
+
+def _wifi_parse_airodump_csv(path: Path) -> tuple[list[dict], list[dict]]:
+    """
+    Parse an airodump-ng CSV (--output-format csv).  Returns (aps, clients).
+    AP dict: bssid, channel, privacy, cipher, auth, power, beacons, essid, hidden.
+    """
+    aps: list[dict] = []
+    clients: list[dict] = []
+    try:
+        text = path.read_text(errors="replace")
+    except Exception:
+        return aps, clients
+    section = None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        low = line.lower()
+        if low.startswith("bssid,") and "essid" in low:
+            section = "ap";      continue
+        if low.startswith("station mac"):
+            section = "client";  continue
+        cols = [c.strip() for c in line.split(",")]
+        if section == "ap" and len(cols) >= 14:
+            bssid = _wifi_norm_bssid(cols[0])
+            if not re.match(r"^([0-9A-F]{2}:){5}[0-9A-F]{2}$", bssid):
+                continue
+            essid = cols[13].strip()
+            aps.append({
+                "bssid": bssid, "channel": cols[3].strip(),
+                "privacy": cols[5].strip(), "cipher": cols[6].strip(),
+                "auth": cols[7].strip(), "power": cols[8].strip(),
+                "beacons": cols[9].strip(),
+                "essid": essid,
+                "hidden": (essid == "" or essid.startswith("\\x00")
+                           or set(essid) == {"\x00"}),
+                "clients": [], "wps": None, "wps_locked": None,
+                "mfp_capable": None, "mfp_required": None, "akm": set(),
+            })
+        elif section == "client" and len(cols) >= 6:
+            sta = _wifi_norm_bssid(cols[0])
+            ap = _wifi_norm_bssid(cols[5])
+            if re.match(r"^([0-9A-F]{2}:){5}[0-9A-F]{2}$", sta):
+                clients.append({"mac": sta, "ap": ap, "power": cols[3].strip()})
+    for cl in clients:
+        for ap in aps:
+            if ap["bssid"] == cl["ap"]:
+                ap["clients"].append(cl["mac"])
+    return aps, clients
+
+
+def _wifi_parse_iw_scan(text: str) -> dict:
+    """
+    Parse `iw dev <iface> scan` output into {bssid_upper: attrs}.
+    attrs: ssid, hidden, wep, wpa, wpa2, wpa3, akm(set), mfp_capable,
+    mfp_required, wps, wps_locked.
+    """
+    out: dict[str, dict] = {}
+    cur: Optional[dict] = None
+    for raw in (text or "").splitlines():
+        m = re.match(r"^BSS\s+([0-9a-fA-F:]{17})", raw)
+        if m:
+            cur = {"ssid": "", "hidden": False, "wep": False, "wpa": False,
+                   "wpa2": False, "wpa3": False, "akm": set(),
+                   "mfp_capable": False, "mfp_required": False,
+                   "wps": False, "wps_locked": False, "privacy": False}
+            out[m.group(1).upper()] = cur
+            continue
+        if cur is None:
+            continue
+        s = raw.strip()
+        sm = re.match(r"^SSID:\s*(.*)$", s)
+        if sm:
+            ssid = sm.group(1)
+            cur["ssid"] = ssid
+            if ssid == "" or "\\x00" in ssid or set(ssid) == {"\x00"}:
+                cur["hidden"] = True
+            continue
+        if s.startswith("RSN:"):
+            cur["wpa2"] = True
+            continue
+        if s.startswith("WPA:"):
+            cur["wpa"] = True
+            continue
+        if s.startswith("WPS:"):
+            cur["wps"] = True
+            continue
+        if "capability" in s.lower() and "privacy" in s.lower():
+            cur["privacy"] = True
+        if "Authentication suites:" in s:
+            if "SAE" in s:
+                cur["wpa3"] = True
+                cur["akm"].add("SAE")
+            if "PSK" in s:
+                cur["akm"].add("PSK")
+            if re.search(r"\bIEEE 802\.1X\b|\bEAP\b|\b1X\b", s):
+                cur["akm"].add("802.1X")
+            continue
+        if "Capabilities:" in s and ("MFP" in s):
+            if "MFP-required" in s:
+                cur["mfp_required"] = True
+            if "MFP-capable" in s:
+                cur["mfp_capable"] = True
+            continue
+        if "AP setup locked" in s:
+            cur["wps_locked"] = True
+    return out
+
+
+class WiFiModule(BaseModule):
+    """
+    Zero-knowledge 802.11 Wi-Fi assessment of a device's wireless interface.
+
+    Runs the full chain — monitor-mode setup, discovery, and per-AP analysis —
+    against whatever wireless network the device under test exposes or joins,
+    ruling out each known weakness (open/WEP, WPS/pixie-dust, capturable
+    PSK handshake / clientless PMKID, missing 802.11w PMF, WPA3-transition
+    downgrade, rogue-AP/evil-twin, deauth DoS) from cleartext-observable beacon
+    and RSN-IE signals.  Destructive tests (deauth, association flood, active
+    PMKID solicitation, evil-twin) are operator-gated and default off.
+    """
+    name        = "WiFi"
+    description = "Zero-knowledge 802.11 assessment (monitor setup → discovery → per-AP analysis)"
+
+    # ── finding-title constants (kept in lockstep with findings_catalogue.json) ──
+    T_DISCOVERED   = "Wi-Fi Network Discovered"
+    T_OPEN         = "Open Wi-Fi Network — No Encryption"
+    T_WEP          = "WEP Encryption in Use"
+    T_HANDSHAKE    = "WPA/WPA2-PSK Handshake Capturable"
+    T_PMKID        = "WPA PMKID Capturable (Clientless)"
+    T_WPS_ON       = "WPS Enabled"
+    T_WPS_PIXIE    = "WPS Pixie-Dust Vulnerable"
+    T_NO_PMF       = "Missing 802.11w Management Frame Protection"
+    T_WPA3_DOWN    = "WPA3 Transition Mode Downgrade"
+    T_EVIL_TWIN    = "Rogue Access Point / Evil Twin Feasible"
+    T_DEAUTH_DOS   = "Wi-Fi Deauthentication Denial of Service"
+    T_SKIPPED      = "Wi-Fi Testing SKIPPED — No Wireless Adapter or Toolkit Available"
+
+    # ── convenience wrappers ────────────────────────────────────────────────
+    def _dir(self, sub: str) -> Path:
+        d = self.ctx.instance_dir / "WiFi" / sub
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    def _f(self, title: str, description: str, risk: str, **kw) -> None:
+        """Thin findings.create wrapper with sane 802.11 defaults."""
+        self.ctx.findings.create(
+            ctx=self.ctx, title=title, description=description,
+            tool=kw.pop("tool", "wifi"), source_type="primary",
+            force_risk=risk, **kw)
+
+    def _event(self, msg: str) -> None:
+        """Persist a timestamped phase EVENT to the on-disk audit log (§14j)."""
+        try:
+            self.ctx.logger.info(f"EVENT [WiFi] {msg}", tool=self.name)
+        except Exception:
+            pass
+
+    # ── main ────────────────────────────────────────────────────────────────
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            self._event(f"WiFiModule v{VERSION} started for [{self.ctx.instance_loc}]")
+            hw = self._phase0_hardware()
+            if hw is None:
+                return  # skipped — honest finding already emitted
+            aps = self._phase1_discovery(hw)
+            targets = self._phase1_select(aps)
+            if not targets:
+                self._phase_cleanup(hw)
+                self._mark_complete("Discovery complete — no in-scope AP selected")
+                return
+            for ap in targets:
+                self._assess_ap(hw, ap)
+            self._phase_cleanup(hw)
+            self._mark_complete(
+                f"Wi-Fi assessment complete — {len(targets)} network(s) tested")
+        except Exception as e:
+            self._mark_error(str(e))
+
+    # ── Phase 0 — hardware / monitor-mode setup ─────────────────────────────
+    def _phase0_hardware(self) -> Optional[dict]:
+        self._event("Phase 0 — hardware selection & monitor-mode setup")
+        labels = [h["label"] for h in _WIFI_HARDWARE]
+        choice = self._prompt(
+            "Select the Wi-Fi testing adapter in use. Monitor-mode capture, PMKID, "
+            "handshake and 802.11w/deauth testing require a monitor+injection adapter "
+            "(Alfa ACM/NEH/H or Pineapple). The WiFi Duck is a BadUSB/beacon tool only "
+            "and cannot sniff EAPOL.\n"
+            "Refer to Quiver to provision the Pineapple / WiFi Duck payload first.",
+            options=labels + ["Skip Wi-Fi testing"],
+            prompt_type="choice", skippable=True)
+
+        hw = next((h for h in _WIFI_HARDWARE if h["label"] == choice), None)
+        if hw is None or (choice or "").lower().startswith("skip"):
+            self._f(self.T_SKIPPED,
+                    "No Wi-Fi monitor-mode adapter was selected for this instance, so "
+                    "802.11 testing was NOT performed. Attach an Alfa AWUS036ACM/NEH/H "
+                    "(or drive the WiFi Pineapple Mark VII) and install the aircrack-ng "
+                    "suite (see install.py), then re-run the module.",
+                    "Informational", tool="wifi")
+            self._mark_complete("Wi-Fi SKIPPED — no adapter selected")
+            return None
+
+        if not hw.get("monitor"):
+            self._f(self.T_SKIPPED,
+                    f"The selected device ({hw['label']}) is not an 802.11 monitor-mode "
+                    "capture adapter, so passive Wi-Fi capture (discovery / PMKID / "
+                    "handshake) could not be performed. Use an Alfa AWUS036ACM/NEH/H or "
+                    "the WiFi Pineapple for the capture phases.",
+                    "Informational", tool="wifi")
+            self._mark_complete("Wi-Fi SKIPPED — non-capture device selected")
+            return None
+
+        if not _wifi_have_toolkit():
+            self._f(self.T_SKIPPED,
+                    "The aircrack-ng suite (airmon-ng / airodump-ng) was not found on "
+                    "PATH, so Wi-Fi testing was NOT performed. Install aircrack-ng "
+                    "(see install.py) and re-run the module.",
+                    "Informational", tool="wifi")
+            self._mark_complete("Wi-Fi SKIPPED — aircrack-ng not installed")
+            return None
+
+        # Log board-specific setup guidance.
+        self.ctx.logger.info(f"Selected Wi-Fi hardware: {hw['label']}", tool=self.name)
+        if hw.get("quiver"):
+            self.ctx.logger.info(
+                f"Provision via Quiver payload: '{hw['quiver']}'", tool=self.name)
+        for ln in hw["setup"]:
+            self.ctx.logger.info(f"  {ln}", tool=self.name)
+        setup_txt = self._dir("00_setup") / f"{self.ctx.file_prefix}_hardware_setup.txt"
+        try:
+            setup_txt.write_text(
+                f"Wi-Fi testing hardware: {hw['label']}\n"
+                + (f"Quiver payload: {hw['quiver']}\n" if hw.get("quiver") else "")
+                + "\n" + "\n".join(hw["setup"]) + "\n", encoding="utf-8")
+        except Exception:
+            pass
+        self._prompt_connected_photo(
+            f"{hw['label']} connected for [{self.ctx.instance_loc}]")
+
+        # Choose the managed wireless interface.
+        ifaces = _wifi_list_ifaces()
+        iface = ""
+        if ifaces:
+            ans = self._prompt(
+                "Select the wireless interface for this adapter (managed name, e.g. "
+                "wlan0). airmon-ng will place it into monitor mode.",
+                options=ifaces + ["Enter manually"], prompt_type="choice")
+            iface = ans if ans in ifaces else ""
+        if not iface:
+            iface = (self._prompt(
+                "Enter the wireless interface name (e.g. wlan0):",
+                prompt_type="text", skippable=True) or "").strip() or "wlan0"
+
+        # Passive managed-mode scan FIRST (RSN/MFP/WPA3/WPS/hidden detail).
+        iw_map: dict = {}
+        if _wifi_which("iw"):
+            iw_txt = self._dir("00_setup") / f"{self.ctx.file_prefix}_iw_scan.txt"
+            try:
+                rc, out, err = run_tool(
+                    ["bash", "-c", f"timeout 30 iw dev {iface} scan 2>&1 || true"],
+                    self.ctx, tool_name="iw", output_file=iw_txt, timeout=45)
+                iw_map = _wifi_parse_iw_scan(out or "")
+            except Exception as e:
+                self.ctx.logger.warn(f"iw scan failed on {iface}: {e}", tool=self.name)
+
+        # Bring up monitor mode (best-effort — needs root).
+        mon = ""
+        try:
+            run_tool(["airmon-ng", "check", "kill"], self.ctx,
+                     tool_name="airmon-ng", timeout=30)
+            mstart = self._dir("00_setup") / f"{self.ctx.file_prefix}_airmon_start.txt"
+            rc, out, err = run_tool(["airmon-ng", "start", iface], self.ctx,
+                                    tool_name="airmon-ng", output_file=mstart, timeout=45)
+            blob = (out or "") + (err or "")
+            mm = re.search(r"(?:monitor mode.*?on|\[phy\d+\])\s*(\w+mon|mon\d+|\w+)", blob)
+            for cand in re.findall(r"\b(\w*mon\d*|\w+mon)\b", blob):
+                if cand:
+                    mon = cand; break
+        except Exception as e:
+            self.ctx.logger.warn(f"airmon-ng start failed: {e}", tool=self.name)
+        if not mon:
+            mon = (self._prompt(
+                f"Could not auto-detect the monitor interface for {iface}. Enter the "
+                f"monitor interface name (e.g. {iface}mon or wlan0mon), or Skip:",
+                prompt_type="text", skippable=True) or "").strip()
+        if not mon:
+            mon = f"{iface}mon"
+        self.ctx.logger.info(f"Monitor interface: {mon}", tool=self.name)
+        return {"hw": hw, "iface": iface, "mon": mon, "iw_map": iw_map}
+
+    # ── Phase 1 — discovery ─────────────────────────────────────────────────
+    def _phase1_discovery(self, hw: dict) -> list[dict]:
+        self._event("Phase 1 — discovery (airodump scan)")
+        self.ctx.progress.set_module_status(
+            self.ctx.subdevice_key, self.ctx.interface, self.ctx.instance_key,
+            self.name, "running", "Scanning for Wi-Fi networks…")
+        out_dir = self._dir("01_discovery")
+        mon = hw["mon"]
+        prefix = out_dir / f"{self.ctx.file_prefix}_airodump"
+        csv_path = Path(str(prefix) + "-01.csv")
+
+        # Bounded passive airodump sweep across all channels.
+        try:
+            run_tool(["bash", "-c",
+                      f"timeout 30 airodump-ng --write {prefix} --output-format csv "
+                      f"--write-interval 1 {mon} >/dev/null 2>&1 || true"],
+                     self.ctx, tool_name="airodump-ng", output_file=csv_path, timeout=45)
+        except Exception as e:
+            self.ctx.logger.warn(f"airodump-ng sweep failed: {e}", tool=self.name)
+
+        aps, clients = _wifi_parse_airodump_csv(csv_path)
+        if not aps:
+            # Fallback: try the last CSV airodump wrote (numbering may differ).
+            for cand in sorted(out_dir.glob(f"{self.ctx.file_prefix}_airodump-*.csv")):
+                aps, clients = _wifi_parse_airodump_csv(cand)
+                if aps:
+                    csv_path = cand; break
+
+        # Merge iw-scan RSN/MFP/WPS/hidden detail onto matching BSSIDs.
+        iw_map = hw.get("iw_map") or {}
+        for ap in aps:
+            info = iw_map.get(ap["bssid"])
+            if info:
+                ap["mfp_capable"]  = info.get("mfp_capable")
+                ap["mfp_required"] = info.get("mfp_required")
+                ap["wps"]          = info.get("wps")
+                ap["wps_locked"]   = info.get("wps_locked")
+                ap["akm"]          = info.get("akm") or set()
+                if info.get("wpa3"): ap["_iw_wpa3"] = True
+                if info.get("hidden"): ap["hidden"] = True
+                if info.get("ssid") and ap["hidden"]:
+                    ap["essid_leak"] = info["ssid"]
+
+        self.ctx.logger.info(f"Discovered {len(aps)} Wi-Fi network(s)", tool=self.name)
+        for ap in aps:
+            enc = _wifi_enc_class(ap["privacy"], ap["cipher"], ap["auth"])
+            ap["_enc"] = enc
+            ssid = ap["essid"] or (ap.get("essid_leak") or "(hidden)")
+            self._f(self.T_DISCOVERED,
+                    f"A Wi-Fi network was discovered during zero-knowledge scanning: "
+                    f"SSID '{ssid}', BSSID {ap['bssid']}, channel {ap['channel']}, "
+                    f"encryption {enc['label']}, {len(ap['clients'])} associated "
+                    f"client(s). Its beacon and RSN Information Element expand the "
+                    f"wireless attack surface and drive the per-AP analysis.",
+                    "Informational", tool="airodump-ng", ip=ap["bssid"],
+                    affected_component=ssid, output_file=str(csv_path))
+            # Whole-scan weaknesses visible without target selection.
+            if enc["open"]:
+                self._f(self.T_OPEN,
+                        f"Network '{ssid}' ({ap['bssid']}) is an OPEN Wi-Fi network with "
+                        f"no link-layer encryption. All traffic to and from any associated "
+                        f"device is transmitted in cleartext and is readable, injectable, "
+                        f"and modifiable by any listener in radio range.",
+                        "High", tool="airodump-ng", ip=ap["bssid"],
+                        affected_component=ssid, output_file=str(csv_path),
+                        remediation="Deploy WPA3-SAE (or WPA2-PSK/Enterprise at minimum) "
+                        "with 802.11w PMF required; never operate a medical device on an "
+                        "open SSID.")
+            elif enc["wep"]:
+                self._f(self.T_WEP,
+                        f"Network '{ssid}' ({ap['bssid']}) uses WEP, a cryptographically "
+                        f"broken cipher. The RC4/IV key can be recovered from captured "
+                        f"traffic in minutes (aircrack-ng PTW/chopchop/fragmentation), "
+                        f"fully exposing all traffic and granting network access.",
+                        "Critical", tool="airodump-ng", ip=ap["bssid"],
+                        affected_component=ssid, output_file=str(csv_path),
+                        cve_ids=[], remediation="Immediately replace WEP with WPA3-SAE "
+                        "(or WPA2-CCMP with a strong passphrase) and 802.11w PMF; WEP has "
+                        "no secure configuration.")
+        return aps
+
+    def _phase1_select(self, aps: list[dict]) -> list[dict]:
+        if not aps:
+            return []
+        opts = []
+        for ap in aps:
+            ssid = ap["essid"] or (ap.get("essid_leak") or "(hidden)")
+            opts.append(f"{ap['bssid']} — {ssid} [ch {ap['channel']}, "
+                        f"{ap.get('_enc',{}).get('label', ap['privacy'] or '?')}]")
+        ans = self._prompt(
+            "Select the in-scope Wi-Fi network(s) under test — pick the AP the device "
+            "under test hosts or connects to. Choose 'All discovered' to assess every "
+            "network, or 'None' to stop after discovery.",
+            options=["All discovered"] + opts + ["None"],
+            prompt_type="choice", skippable=True)
+        if not ans or ans.lower().startswith("none"):
+            return []
+        if ans.lower().startswith("all"):
+            return aps
+        for ap, o in zip(aps, opts):
+            if o == ans:
+                return [ap]
+        return aps[:1]
+
+    # ── Phase 2 — per-AP analysis ───────────────────────────────────────────
+    def _assess_ap(self, hw: dict, ap: dict) -> None:
+        bssid = ap["bssid"]
+        ssid = ap["essid"] or (ap.get("essid_leak") or "(hidden)")
+        self._event(f"Assessing {bssid} ({ssid})")
+        self.ctx.progress.set_module_status(
+            self.ctx.subdevice_key, self.ctx.interface, self.ctx.instance_key,
+            self.name, "running", f"Assessing {ssid}…")
+        enc = ap.get("_enc") or _wifi_enc_class(ap["privacy"], ap["cipher"], ap["auth"])
+        self._analyze_pmf(hw, ap, enc)
+        self._analyze_wpa3(hw, ap, enc)
+        self._analyze_wps(hw, ap)
+        self._analyze_pmkid(hw, ap, enc)
+        self._analyze_handshake(hw, ap, enc)
+        self._analyze_evil_twin(hw, ap, enc)
+        self._analyze_deauth_dos(hw, ap, enc)
+
+    def _analyze_pmf(self, hw: dict, ap: dict, enc: dict) -> None:
+        """Missing 802.11w PMF → beacon/deauth spoofing & client eviction."""
+        if enc["open"] or enc["wep"]:
+            return  # PMF is an RSN concept; open/WEP already flagged.
+        bssid = ap["bssid"]
+        ssid = ap["essid"] or "(hidden)"
+        mfp_req = ap.get("mfp_required")
+        mfp_cap = ap.get("mfp_capable")
+        # Only flag when we positively observed that PMF is NOT required.
+        if mfp_req is True:
+            return
+        if mfp_req is None and mfp_cap is None:
+            ans = self._prompt(
+                f"802.11w PMF status for '{ssid}' ({bssid}) could not be auto-read from "
+                f"the RSN capabilities. From a Wireshark/iw view of the beacon RSN IE, is "
+                f"Management Frame Protection REQUIRED (MFPR bit set)?",
+                options=["MFP required (MFPR=1)", "MFP capable only (optional)",
+                         "MFP absent (no PMF)", "Unknown"],
+                prompt_type="choice", skippable=True)
+            a = (ans or "").lower()
+            if "required" in a:
+                return
+            if "unknown" in a or not a:
+                return
+        loc_file = str(self._dir("00_setup") / f"{self.ctx.file_prefix}_iw_scan.txt")
+        self._f(self.T_NO_PMF,
+                f"Network '{ssid}' ({bssid}) does not REQUIRE 802.11w Management Frame "
+                f"Protection (MFPR bit clear in the RSN capabilities). Unprotected "
+                f"management frames let an in-range attacker forge deauthentication/"
+                f"disassociation frames to evict clients at will and force EAPOL "
+                f"re-handshakes for offline cracking — a reliable availability and "
+                f"handshake-harvesting primitive against the device under test.",
+                "Medium", tool="iw", ip=bssid, affected_component=ssid,
+                output_file=loc_file,
+                remediation="Set Protected Management Frames to 'required' (802.11w MFPR) "
+                "on the AP and device; WPA3-SAE mandates PMF. Where clients cannot support "
+                "it, at minimum enable PMF-capable and prioritise a WPA3 migration.")
+
+    def _analyze_wpa3(self, hw: dict, ap: dict, enc: dict) -> None:
+        """WPA3 transition (mixed SAE+PSK) → offline downgrade to WPA2."""
+        bssid = ap["bssid"]
+        ssid = ap["essid"] or "(hidden)"
+        akm = ap.get("akm") or set()
+        transition = enc.get("transition") or (
+            ap.get("_iw_wpa3") and ("PSK" in akm) and ("SAE" in akm))
+        if not transition:
+            return
+        loc_file = str(self._dir("00_setup") / f"{self.ctx.file_prefix}_iw_scan.txt")
+        self._f(self.T_WPA3_DOWN,
+                f"Network '{ssid}' ({bssid}) advertises WPA3 in transition (mixed) mode — "
+                f"the RSN IE offers both SAE (WPA3) and PSK (WPA2) AKM suites on the same "
+                f"SSID. A rogue AP that advertises only WPA2-PSK forces a supplicant to "
+                f"fall back to the WPA2 4-way handshake, which is then captured and cracked "
+                f"offline (the Dragonblood transition-mode downgrade). The SAE upgrade "
+                f"provides no protection while WPA2 fallback is accepted.",
+                "Medium", tool="iw", ip=bssid, affected_component=ssid,
+                output_file=loc_file,
+                remediation="Move to WPA3-only (SAE) mode with PMF required once all "
+                "clients support it; disable the WPA2 transition fallback for sensitive "
+                "networks so a downgraded handshake cannot be solicited.")
+
+    def _analyze_wps(self, hw: dict, ap: dict) -> None:
+        """WPS enabled → external-registrar PIN brute / pixie-dust."""
+        bssid = ap["bssid"]
+        ssid = ap["essid"] or "(hidden)"
+        mon = hw["mon"]
+        out_dir = self._dir("02_wps")
+        wps_on = ap.get("wps")
+        wash_file = out_dir / f"{self.ctx.file_prefix}_{bssid.replace(':','')}_wash.txt"
+        if wps_on is None and _wifi_which("wash"):
+            try:
+                rc, out, err = run_tool(
+                    ["bash", "-c",
+                     f"timeout 20 wash -i {mon} 2>&1 | grep -i '{bssid}' || true"],
+                    self.ctx, tool_name="wash", output_file=wash_file, timeout=35)
+                wps_on = bool((out or "").strip())
+                ap["wps_locked"] = ap.get("wps_locked") or bool(
+                    re.search(r"\byes\b", out or "", re.I))
+            except Exception:
+                pass
+        if not wps_on:
+            return
+        self._f(self.T_WPS_ON,
+                f"Network '{ssid}' ({bssid}) advertises Wi-Fi Protected Setup (WPS). The "
+                f"8-digit registrar PIN is validated in two independently-checkable halves, "
+                f"reducing the effective keyspace to ~11,000 attempts (online brute) and "
+                f"often to a single offline computation (pixie-dust). Recovering the PIN "
+                f"yields the WPA passphrase regardless of its strength.",
+                "Medium", tool="wash", ip=bssid, affected_component=ssid,
+                output_file=str(wash_file),
+                remediation="Disable WPS entirely (external-registrar and PIN methods). "
+                "If push-button is operationally required, ensure the PIN method is off and "
+                "an AP-side lockout throttles failed registrar attempts.")
+
+        # Pixie-dust is an ACTIVE registrar exchange — SAFETY-gated.
+        if not (_wifi_which("reaver") or _wifi_which("bully")):
+            return
+        ans = self._prompt(
+            f"WPS is enabled on '{ssid}' ({bssid}). A pixie-dust attack sends live WPS "
+            f"registrar (M1-M3) frames to test for low-entropy E-S1/E-S2 nonce reuse "
+            f"(offline PIN recovery). This is an ACTIVE association exchange. SAFETY: only "
+            f"run against an authorised, non-production AP — it can disrupt a live device. "
+            f"Attempt a bounded pixie-dust probe now?",
+            options=["Yes — authorised, bounded pixie-dust probe",
+                     "No — record WPS enabled only"],
+            prompt_type="choice", skippable=True)
+        if not (ans or "").lower().startswith("yes"):
+            return
+        chan = ap.get("channel") or "1"
+        pix = out_dir / f"{self.ctx.file_prefix}_{bssid.replace(':','')}_pixie.txt"
+        vulnerable = None
+        try:
+            rc, out, err = run_tool(
+                ["bash", "-c",
+                 f"timeout 90 reaver -i {mon} -b {bssid} -c {chan} -K 1 -N -vvv || true"],
+                self.ctx, tool_name="reaver", output_file=pix, timeout=120)
+            blob = (out or "") + (err or "")
+            if re.search(r"pixie[- ]?dust|WPS pin:|WPA PSK:|pin cracked|"
+                         r"\[\+\] pin\b", blob, re.I):
+                vulnerable = True
+        except Exception:
+            pass
+        if vulnerable is None:
+            obs = self._prompt(
+                f"Did the pixie-dust probe recover the WPS PIN / WPA passphrase for {bssid}?",
+                options=["Yes — PIN/PSK recovered", "No — not vulnerable / failed"],
+                prompt_type="choice", skippable=True)
+            vulnerable = (obs or "").lower().startswith("yes")
+        if vulnerable:
+            self._f(self.T_WPS_PIXIE,
+                    f"'{ssid}' ({bssid}) is vulnerable to the WPS pixie-dust attack: the "
+                    f"registrar's E-S1/E-S2 Diffie-Hellman nonces are predictable, allowing "
+                    f"the WPS PIN — and therefore the WPA passphrase — to be recovered "
+                    f"offline in seconds without any online guessing. Full network access "
+                    f"follows regardless of passphrase strength.",
+                    "High", tool="reaver", ip=bssid, affected_component=ssid,
+                    output_file=str(pix), force_classification="Validated",
+                    cve_ids=[], remediation="Disable WPS entirely; the underlying nonce-"
+                    "generation weakness cannot be configured away. Rotate the WPA "
+                    "passphrase after disabling, as it is considered compromised.")
+
+    def _analyze_pmkid(self, hw: dict, ap: dict, enc: dict) -> None:
+        """Clientless PMKID capture (RSN) → offline WPA-PSK cracking."""
+        if not (enc.get("wpa") or enc.get("wpa2")) or enc.get("enterprise"):
+            return
+        bssid = ap["bssid"]
+        ssid = ap["essid"] or "(hidden)"
+        if not (_wifi_which("hcxdumptool") and _wifi_which("hcxpcapngtool")):
+            return
+        ans = self._prompt(
+            f"Clientless PMKID capture against '{ssid}' ({bssid}): hcxdumptool sends a "
+            f"single association request to solicit the RSN PMKID (no client needed), then "
+            f"hcxpcapngtool converts it to a hashcat-22000 hash for offline PSK cracking. "
+            f"This is an ACTIVE association to the target AP only (filtered). SAFETY: run "
+            f"only against an authorised AP. Attempt the PMKID capture now?",
+            options=["Yes — authorised PMKID capture (target-filtered)",
+                     "No — skip PMKID"],
+            prompt_type="choice", skippable=True)
+        if not (ans or "").lower().startswith("yes"):
+            return
+        out_dir = self._dir("03_pmkid")
+        mon = hw["mon"]
+        chan = ap.get("channel") or "1"
+        pcapng = out_dir / f"{self.ctx.file_prefix}_{bssid.replace(':','')}_pmkid.pcapng"
+        hashf = out_dir / f"{self.ctx.file_prefix}_{bssid.replace(':','')}_pmkid.hc22000"
+        bssid_nc = bssid.replace(":", "").lower()
+        captured = False
+        try:
+            run_tool(["bash", "-c",
+                      f"timeout 40 hcxdumptool -i {mon} -o {pcapng} -c {chan} "
+                      f"--filtermode=2 --filterlist_ap={bssid_nc} --enable_status=1 "
+                      f">/dev/null 2>&1 || true"],
+                     self.ctx, tool_name="hcxdumptool", output_file=pcapng, timeout=60)
+            if pcapng.exists() and pcapng.stat().st_size > 0:
+                rc, out, err = run_tool(
+                    ["hcxpcapngtool", "-o", str(hashf), str(pcapng)],
+                    self.ctx, tool_name="hcxpcapngtool", output_file=hashf, timeout=60)
+                blob = (out or "") + (err or "")
+                if re.search(r"PMKID", blob, re.I) and hashf.exists() \
+                        and hashf.stat().st_size > 0:
+                    captured = True
+        except Exception as e:
+            self.ctx.logger.warn(f"PMKID capture failed for {bssid}: {e}", tool=self.name)
+        if captured:
+            self._f(self.T_PMKID,
+                    f"An RSN PMKID was captured from '{ssid}' ({bssid}) with a single "
+                    f"association request and no connected client (hcxdumptool → "
+                    f"hcxpcapngtool, hashcat mode 22000). The PMKID is derived from the "
+                    f"PMK, so the WPA/WPA2-PSK passphrase can be recovered offline at full "
+                    f"GPU speed; a weak or default passphrase is trivially cracked, "
+                    f"granting full network access.",
+                    "Medium", tool="hcxdumptool", ip=bssid, affected_component=ssid,
+                    output_file=str(hashf), output_files=[str(pcapng)],
+                    force_classification="Validated",
+                    remediation="Use a long (>15 char) random WPA passphrase or migrate to "
+                    "WPA3-SAE (SAE is not PMKID-crackable); disable PMKID caching on the AP "
+                    "where the platform allows.")
+
+    def _analyze_handshake(self, hw: dict, ap: dict, enc: dict) -> None:
+        """WPA/WPA2-PSK 4-way handshake capturability (passive; deauth gated)."""
+        if not (enc.get("wpa") or enc.get("wpa2")) or enc.get("enterprise"):
+            return
+        bssid = ap["bssid"]
+        ssid = ap["essid"] or "(hidden)"
+        mon = hw["mon"]
+        chan = ap.get("channel") or "1"
+        out_dir = self._dir("04_handshake")
+        prefix = out_dir / f"{self.ctx.file_prefix}_{bssid.replace(':','')}_hs"
+        cap = Path(str(prefix) + "-01.cap")
+        # Passive targeted capture window.
+        try:
+            run_tool(["bash", "-c",
+                      f"timeout 35 airodump-ng -c {chan} --bssid {bssid} -w {prefix} "
+                      f"--output-format pcap {mon} >/dev/null 2>&1 || true"],
+                     self.ctx, tool_name="airodump-ng", output_file=cap, timeout=55)
+        except Exception:
+            pass
+        # Optionally force a re-handshake with a bounded deauth (SAFETY-gated).
+        if ap.get("clients") and _wifi_which("aireplay-ng"):
+            ans = self._prompt(
+                f"'{ssid}' ({bssid}) has {len(ap['clients'])} associated client(s) but no "
+                f"handshake was captured passively. A bounded deauthentication (a few "
+                f"frames) would force a client to re-handshake so it can be captured. "
+                f"SAFETY: deauth briefly disconnects the client — do NOT run against a live "
+                f"medical device mid-procedure. Send a bounded deauth to capture a handshake?",
+                options=["Yes — authorised, bounded deauth to capture",
+                         "No — passive only"], prompt_type="choice", skippable=True)
+            if (ans or "").lower().startswith("yes"):
+                sta = ap["clients"][0]
+                try:
+                    run_tool(["bash", "-c",
+                              f"timeout 20 aireplay-ng --deauth 3 -a {bssid} -c {sta} "
+                              f"{mon} >/dev/null 2>&1 || true"],
+                             self.ctx, tool_name="aireplay-ng", timeout=35)
+                    run_tool(["bash", "-c",
+                              f"timeout 25 airodump-ng -c {chan} --bssid {bssid} -w {prefix} "
+                              f"--output-format pcap {mon} >/dev/null 2>&1 || true"],
+                             self.ctx, tool_name="airodump-ng", output_file=cap, timeout=45)
+                except Exception:
+                    pass
+        # Confirm handshake presence with aircrack-ng.
+        got = None
+        if cap.exists() and cap.stat().st_size > 0 and _wifi_which("aircrack-ng"):
+            ac = out_dir / f"{self.ctx.file_prefix}_{bssid.replace(':','')}_aircrack.txt"
+            try:
+                rc, out, err = run_tool(["bash", "-c",
+                                         f"echo | aircrack-ng {cap} 2>&1 || true"],
+                                        self.ctx, tool_name="aircrack-ng",
+                                        output_file=ac, timeout=45)
+                if re.search(r"\(\s*[1-9]\d*\s+handshake", out or "", re.I) or \
+                        re.search(r"1 handshake", out or "", re.I):
+                    got = str(ac)
+            except Exception:
+                pass
+        if got:
+            self._f(self.T_HANDSHAKE,
+                    f"A WPA/WPA2-PSK 4-way EAPOL handshake for '{ssid}' ({bssid}) was "
+                    f"captured. The handshake is a verifiable offline oracle for the PSK: it "
+                    f"can be run against dictionaries and GPU rules (aircrack-ng / hashcat "
+                    f"mode 22000) at no network cost. A weak, default, or reused passphrase "
+                    f"is recoverable, granting full access to the wireless network.",
+                    "Medium", tool="aircrack-ng", ip=bssid, affected_component=ssid,
+                    output_file=got, output_files=[str(cap)],
+                    force_classification="Validated",
+                    remediation="Use a long random WPA passphrase (>15 chars) or migrate to "
+                    "WPA3-SAE, which is resistant to offline handshake cracking; require "
+                    "802.11w PMF to raise the cost of forcing a re-handshake.")
+
+    def _analyze_evil_twin(self, hw: dict, ap: dict, enc: dict) -> None:
+        """Rogue-AP / evil-twin feasibility — operator-observed, active setup."""
+        bssid = ap["bssid"]
+        ssid = ap["essid"] or "(hidden)"
+        rogue_tools = [t for t in ("bettercap", "hostapd", "airbase-ng", "eaphammer")
+                       if _wifi_which(t)]
+        hint = ("Detected tooling: " + ", ".join(rogue_tools) + ". " if rogue_tools
+                else "No evil-twin framework (bettercap/hostapd/airbase-ng) on PATH; "
+                     "the WiFi Pineapple PineAP can also host the rogue AP. ")
+        ans = self._prompt(
+            f"Rogue-AP / evil-twin feasibility for '{ssid}' ({bssid}): stand up an AP "
+            f"cloning this SSID (optionally PMF-less / WPA2-only to force a downgrade) and "
+            f"see whether the device under test associates or leaks credentials to it. "
+            f"{hint}SAFETY: an evil twin can capture a live device onto an attacker network "
+            f"— run only when authorised. Did the device associate to / accept the rogue AP?",
+            options=["Yes — device associated / credentials captured via rogue AP",
+                     "No — device rejected the rogue AP",
+                     "Not tested"],
+            prompt_type="choice", skippable=True)
+        if (ans or "").lower().startswith("yes"):
+            self._f(self.T_EVIL_TWIN,
+                    f"The device under test associated with a rogue access point cloning "
+                    f"'{ssid}' ({bssid}) instead of authenticating the real AP. Without "
+                    f"server-certificate validation / PMF / a mutually-authenticated "
+                    f"association, an evil twin in range can capture the device onto an "
+                    f"attacker-controlled network, intercept and modify its traffic, and "
+                    f"harvest credentials (captive-portal or EAP relay).",
+                    "High", tool="bettercap", ip=bssid, affected_component=ssid,
+                    force_classification="Validated",
+                    remediation="Require WPA3-SAE with PMF (mutual authentication), or for "
+                    "Enterprise validate the RADIUS server certificate and pin the CA on "
+                    "the client so a rogue AP cannot complete association.")
+
+    def _analyze_deauth_dos(self, hw: dict, ap: dict, enc: dict) -> None:
+        """Deauthentication / disassociation flood DoS — SAFETY-gated, bounded."""
+        bssid = ap["bssid"]
+        ssid = ap["essid"] or "(hidden)"
+        mon = hw["mon"]
+        if ap.get("mfp_required") is True:
+            return  # PMF-required networks resist forged deauth.
+        if not (_wifi_which("mdk4") or _wifi_which("aireplay-ng")):
+            return
+        ans = self._prompt(
+            f"Deauthentication DoS probe against '{ssid}' ({bssid}): a bounded burst of "
+            f"forged deauth/disassoc frames tests whether an attacker can knock the device "
+            f"off the network (only possible when 802.11w PMF is not required). SAFETY: "
+            f"this WILL disconnect the device — do NOT run against a live medical device in "
+            f"use. Run a bounded, authorised deauth DoS probe now?",
+            options=["Yes — authorised, bounded deauth DoS probe", "No — skip DoS"],
+            prompt_type="choice", skippable=True)
+        if not (ans or "").lower().startswith("yes"):
+            return
+        out_dir = self._dir("05_dos")
+        dz = out_dir / f"{self.ctx.file_prefix}_{bssid.replace(':','')}_deauth.txt"
+        chan = ap.get("channel") or "1"
+        degraded = None
+        try:
+            if _wifi_which("aireplay-ng"):
+                run_tool(["bash", "-c",
+                          f"timeout 15 aireplay-ng --deauth 10 -a {bssid} {mon} "
+                          f">/dev/null 2>&1 || true"],
+                         self.ctx, tool_name="aireplay-ng", output_file=dz, timeout=30)
+            else:
+                run_tool(["bash", "-c",
+                          f"timeout 15 mdk4 {mon} d -c {chan} -B {bssid} "
+                          f">/dev/null 2>&1 || true"],
+                         self.ctx, tool_name="mdk4", output_file=dz, timeout=30)
+            obs = self._prompt(
+                f"Did the device under test on '{ssid}' disconnect, drop traffic, or fail "
+                f"during the bounded deauth probe?",
+                options=["Yes — device disconnected / disrupted", "No — unaffected"],
+                prompt_type="choice", skippable=True)
+            degraded = (obs or "").lower().startswith("yes")
+        except Exception:
+            pass
+        if degraded:
+            self._f(self.T_DEAUTH_DOS,
+                    f"The device under test on '{ssid}' ({bssid}) was disconnected by a "
+                    f"bounded forged-deauthentication burst. Because 802.11w PMF is not "
+                    f"required, any in-range attacker can spoof management frames to deny "
+                    f"the device network connectivity at will — a persistent availability "
+                    f"attack against a wireless-dependent medical or clinical device.",
+                    "Medium", tool="aireplay-ng", ip=bssid, affected_component=ssid,
+                    output_file=str(dz), force_classification="Validated",
+                    remediation="Enable 802.11w Protected Management Frames as REQUIRED "
+                    "(mandatory under WPA3-SAE) so forged deauth/disassoc frames are "
+                    "rejected; add wired/failover connectivity for safety-critical functions.")
+
+    # ── Phase 3 — cleanup (restore managed mode) ────────────────────────────
+    def _phase_cleanup(self, hw: dict) -> None:
+        self._event("Phase 3 — cleanup (stop monitor mode)")
+        mon = hw.get("mon")
+        if mon and _wifi_which("airmon-ng"):
+            try:
+                run_tool(["airmon-ng", "stop", mon], self.ctx,
+                         tool_name="airmon-ng", timeout=30)
+            except Exception:
+                pass
+        # Best-effort: restore NetworkManager if we killed it in Phase 0.
+        if _wifi_which("systemctl"):
+            try:
+                run_tool(["bash", "-c",
+                          "systemctl start NetworkManager 2>/dev/null || true"],
+                         self.ctx, tool_name="systemctl", timeout=20)
+            except Exception:
+                pass
+
+
+# ===========================================================================
+# SubGHz interface module  (integrated 2026-08-13 from _frag/SubGHz.py)
+# ===========================================================================
+# ===========================================================================
+# SubGHz — Sub-GHz RF (300–928 MHz) security assessment module
+#   Inserted into gearbox.py (os, re, time, subprocess, shutil, json, Path,
+#   Optional, run_tool, BaseModule, console, findings, VERSION already in scope).
+# ===========================================================================
+
+# ── hardware roster (mirrors _BT_HARDWARE convention) ──────────────────────
+_SUBGHZ_HARDWARE: list[dict] = [
+    {"key": "yardstick", "tx_capable": True, "sdr": False,
+     "label": "Great Scott YARD Stick One (rfcat) — TX/RX 300-928 MHz OOK/ASK/FSK/MSK",
+     "quiver": None,
+     "setup": ["No flash needed for stock RfCat firmware; `rfcat -r` opens the shell.",
+               "Capture:  rfcat  (setFreq/setMdmModulation, RFrecv() to record bytes).",
+               "Replay:   RFxmit(<captured bytes>)  — TX-capable, gate behind operator OK.",
+               "Best for fixed/rolling-code REMOTE capture + benign bench replay."]},
+    {"key": "hackrf", "tx_capable": True, "sdr": True,
+     "label": "HackRF One + PortaPack — wideband SDR (1 MHz-6 GHz), hackrf_transfer/sweep",
+     "quiver": None,
+     "setup": ["No flash needed; `hackrf_info` confirms the board.",
+               "Survey:   hackrf_sweep -f 300:928 -1 -r sweep.csv  (spectrum bins).",
+               "Capture:  hackrf_transfer -r capture.iq8 -f 433920000 -s 2000000 -n <samples>.",
+               "Replay:   hackrf_transfer -t capture.iq8 -f 433920000 -s 2000000 (bench only).",
+               "rtl_433 can also drive HackRF via SoapySDR (-d driver=hackrf)."]},
+    {"key": "rtlsdr", "tx_capable": False, "sdr": True,
+     "label": "RTL-SDR (RTL2832U) — RX-only dongle for rtl_433 decode/survey",
+     "quiver": None,
+     "setup": ["Plug in; `rtl_test` confirms the dongle.",
+               "Decode:   rtl_433 -f 433.92M -A -F json  (auto-decodes ~250 protocols).",
+               "RX-ONLY — cannot transmit, so replay/jam tests need YardStick/HackRF."]},
+    {"key": "catsniffer", "tx_capable": True, "sdr": False,
+     "label": "CatSniffer (CC1352P) — multiprotocol sub-GHz sniffer/transceiver",
+     "quiver": "FIRMWARE - Flash CatSniffer sub-GHz sniffer",
+     "setup": ["Flash the sub-GHz sniffer firmware via Quiver, then attach at /dev/ttyACM0.",
+               "Sniffs 315/433/868/915 MHz; pipe to Wireshark or SmartRF for decode.",
+               "Also drives rfcat-style TX for controlled replay on supported builds."]},
+    {"key": "flipper", "tx_capable": True, "sdr": False,
+     "label": "Flipper Zero (CC1101) — sub-GHz capture/replay (315/433/868/915 MHz)",
+     "quiver": None,
+     "setup": ["Use the on-device Sub-GHz app: Read / Read RAW to capture, Save to .sub.",
+               "Frequency Analyzer locates the active carrier before capturing.",
+               "Send/Replay a saved .sub — TX-capable; gate behind operator confirmation.",
+               "Operator-driven: record the captured/replayed .sub filename for evidence."]},
+]
+
+# Canonical sub-GHz ISM survey frequencies (rtl_433 -f accepts M suffix).
+_SUBGHZ_FREQS: list[str] = ["315M", "390M", "433.92M", "868.3M", "915M"]
+
+# rtl_433 model-family classification (substrings, lowercased).
+_SUBGHZ_ROLLING_MODELS: tuple = (
+    "keeloq", "hcs", "rolling", "nice-flor", "somfy", "security+", "secplus",
+    "hormann", "faac-slh",
+)
+_SUBGHZ_COMMAND_MODELS: tuple = (
+    "pt2262", "ev1527", "princeton", "holtek", "came", "nice-flo", "chamberlain",
+    "liftmaster", "genie", "linear", "interlogix", "x10", "doorbell", "remote",
+    "gate", "garage", "keyfob", "key fob", "switch", "dsc", "honeywell-security",
+)
+
+
+def _subghz_which(name: str) -> Optional[str]:
+    """Locate a sub-GHz tool binary (PATH + common install dirs)."""
+    p = shutil.which(name)
+    if p:
+        return p
+    for cand in (f"/usr/bin/{name}", f"/usr/local/bin/{name}", f"/opt/{name}"):
+        if os.path.exists(cand):
+            return cand
+    return None
+
+
+def _subghz_available() -> dict:
+    """Return {tool: path-or-None} for every CLI this module can drive."""
+    return {t: _subghz_which(t) for t in
+            ("rfcat", "rtl_433", "hackrf_transfer", "hackrf_sweep", "urh_cli",
+             "rtl_test", "hackrf_info")}
+
+
+def _subghz_parse_rtl433_json(text: str) -> list[dict]:
+    """
+    Parse rtl_433 `-F json` output (one JSON object per decoded frame, NDJSON).
+    Returns a de-duplicated list of {model, id, freq, fields, raw} records.
+    """
+    seen: dict = {}
+    for line in (text or "").splitlines():
+        line = line.strip()
+        if not line.startswith("{") or not line.endswith("}"):
+            continue
+        try:
+            obj = json.loads(line)
+        except Exception:
+            continue
+        model = str(obj.get("model", "")).strip()
+        if not model:
+            continue
+        dev_id = str(obj.get("id", obj.get("device", ""))).strip()
+        freq = obj.get("freq", obj.get("frequency", ""))
+        key = f"{model}|{dev_id}|{freq}"
+        if key in seen:
+            continue
+        # Data fields = everything except housekeeping keys.
+        skip = {"time", "model", "id", "device", "freq", "frequency",
+                "rssi", "snr", "noise", "mod", "protocol", "channel"}
+        fields = {k: v for k, v in obj.items() if k not in skip}
+        seen[key] = {"model": model, "id": dev_id, "freq": freq,
+                     "fields": fields, "raw": line}
+    return list(seen.values())
+
+
+def _subghz_classify(model: str) -> str:
+    """Return 'rolling' | 'command' | 'telemetry' for an rtl_433 model name."""
+    m = (model or "").lower()
+    for s in _SUBGHZ_ROLLING_MODELS:
+        if s in m:
+            return "rolling"
+    for s in _SUBGHZ_COMMAND_MODELS:
+        if s in m:
+            return "command"
+    return "telemetry"
+
+
+class SubGHzModule(BaseModule):
+    """
+    Zero-knowledge Sub-GHz RF (300–928 MHz) security assessment.
+
+    Surveys the sub-GHz ISM bands for the device-under-test's remotes,
+    telemetry, and sensor links; captures active carriers; and rules out the
+    known weakness classes for low-power RF control channels — fixed
+    (replayable) codes, rolling-code presence, cleartext telemetry, an
+    unauthenticated OOK/FSK command channel, replay-attack feasibility, and
+    jamming susceptibility.  Every over-the-air test that could disrupt a LIVE
+    device (replay TX, jamming) is gated behind explicit operator confirmation
+    and defaults to passive receive + decode only.
+    """
+    name        = "SubGHz"
+    description = "Zero-knowledge sub-GHz RF assessment (survey → capture → analysis)"
+
+    # ── finding-title constants (kept in lockstep with findings_catalogue.json) ──
+    T_SIGNAL    = "Sub-GHz Signal Detected"
+    T_TELEMETRY = "Unencrypted Sub-GHz Telemetry Decoded"
+    T_FIXEDCODE = "Fixed-Code Sub-GHz Remote — Replayable"
+    T_ROLLING   = "Rolling-Code Sub-GHz Remote Detected"
+    T_REPLAY    = "Sub-GHz Replay Attack Feasible"
+    T_CMDCHAN   = "Unauthenticated Sub-GHz Command Channel (OOK/FSK)"
+    T_NOAUTH    = "Missing Message Authentication on Sub-GHz Link"
+    T_JAMMING   = "Sub-GHz Jamming Susceptibility"
+    T_SKIPPED   = "Sub-GHz Testing SKIPPED — No SDR/Radio Hardware Available"
+
+    # ── convenience wrappers ────────────────────────────────────────────────
+    def _dir(self, sub: str) -> Path:
+        d = self.ctx.instance_dir / "SubGHz" / sub
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    def _f(self, title: str, description: str, risk: str, **kw) -> None:
+        """Thin findings.create wrapper with sane sub-GHz defaults."""
+        self.ctx.findings.create(
+            ctx=self.ctx, title=title, description=description,
+            tool=kw.pop("tool", "subghz"), source_type="primary",
+            force_risk=risk, **kw)
+
+    def _event(self, msg: str) -> None:
+        """Persist a timestamped phase EVENT to the on-disk audit log (§14j)."""
+        try:
+            self.ctx.logger.info(f"EVENT [SubGHz] {msg}", tool=self.name)
+        except Exception:
+            pass
+
+    # ── main ────────────────────────────────────────────────────────────────
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            self._event(f"SubGHzModule v{VERSION} started for [{self.ctx.instance_loc}]")
+            hw = self._phase0_hardware()
+            if hw is None:
+                return  # skipped — honest finding already emitted
+            decoded = self._phase1_survey(hw)
+            cap = self._phase2_capture(hw)
+            self._phase3_analysis(hw, decoded, cap)
+            self._mark_complete(
+                f"Sub-GHz assessment complete — {len(decoded)} signal(s) decoded")
+        except Exception as e:
+            self._mark_error(str(e))
+
+    # ── Phase 0 — hardware selection + tool check ───────────────────────────
+    def _phase0_hardware(self) -> Optional[dict]:
+        self._event("Phase 0 — hardware selection & setup")
+        labels = [h["label"] for h in _SUBGHZ_HARDWARE]
+        choice = self._prompt(
+            "Select the Sub-GHz (300–928 MHz) testing radio in use. RX-only decode "
+            "needs an RTL-SDR or HackRF (rtl_433); capture+replay needs a TX-capable "
+            "radio (YARD Stick One / HackRF / CatSniffer / Flipper Zero).\n"
+            "Refer to Quiver to flash a sniffer board's firmware before continuing.",
+            options=labels + ["Skip Sub-GHz testing"],
+            prompt_type="choice", skippable=True)
+
+        hw = next((h for h in _SUBGHZ_HARDWARE if h["label"] == choice), None)
+        if hw is None or (choice or "").lower().startswith("skip"):
+            self._f(self.T_SKIPPED,
+                    "No sub-GHz radio was selected for this instance, so 300–928 MHz "
+                    "RF testing was NOT performed. Attach an RTL-SDR or HackRF for "
+                    "spectrum survey + rtl_433 decode, or a YARD Stick One / CatSniffer "
+                    "/ Flipper Zero for capture-and-replay work, and re-run the module.",
+                    "Informational")
+            self._mark_complete("Sub-GHz SKIPPED — no radio selected")
+            return None
+
+        self.ctx.logger.info(f"Selected sub-GHz radio: {hw['label']}", tool=self.name)
+        if hw.get("quiver"):
+            self.ctx.logger.info(
+                f"Flash via Quiver payload: '{hw['quiver']}'", tool=self.name)
+        for ln in hw["setup"]:
+            self.ctx.logger.info(f"  {ln}", tool=self.name)
+        setup_txt = self._dir("00_setup") / f"{self.ctx.file_prefix}_hardware_setup.txt"
+        try:
+            setup_txt.write_text(
+                f"Sub-GHz testing radio: {hw['label']}\n"
+                + (f"Quiver flash payload: {hw['quiver']}\n" if hw.get("quiver") else "")
+                + "\n" + "\n".join(hw["setup"]) + "\n", encoding="utf-8")
+        except Exception:
+            pass
+        self._prompt_connected_photo(
+            f"{hw['label']} connected for [{self.ctx.instance_loc}]")
+
+        tools = _subghz_available()
+        hw["_tools"] = tools
+        have_any = any(tools.get(t) for t in
+                       ("rtl_433", "hackrf_sweep", "hackrf_transfer", "rfcat"))
+        # Flipper/CatSniffer are operator-driven (on-device), so they don't need a
+        # host CLI; only fail-skip when NO host tool AND no operator-driven radio.
+        operator_driven = hw["key"] in ("flipper", "catsniffer")
+        if not have_any and not operator_driven:
+            self._f(self.T_SKIPPED,
+                    "The selected radio requires a host CLI (rtl_433 / hackrf_sweep / "
+                    "hackrf_transfer / rfcat) but none was found on PATH. Install the "
+                    "sub-GHz toolchain (see install.py) and re-run.",
+                    "Informational")
+            self._mark_complete("Sub-GHz SKIPPED — no CLI toolchain installed")
+            return None
+        return hw
+
+    # ── Phase 1 — spectrum survey + protocol decode ─────────────────────────
+    def _phase1_survey(self, hw: dict) -> list[dict]:
+        self._event("Phase 1 — spectrum survey & decode")
+        self.ctx.progress.set_module_status(
+            self.ctx.subdevice_key, self.ctx.interface, self.ctx.instance_key,
+            self.name, "running", "Surveying 300–928 MHz…")
+        out_dir = self._dir("01_survey")
+        tools = hw.get("_tools", {})
+        decoded: list[dict] = []
+
+        # A — wideband spectrum sweep (HackRF): records power per frequency bin.
+        if tools.get("hackrf_sweep"):
+            sweep = out_dir / f"{self.ctx.file_prefix}_hackrf_sweep.csv"
+            run_tool(["hackrf_sweep", "-f", "300:928", "-1", "-r", str(sweep)],
+                     self.ctx, tool_name="hackrf_sweep", output_file=sweep, timeout=120)
+
+        # B — protocol decode across the ISM bands (rtl_433 -A analyze + JSON).
+        if tools.get("rtl_433"):
+            for freq in _SUBGHZ_FREQS:
+                jf = out_dir / f"{self.ctx.file_prefix}_rtl433_{freq.replace('.', '_')}.json"
+                rc, out, err = run_tool(
+                    ["rtl_433", "-f", freq, "-A", "-F", "json", "-T", "20"],
+                    self.ctx, tool_name="rtl_433", output_file=jf, timeout=45)
+                recs = _subghz_parse_rtl433_json(out or "")
+                for r in recs:
+                    r["_survey_freq"] = freq
+                    r["_evidence"] = str(jf)
+                    decoded.append(r)
+                if recs:
+                    self._f(self.T_SIGNAL,
+                            f"An active sub-GHz transmission was detected and decoded at "
+                            f"{freq} during zero-knowledge survey: "
+                            f"{', '.join(sorted({x['model'] for x in recs}))}. Its presence "
+                            f"expands the wireless attack surface of the device under test.",
+                            "Informational", ip=freq, output_file=str(jf),
+                            affected_component="; ".join(sorted({x['model'] for x in recs})))
+        else:
+            # No host decoder — record that survey is operator-driven for this radio.
+            self.ctx.logger.info(
+                "No rtl_433 on PATH — spectrum decode is operator-driven for this radio "
+                "(use the Flipper Frequency Analyzer / CatSniffer capture).",
+                tool=self.name)
+
+        self.ctx.logger.info(
+            f"Survey decoded {len(decoded)} distinct sub-GHz signal(s)", tool=self.name)
+        return decoded
+
+    # ── Phase 2 — targeted capture (passive receive) ────────────────────────
+    def _phase2_capture(self, hw: dict) -> Optional[Path]:
+        self._event("Phase 2 — targeted capture")
+        out_dir = self._dir("02_capture")
+        tools = hw.get("_tools", {})
+
+        ans = self._prompt(
+            "Trigger the device's remote/transmitter (press the key fob / actuate the "
+            "control) so its carrier can be captured. Which frequency should be captured? "
+            "(Receive-only — no transmission is performed in this step.)",
+            options=[f"{f} — capture now" for f in _SUBGHZ_FREQS]
+                    + ["Skip capture (survey only)"],
+            prompt_type="choice", skippable=True)
+        if not ans or ans.lower().startswith("skip"):
+            return None
+        freq = ans.split(" ")[0]
+        hz = _subghz_freq_to_hz(freq)
+
+        # HackRF raw-IQ capture (passive RX) — the canonical replay source file.
+        if tools.get("hackrf_transfer") and hz:
+            cap = out_dir / f"{self.ctx.file_prefix}_capture_{freq.replace('.', '_')}.iq8"
+            run_tool(["hackrf_transfer", "-r", str(cap), "-f", str(hz),
+                      "-s", "2000000", "-n", "16000000"],
+                     self.ctx, tool_name="hackrf_transfer", output_file=None, timeout=60)
+            if cap.exists() and cap.stat().st_size > 0:
+                self.ctx.logger.info(f"Captured raw IQ → {cap}", tool=self.name)
+                return cap
+
+        # YARD Stick One / on-device capture is operator-driven — record the artifact.
+        note = self._prompt(
+            f"Capture {freq} with the {hw['label']} (rfcat RFrecv / Flipper 'Read RAW' → "
+            f"Save .sub / CatSniffer capture). Enter the saved capture filename, or 'skip'.",
+            prompt_type="text", skippable=True)
+        if note and not note.lower().startswith("skip"):
+            man = out_dir / f"{self.ctx.file_prefix}_operator_capture_ref.txt"
+            try:
+                man.write_text(f"Frequency: {freq}\nOperator capture reference: {note}\n",
+                               encoding="utf-8")
+            except Exception:
+                pass
+            self.ctx.logger.info(
+                f"Operator recorded capture: {note} @ {freq}", tool=self.name)
+            return man
+        return None
+
+    # ── Phase 3 — analysis (fixed/rolling/telemetry) + gated replay/jam ──────
+    def _phase3_analysis(self, hw: dict, decoded: list[dict], cap: Optional[Path]) -> None:
+        self._event("Phase 3 — analysis")
+        out_dir = self._dir("03_analysis")
+        tools = hw.get("_tools", {})
+
+        rolling = [r for r in decoded if _subghz_classify(r["model"]) == "rolling"]
+        command = [r for r in decoded if _subghz_classify(r["model"]) == "command"]
+        telem   = [r for r in decoded if _subghz_classify(r["model"]) == "telemetry"]
+
+        # A — cleartext telemetry (sensor data decoded in the clear → CWE-319).
+        if telem:
+            models = sorted({r["model"] for r in telem})
+            ev = out_dir / f"{self.ctx.file_prefix}_telemetry.txt"
+            try:
+                ev.write_text("\n".join(r["raw"] for r in telem), encoding="utf-8")
+            except Exception:
+                pass
+            self._f(self.T_TELEMETRY,
+                    f"rtl_433 decoded {len(telem)} sub-GHz telemetry/sensor frame(s) in the "
+                    f"clear from: {', '.join(models)}. The payload fields were recovered "
+                    f"without any key, proving the link carries device data with no "
+                    f"transport encryption. Any passive listener in range can read, log, "
+                    f"and correlate this data.",
+                    "Medium", output_file=str(ev),
+                    affected_component="; ".join(models),
+                    remediation="Encrypt the RF payload (authenticated AEAD) or move "
+                                "sensitive telemetry to an authenticated, encrypted channel; "
+                                "avoid transmitting patient/asset data as cleartext RF.")
+
+        # B — fixed-code command channel (replayable static code → CWE-294/306/347).
+        if command:
+            models = sorted({r["model"] for r in command})
+            ev = out_dir / f"{self.ctx.file_prefix}_fixedcode.txt"
+            try:
+                ev.write_text("\n".join(r["raw"] for r in command), encoding="utf-8")
+            except Exception:
+                pass
+            self._f(self.T_FIXEDCODE,
+                    f"A fixed-code sub-GHz remote/command protocol was decoded: "
+                    f"{', '.join(models)}. Fixed-code (static OOK/ASK) remotes transmit the "
+                    f"identical code on every actuation, so a single captured frame can be "
+                    f"re-transmitted to reproduce the command (garage/gate/relay/keyfob "
+                    f"class). The captured code is the credential.",
+                    "High", output_file=str(ev),
+                    affected_component="; ".join(models),
+                    remediation="Replace fixed-code remotes with rolling-code (KeeLoq/HCS) "
+                                "or, preferably, an authenticated challenge-response link; "
+                                "add message authentication + anti-replay counters.")
+            self._f(self.T_CMDCHAN,
+                    f"The sub-GHz control channel ({', '.join(models)}) accepts commands "
+                    f"with no authentication of the sender — the demodulated OOK/FSK frame "
+                    f"is a bare command with no signature or nonce. An attacker who can "
+                    f"transmit on the band can inject commands the device will act on.",
+                    "High", output_file=str(ev), affected_component="; ".join(models),
+                    remediation="Require signed/authenticated commands (HMAC or public-key) "
+                                "with a monotonic counter or nonce; reject unauthenticated frames.")
+            self._f(self.T_NOAUTH,
+                    f"No message-integrity/authentication was observed on the sub-GHz link "
+                    f"for {', '.join(models)}; frames carry no MAC/signature, so their "
+                    f"contents can be forged or replayed undetected (CWE-345/CWE-347).",
+                    "Medium", output_file=str(ev), affected_component="; ".join(models),
+                    remediation="Add per-message authentication (AEAD or signature) and "
+                                "reject frames failing integrity verification.")
+
+        # C — rolling-code presence (defensive control — good, but note rolljam risk).
+        if rolling:
+            models = sorted({r["model"] for r in rolling})
+            ev = out_dir / f"{self.ctx.file_prefix}_rollingcode.txt"
+            try:
+                ev.write_text("\n".join(r["raw"] for r in rolling), encoding="utf-8")
+            except Exception:
+                pass
+            self._f(self.T_ROLLING,
+                    f"A rolling-code sub-GHz remote was detected: {', '.join(models)}. "
+                    f"Rolling codes defeat naive single-frame replay (a positive control), "
+                    f"but remain susceptible to jam-and-capture ('RollJam') and to "
+                    f"weak-cipher/seed-recovery attacks against some KeeLoq variants. "
+                    f"Confirm the receiver enforces a strict forward-only counter window.",
+                    "Low", output_file=str(ev), affected_component="; ".join(models),
+                    remediation="Keep firmware current; enforce a tight rolling-counter "
+                                "resync window; prefer AES-based rolling schemes over "
+                                "legacy KeeLoq; consider bidirectional authenticated pairing.")
+
+        # D — replay-attack feasibility (SAFETY: operator-confirmed benign replay only).
+        self._gated_replay(hw, cap, out_dir, bool(command))
+
+        # E — jamming susceptibility (SAFETY: operator-observed only, no TX by default).
+        self._gated_jamming(hw, out_dir)
+
+    def _gated_replay(self, hw: dict, cap: Optional[Path],
+                      out_dir: Path, have_command: bool) -> None:
+        tools = hw.get("_tools", {})
+        can_tx = hw.get("tx_capable") and (tools.get("hackrf_transfer") or tools.get("rfcat"))
+        prelude = ("A captured frame is available. " if cap else
+                   "No host capture is on file (operator/on-device capture may exist). ")
+        ans = self._prompt(
+            prelude +
+            "Replay testing re-transmits a captured sub-GHz command to prove an attacker "
+            "could reproduce it. SAFETY: only replay against a BENCH unit or with a "
+            "known-benign/no-op command — do NOT re-transmit a control command to a LIVE "
+            "medical device. Attempt an operator-authorized benign replay now?",
+            options=["Yes — benign replay authorized (bench/no-op)",
+                     "Observed — replay already reproduced the command (operator report)",
+                     "No — record as untested"],
+            prompt_type="choice", skippable=True)
+        low = (ans or "").lower()
+        if low.startswith("no") or not ans:
+            return
+
+        replayed = False
+        rlog = out_dir / f"{self.ctx.file_prefix}_replay.txt"
+        if low.startswith("yes") and can_tx and cap and str(cap).endswith(".iq8") \
+                and tools.get("hackrf_transfer"):
+            hz = _subghz_freq_to_hz(_subghz_freq_from_name(cap.name)) or 433920000
+            rc, out, err = run_tool(
+                ["hackrf_transfer", "-t", str(cap), "-f", str(hz),
+                 "-s", "2000000"],
+                self.ctx, tool_name="hackrf_transfer", output_file=rlog, timeout=45)
+            replayed = (rc == 0)
+        obs = self._prompt(
+            "Did the device RESPOND to the replayed frame (actuated / state changed / "
+            "command reproduced)?",
+            options=["Yes — device actuated by the replay",
+                     "No — device did not respond"],
+            prompt_type="choice", skippable=True)
+        if low.startswith("observed") or (obs or "").lower().startswith("yes"):
+            try:
+                rlog.write_text(
+                    f"Replay {'transmitted via hackrf_transfer' if replayed else 'operator-observed'}; "
+                    f"capture={cap}; device actuated: yes\n", encoding="utf-8")
+            except Exception:
+                pass
+            self._f(self.T_REPLAY,
+                    "A captured sub-GHz command was re-transmitted and the device under test "
+                    "acted on it, confirming a working replay attack: no rolling counter, "
+                    "nonce, or authentication prevented reuse of the recorded frame. An "
+                    "attacker who records one legitimate transmission can reproduce the "
+                    "command at will.",
+                    "Critical" if have_command else "High",
+                    output_file=str(rlog), force_classification="Validated",
+                    remediation="Adopt authenticated, anti-replay commanding (rolling "
+                                "counter + MAC, or challenge-response); reject any frame "
+                                "whose counter/nonce has already been seen.")
+
+    def _gated_jamming(self, hw: dict, out_dir: Path) -> None:
+        # No jamming is transmitted by this tool — susceptibility is operator-observed
+        # to avoid disrupting a live device / neighbouring equipment.
+        ans = self._prompt(
+            "Jamming susceptibility: a controlled sub-GHz noise/carrier on the device's "
+            "band can block its receiver (denial of service). SAFETY: Gearbox does NOT "
+            "transmit a jamming signal — perform any controlled jamming test only on a "
+            "bench unit in an RF-isolated setup, then report the observation. Was the "
+            "device's RF link disrupted by a controlled jamming test?",
+            options=["Yes — link disrupted under controlled jamming (bench)",
+                     "No — device tolerated the jamming test",
+                     "Not tested"],
+            prompt_type="choice", skippable=True)
+        low = (ans or "").lower()
+        if not low.startswith("yes"):
+            return
+        jlog = out_dir / f"{self.ctx.file_prefix}_jamming.txt"
+        try:
+            jlog.write_text("Operator-observed: controlled jamming disrupted the sub-GHz "
+                            "link (bench).\n", encoding="utf-8")
+        except Exception:
+            pass
+        self._f(self.T_JAMMING,
+                "Under a controlled, operator-observed test the device's sub-GHz link was "
+                "disrupted by narrowband jamming, denying legitimate commands/telemetry "
+                "(availability loss). Low-power ISM control channels have no inherent "
+                "jamming resistance; combined with jam-and-replay this also enables "
+                "rolling-code capture. Evaluate whether loss of the RF channel has a "
+                "safety impact for this device.",
+                "Medium", output_file=str(jlog), force_classification="Validated",
+                remediation="Add jamming/loss-of-link detection with a fail-safe state; "
+                            "use frequency agility or a diverse secondary channel for "
+                            "safety-critical control; alert on sustained RF interference.")
+
+
+def _subghz_freq_to_hz(freq: str) -> Optional[int]:
+    """Convert an rtl_433-style frequency string ('433.92M') to integer Hz."""
+    if not freq:
+        return None
+    m = re.match(r"([0-9.]+)\s*([mMkK]?)", str(freq).strip())
+    if not m:
+        return None
+    try:
+        val = float(m.group(1))
+    except Exception:
+        return None
+    unit = m.group(2).lower()
+    if unit == "m":
+        return int(val * 1_000_000)
+    if unit == "k":
+        return int(val * 1_000)
+    return int(val)
+
+
+def _subghz_freq_from_name(name: str) -> str:
+    """Recover a frequency token ('433_92' → '433.92M') from a capture filename."""
+    m = re.search(r"(\d{3})[._](\d{1,3})?", name or "")
+    if not m:
+        m2 = re.search(r"(\d{3,4})", name or "")
+        return (m2.group(1) + "M") if m2 else ""
+    whole = m.group(1)
+    frac = m.group(2) or ""
+    return (f"{whole}.{frac}M" if frac else f"{whole}M")
+
+
+# ===========================================================================
+# UWB interface module  (integrated 2026-08-13 from _frag/UWB.py)
+# ===========================================================================
+# ---------------------------------------------------------------------------
+# UWB Module  (IEEE 802.15.4z Ultra-Wideband ranging / RTLS / secure-access)
+# ---------------------------------------------------------------------------
+# One module, three phases: hardware setup -> device discovery (anchor/tag
+# blink & ranging frames) -> ranging security.  UWB attack tooling is sparse
+# and mostly research-grade, so detection is capture + protocol-analysis driven
+# and, where no automated oracle exists, operator-observation driven.  The
+# module is HONEST: when no sniffer board / capture is available it emits an
+# explicit SKIPPED finding and never pretends a test ran.  Anything that could
+# disrupt a live medical asset-tracking / access-control deployment (relay,
+# distance-reduction, replay, jamming) is gated behind an operator confirmation
+# and defaults to passive capture.
+#
+# Grounding (real weakness classes):
+#   * IEEE 802.15.4z HRP secure ranging relies on the Scrambled Timestamp
+#     Sequence (STS); ranging with STS mode 0 (no STS) has no cryptographic
+#     integrity and is trivially relayed/replayed.  (CWE-294/300/347)
+#   * "Ghost Peak" (USENIX Security 2022) — practical over-the-air distance-
+#     reduction against HRP UWB, demonstrated on Apple U1, NXP Trimension
+#     SR040/SR150 and Qorvo DW3000.
+#   * FiRa Consortium / Apple Nearby Interaction define the STS-based secure
+#     ranging profile these findings map against.
+
+# Sniffer / analysis CLIs the module will look for on PATH.  UWB tooling has no
+# packaged standard binary — most captures come off a DWM3001C UCI stream or a
+# DW3000 API sniffer build — so an absent tool is the COMMON case and drives the
+# honest SKIPPED path plus the operator-supplied-capture fallback.
+_UWB_SNIFFER_BINS = ("uwb-sniffer", "dw3000-sniffer", "uwbsniff", "uci-sniffer")
+
+# Hardware offered at Phase 0.  quiver = the Quiver firmware-flash payload that
+# provisions the board's UWB sniffer/UCI firmware (see /opt/pr0t31n/Quiver).
+_UWB_HARDWARE = [
+    {"key": "heltec", "label": "Heltec UWB dongle (DW3000, USB-serial UCI)",
+     "quiver": "FIRMWARE - Flash UWB sniffer firmware",
+     "setup": ["USB DW3000 dongle. Flash the UCI/sniffer firmware via Quiver,",
+               "  then it presents a serial UCI stream on /dev/ttyACM0.",
+               "Passive listen only — set the same channel/preamble as the DUT",
+               "  (channel 5 or 9, PRF 64 MHz) to observe blink & ranging frames.",
+               "No standard PATH binary — capture the UCI text/pcapng and import it."]},
+    {"key": "dwm3001cdk", "label": "Qorvo DWM3001CDK (nRF52833 + DW3110)",
+     "quiver": "FIRMWARE - Flash DWM3001C sniffer firmware",
+     "setup": ["Flash the DWM3001C-starter-firmware (Uberi) or Qorvo UCI build",
+               "  via Quiver; exposes a USB CDC UCI console.",
+               "Acts as an HRP UWB packet analyser: set channel, preamble code,",
+               "  preamble length, STS mode/length to match the DUT and log frames.",
+               "TOP PICK for STS-presence analysis and ranging-frame capture."]},
+    {"key": "dwm3000evb", "label": "DWM3000EVB shield + ST Nucleo",
+     "quiver": "FIRMWARE - Flash DW3000 API sniffer",
+     "setup": ["Mount the DWM3000EVB Arduino shield on a Nucleo (F429/L476);",
+               "  flash the DW3000 API 'rx sniff' example via Quiver / STM32CubeIDE.",
+               "Streams received PHR/payload + STS diagnostics over the ST-Link",
+               "  virtual COM port; log to a text file and import it here."]},
+]
+
+
+def _uwb_which(name):
+    """Locate a UWB sniffer/analysis binary (PATH + common install dirs)."""
+    p = shutil.which(name)
+    if p:
+        return p
+    for cand in (f"/usr/bin/{name}", f"/usr/local/bin/{name}", f"/opt/{name}"):
+        if os.path.exists(cand):
+            return cand
+    return None
+
+
+def _uwb_available_sniffer():
+    """Return the first UWB sniffer CLI found on PATH, else ''."""
+    for b in _UWB_SNIFFER_BINS:
+        if _uwb_which(b):
+            return b
+    return ""
+
+
+def _uwb_parse_capture(text):
+    """
+    Best-effort parse of a UWB sniffer / UCI / DW3000-API capture transcript.
+
+    UWB tooling output is not standardised, so this matches the cleartext tokens
+    that appear across UCI logs, DW3000 rx-sniff dumps and Wireshark 802.15.4
+    dissections.  Returns whatever it could recover:
+        {devices:[{addr,kind}], ranging_seen, blink_seen,
+         sts_seen, sts_mode_zero, cleartext_payload, frame_types:set}
+    STS presence is inferred from an explicit STS/STS_MODE token; STS mode 0
+    (or "no sts" / "sts off") means no secure-ranging protection.
+    """
+    res = {"devices": [], "ranging_seen": False, "blink_seen": False,
+           "sts_seen": False, "sts_mode_zero": False,
+           "cleartext_payload": False, "frame_types": set()}
+    low = (text or "").lower()
+
+    # Ranging frame types (two-way ranging poll/response/final; TDoA blink).
+    for kind, pats in (
+        ("poll",     (r"\bpoll\b", r"rframe.*poll", r"twr.*poll")),
+        ("response", (r"\bresponse\b", r"\bresp\b")),
+        ("final",    (r"\bfinal\b",)),
+        ("blink",    (r"\bblink\b", r"tdoa")),
+        ("ranging",  (r"\branging\b", r"\btwr\b", r"ds-twr", r"ss-twr")),
+    ):
+        if any(re.search(p, low) for p in pats):
+            res["frame_types"].add(kind)
+    res["ranging_seen"] = bool(res["frame_types"] & {"poll", "response", "final", "ranging"})
+    res["blink_seen"]   = "blink" in res["frame_types"]
+
+    # STS presence / mode.  "sts mode 0" / "sts: 0" / "sts off" / "no sts" == none.
+    if re.search(r"\bsts\b", low):
+        res["sts_seen"] = True
+        m = re.search(r"sts[_ ]?mode\s*[:=]?\s*(\d+)", low) or re.search(r"\bsts\s*[:=]\s*(\d+)", low)
+        if m and int(m.group(1)) == 0:
+            res["sts_mode_zero"] = True
+    if re.search(r"no\s*sts|sts\s*(off|disabled|none)|without\s*sts", low):
+        res["sts_seen"] = True
+        res["sts_mode_zero"] = True
+
+    # Cleartext positioning / payload — distances, coordinates or a decoded
+    # MAC payload printed in the clear alongside the ranging frame.
+    if re.search(r"distance\s*[:=]\s*[\d.]+|range\s*[:=]\s*[\d.]+|\bx\s*[:=]\s*-?[\d.]+.*\by\s*[:=]", low) \
+       or re.search(r"payload\s*[:=]\s*[0-9a-f]{2}", low):
+        res["cleartext_payload"] = True
+
+    # Devices — EUI-64 long address or 16-bit short address in blink/ranging frames.
+    seen = {}
+    for m in re.finditer(r"\b((?:[0-9a-f]{2}[:\- ]){7}[0-9a-f]{2})\b", low):
+        addr = re.sub(r"[\- ]", ":", m.group(1)).upper()
+        seen.setdefault(addr, {"addr": addr, "kind": "EUI-64"})
+    for m in re.finditer(r"(?:short[_ ]?addr|src|source|dst)\s*[:=]\s*(0x[0-9a-f]{4})\b", low):
+        addr = m.group(1).upper()
+        seen.setdefault(addr, {"addr": addr, "kind": "short-16"})
+    res["devices"] = list(seen.values())
+    return res
+
+
+class UWBModule(BaseModule):
+    """
+    Ultra-Wideband (IEEE 802.15.4z) ranging / RTLS / secure-access assessment.
+
+    Covers UWB used for medical asset-tracking (RTLS anchors/tags) and UWB
+    access control.  Three phases — hardware setup, device discovery (anchor/tag
+    blink & ranging frames), ranging security — rule out the known secure-ranging
+    weakness classes (missing STS, unauthenticated ranging, distance-reduction /
+    relay / replay susceptibility, cleartext positioning) from passively-captured
+    frames plus operator observation, without assuming target identity.  Active
+    tests that could disrupt a live deployment are gated behind operator confirm.
+    """
+    name        = "UWB"
+    description = "IEEE 802.15.4z UWB assessment (discovery -> ranging security)"
+
+    # ── finding-title constants (kept in lockstep with findings_catalogue.json) ──
+    T_DETECTED   = "UWB Device Detected"
+    T_SKIPPED    = "UWB Testing SKIPPED — No Sniffer or UWB Hardware Available"
+    T_NO_STS     = "UWB Ranging Without Scrambled Timestamp Sequence (STS)"
+    T_UNAUTH     = "Unauthenticated UWB Ranging Exchange"
+    T_DISTANCE   = "UWB Ranging Susceptible to Distance-Reduction (Ghost Peak) Attack"
+    T_RELAY      = "UWB Ranging Susceptible to Relay Attack"
+    T_REPLAY     = "Replay of UWB Ranging Frames Accepted"
+    T_CLEARTEXT  = "Cleartext UWB Positioning or Payload Data"
+    T_STATIC_STS = "UWB Static or Non-Rotating Ranging Key (STS Reuse)"
+    T_JAMMING    = "UWB Ranging Susceptible to Jamming / Denial of Service"
+    T_LEGACY     = "UWB Legacy (Pre-802.15.4z) Ranging — No Secure Ranging Support"
+    T_TRACKABLE  = "UWB Device Trackable via Static Address in Blink Frames"
+
+    # ── convenience wrappers ────────────────────────────────────────────────
+    def _dir(self, sub: str) -> Path:
+        d = self.ctx.instance_dir / "UWB" / sub
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    def _f(self, title: str, description: str, risk: str, **kw) -> None:
+        """Thin findings.create wrapper with sane UWB defaults."""
+        self.ctx.findings.create(
+            ctx=self.ctx, title=title, description=description,
+            tool=kw.pop("tool", "uwb"), source_type="primary",
+            force_risk=risk, **kw)
+
+    def _event(self, msg: str) -> None:
+        """Persist a timestamped phase EVENT to the on-disk audit log (§14j)."""
+        try:
+            self.ctx.logger.info(f"EVENT [UWB] {msg}", tool=self.name)
+        except Exception:
+            pass
+
+    # ── main ────────────────────────────────────────────────────────────────
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            self._event(f"UWBModule v{VERSION} started for [{self.ctx.instance_loc}]")
+            hw = self._phase0_hardware()
+            if hw is None:
+                return  # skipped — honest finding already emitted
+            cap = self._phase1_capture(hw)
+            if cap is None:
+                return  # skipped — honest finding already emitted
+            parsed = self._phase1_discovery(cap)
+            self._phase2_ranging_security(hw, cap, parsed)
+            self._mark_complete("UWB assessment complete")
+        except Exception as e:
+            self._mark_error(str(e))
+
+    # ── Phase 0 — hardware selection + setup ────────────────────────────────
+    def _phase0_hardware(self):
+        self._event("Phase 0 — hardware selection & setup")
+        labels = [h["label"] for h in _UWB_HARDWARE]
+        choice = self._prompt(
+            "Select the UWB testing hardware in use. All options are PASSIVE "
+            "listeners — set the sniffer to the DUT's channel / preamble / STS "
+            "config before capturing. Refer to Quiver to flash the board's "
+            "firmware before continuing.",
+            options=labels + ["Skip UWB testing"],
+            prompt_type="choice", skippable=True)
+
+        hw = next((h for h in _UWB_HARDWARE if h["label"] == choice), None)
+        if hw is None or (choice or "").lower().startswith("skip"):
+            self._f(self.T_SKIPPED,
+                    "No UWB sniffer board (Heltec UWB dongle / Qorvo DWM3001CDK / "
+                    "DWM3000EVB+Nucleo) was selected for this instance, so UWB "
+                    "(IEEE 802.15.4z ranging / RTLS / secure-access) testing was NOT "
+                    "performed. Flash a UWB sniffer via Quiver and re-run the module, "
+                    "or import an existing DW3000/UCI capture.",
+                    "Informational", tool="uwb")
+            self._mark_complete("UWB SKIPPED — no hardware selected")
+            return None
+
+        self.ctx.logger.info(f"Selected UWB hardware: {hw['label']}", tool=self.name)
+        if hw.get("quiver"):
+            self.ctx.logger.info(f"Flash via Quiver payload: '{hw['quiver']}'", tool=self.name)
+        for ln in hw["setup"]:
+            self.ctx.logger.info(f"  {ln}", tool=self.name)
+        setup_txt = self._dir("00_setup") / f"{self.ctx.file_prefix}_hardware_setup.txt"
+        try:
+            setup_txt.write_text(
+                f"UWB testing hardware: {hw['label']}\n"
+                + (f"Quiver flash payload: {hw['quiver']}\n" if hw.get("quiver") else "")
+                + "\n" + "\n".join(hw["setup"]) + "\n", encoding="utf-8")
+        except Exception:
+            pass
+        self._prompt_connected_photo(
+            f"{hw['label']} connected for [{self.ctx.instance_loc}]")
+        return hw
+
+    # ── Phase 1a — passive capture (sniffer CLI or operator-supplied file) ───
+    def _phase1_capture(self, hw):
+        self._event("Phase 1 — passive UWB capture")
+        self.ctx.progress.set_module_status(
+            self.ctx.subdevice_key, self.ctx.interface, self.ctx.instance_key,
+            self.name, "running", "Capturing UWB frames…")
+        out_dir = self._dir("01_capture")
+        cap = {"text": "", "files": []}
+
+        sniffer = _uwb_available_sniffer()
+        if sniffer:
+            cap_txt = out_dir / f"{self.ctx.file_prefix}_{sniffer}_capture.txt"
+            try:
+                rc, out, err = run_tool(
+                    [sniffer, "--listen", "--timeout", "60"], self.ctx,
+                    tool_name=sniffer, output_file=cap_txt, timeout=90)
+                cap["text"] += (out or "")
+                cap["files"].append(str(cap_txt))
+                self.ctx.logger.info(
+                    f"UWB passive capture via {sniffer} complete", tool=self.name)
+            except Exception as e:
+                self.ctx.logger.warn(f"UWB sniffer {sniffer} failed: {e}", tool=self.name)
+
+        # Operator-supplied capture — the common path (no PATH binary for most
+        # DW3000/UCI rigs). Import a UCI text log / DW3000 rx-sniff dump / pcapng.
+        ans = self._prompt(
+            "If you captured UWB frames off the board (DWM3001C UCI console, "
+            "DW3000 rx-sniff dump, or a Wireshark 802.15.4 pcapng), provide the "
+            "capture file to import for analysis. Otherwise skip.",
+            prompt_type="file", skippable=True)
+        if ans and ans.lower() not in ("skip", "") and os.path.exists(ans):
+            try:
+                dest = out_dir / f"{self.ctx.file_prefix}_operator_capture{Path(ans).suffix or '.txt'}"
+                shutil.copy2(ans, str(dest))
+                cap["files"].append(str(dest))
+                try:
+                    cap["text"] += "\n" + dest.read_text(errors="replace")
+                except Exception:
+                    pass  # binary pcapng — kept as evidence, parsed via operator prompts
+                self.ctx.logger.info(f"Imported operator UWB capture: {dest.name}", tool=self.name)
+            except Exception as e:
+                self.ctx.logger.warn(f"Could not import capture {ans}: {e}", tool=self.name)
+
+        if not cap["files"]:
+            self._f(self.T_SKIPPED,
+                    "No UWB sniffer binary was found on PATH and no capture file "
+                    "was supplied, so no UWB frames could be analysed. UWB testing "
+                    "was NOT performed. Flash a UWB sniffer via Quiver (Heltec / "
+                    "DWM3001CDK / DWM3000EVB) to capture the DUT's ranging/blink "
+                    "frames, or import a DW3000/UCI capture, then re-run.",
+                    "Informational", tool="uwb")
+            self._mark_complete("UWB SKIPPED — no sniffer tool or capture available")
+            return None
+        return cap
+
+    # ── Phase 1b — device discovery ─────────────────────────────────────────
+    def _phase1_discovery(self, cap):
+        self._event("Phase 1 — device discovery")
+        parsed = _uwb_parse_capture(cap.get("text", ""))
+        evidence = cap["files"][0] if cap["files"] else ""
+
+        if not parsed["devices"]:
+            # Fall back to an operator observation so a binary-only pcapng still
+            # yields a discovery record rather than silently finding nothing.
+            ans = self._prompt(
+                "No UWB device addresses were auto-parsed from the capture. From "
+                "your analysis (Wireshark 802.15.4 / UCI log), were any UWB anchors "
+                "or tags observed transmitting blink or ranging frames?",
+                options=["Yes — anchors/tags observed", "No — no UWB frames seen"],
+                prompt_type="choice", skippable=True)
+            if ans and ans.lower().startswith("yes"):
+                parsed["devices"].append({"addr": "(observed, address not parsed)",
+                                          "kind": "operator"})
+
+        for d in parsed["devices"]:
+            addr = d["addr"]
+            self._f(self.T_DETECTED,
+                    f"A UWB device was detected during passive capture: {addr} "
+                    f"({d['kind']} address). Frame types observed: "
+                    f"{', '.join(sorted(parsed['frame_types'])) or 'unspecified'}. "
+                    f"Its presence on the IEEE 802.15.4z channel confirms a live "
+                    f"ranging/RTLS attack surface (asset-tracking tag/anchor or "
+                    f"secure-access ranging peer).",
+                    "Informational", tool="uwb", ip=addr,
+                    output_file=evidence, affected_component=d["kind"])
+        self.ctx.logger.info(
+            f"Discovered {len(parsed['devices'])} UWB device(s)", tool=self.name)
+        return parsed
+
+    # ── Phase 2 — ranging security ──────────────────────────────────────────
+    def _phase2_ranging_security(self, hw, cap, parsed):
+        self._event("Phase 2 — ranging security")
+        self.ctx.progress.set_module_status(
+            self.ctx.subdevice_key, self.ctx.interface, self.ctx.instance_key,
+            self.name, "running", "Analysing UWB ranging security…")
+        out_dir = self._dir("02_ranging")
+        evidence = cap["files"][0] if cap["files"] else ""
+
+        # ── Secure-ranging profile — STS presence (the central 802.15.4z control) ──
+        sts_ans = self._prompt(
+            "SECURE RANGING (IEEE 802.15.4z): does the DUT's ranging use the "
+            "Scrambled Timestamp Sequence (STS)? STS is the cryptographic PHY "
+            "field that authenticates the ranging timestamp; without it (STS mode "
+            "0 / legacy 802.15.4a) ranging is unauthenticated and relay/replay/"
+            "distance-reduction attacks succeed trivially."
+            + (" [auto-analysis: STS field NOT seen in capture]"
+               if not parsed["sts_seen"] else
+               " [auto-analysis: STS mode 0 / disabled in capture]"
+               if parsed["sts_mode_zero"] else
+               " [auto-analysis: STS field present in capture]"),
+            options=["STS present (secure ranging, 802.15.4z)",
+                     "No STS — STS mode 0 / disabled",
+                     "Legacy 802.15.4a device — no STS capability",
+                     "Could not determine"],
+            prompt_type="choice", skippable=True)
+        a = (sts_ans or "").lower()
+        no_sts = ("no sts" in a or "mode 0" in a or "legacy" in a
+                  or (not sts_ans and (parsed["sts_mode_zero"] or not parsed["sts_seen"])))
+
+        try:
+            (out_dir / f"{self.ctx.file_prefix}_sts_analysis.txt").write_text(
+                f"STS auto-analysis: sts_seen={parsed['sts_seen']} "
+                f"sts_mode_zero={parsed['sts_mode_zero']}\n"
+                f"Operator observation: {sts_ans or '(none)'}\n"
+                f"Frame types: {sorted(parsed['frame_types'])}\n", encoding="utf-8")
+        except Exception:
+            pass
+
+        if no_sts:
+            self._f(self.T_NO_STS,
+                    "The UWB ranging exchange does not carry a Scrambled Timestamp "
+                    "Sequence (STS mode 0 / disabled, or a legacy 802.15.4a device). "
+                    "STS is the IEEE 802.15.4z cryptographic PHY field that binds the "
+                    "ranging timestamp to a secret; without it the time-of-flight can "
+                    "be forged, so relay, replay and distance-reduction attacks are "
+                    "not cryptographically prevented.",
+                    "High", tool="uwb", ip="", output_file=evidence,
+                    remediation="Enable IEEE 802.15.4z HRP secure ranging with STS "
+                                "(FiRa PDoA/OWR or DS-TWR with STS), provisioned via a "
+                                "per-session key; disable legacy 802.15.4a ranging.")
+            self._f(self.T_UNAUTH,
+                    "Ranging frames are exchanged without cryptographic "
+                    "authentication of the timestamp, so a receiver cannot verify "
+                    "that a poll/response/final actually originated from the claimed "
+                    "peer at the measured distance. Unauthenticated ranging under-"
+                    "pins the relay and distance-reduction attacks below.",
+                    "High", tool="uwb", ip="", output_file=evidence,
+                    remediation="Require STS-authenticated secure ranging and reject "
+                                "ranging rounds that omit or fail STS verification.")
+            if "legacy" in a:
+                self._f(self.T_LEGACY,
+                        "The device appears to support only pre-802.15.4z (802.15.4a "
+                        "HRP) ranging, which has no secure-ranging (STS) capability at "
+                        "all. Such devices cannot be made secure by configuration and "
+                        "must be replaced for any security-relevant ranging use.",
+                        "Medium", tool="uwb", ip="", output_file=evidence,
+                        remediation="Replace legacy 802.15.4a-only UWB parts with "
+                                    "802.15.4z STS-capable silicon (e.g. DW3000-class) "
+                                    "for access control or safety-critical asset "
+                                    "tracking.")
+
+        # ── Distance-reduction (Ghost Peak) susceptibility ──────────────────
+        dist_ans = self._prompt(
+            "ACTIVE / SAFETY-GATED — Distance-reduction (Ghost Peak): a physical-"
+            "layer attacker can inject an early cipher-guessed STS/preamble to make "
+            "the ranging peer measure a SHORTER distance than real, defeating "
+            "proximity-based access control. Testing needs an over-the-air injector "
+            "and can disturb a live ranging link. Do you want to record a distance-"
+            "reduction assessment? (Ghost Peak affected Apple U1, NXP SR040/SR150, "
+            "Qorvo DW3000.)",
+            options=["DUT susceptible (no STS / demonstrated reduction)",
+                     "DUT resistant (STS enforced, no reduction observed)",
+                     "Not tested — passive only"],
+            prompt_type="choice", skippable=True)
+        da = (dist_ans or "").lower()
+        if "susceptible" in da or (not dist_ans and no_sts):
+            self._f(self.T_DISTANCE,
+                    "The UWB ranging is susceptible to a distance-reduction ('Ghost "
+                    "Peak') attack: without enforced STS integrity an over-the-air "
+                    "adversary can cause the peer to report a shorter-than-actual "
+                    "distance. Where UWB gates physical access or presence (secure "
+                    "entry, unlock-on-approach, RTLS geofencing), an attacker can "
+                    "appear 'in range' from outside the intended zone.",
+                    "High", tool="uwb", ip="", output_file=evidence,
+                    force_classification=("Validated" if "susceptible" in da else ""),
+                    remediation="Enforce STS with a minimum acceptable STS quality/"
+                                "confidence, reject ranging with low STS-figure-of-"
+                                "merit, and add an application-layer distance bound / "
+                                "multi-anchor cross-check.")
+
+        # ── Relay susceptibility ────────────────────────────────────────────
+        relay_ans = self._prompt(
+            "ACTIVE / SAFETY-GATED — Relay attack: two back-to-back radios forward "
+            "the ranging exchange to make a distant tag/anchor appear adjacent "
+            "(classic RTLS/access-control relay). Without STS, UWB does not detect "
+            "the relay. Record a relay assessment?",
+            options=["DUT susceptible (relay succeeded / no STS)",
+                     "DUT resistant (STS-bound, relay rejected)",
+                     "Not tested — passive only"],
+            prompt_type="choice", skippable=True)
+        ra = (relay_ans or "").lower()
+        if "susceptible" in ra or (not relay_ans and no_sts):
+            self._f(self.T_RELAY,
+                    "The UWB ranging is susceptible to a relay attack: an attacker "
+                    "relaying the ranging frames between a genuine tag and anchor can "
+                    "make a far peer appear in proximity. STS-based secure ranging "
+                    "binds the timing to a secret and is the defined mitigation; its "
+                    "absence leaves proximity guarantees unenforced.",
+                    "High", tool="uwb", ip="", output_file=evidence,
+                    force_classification=("Validated" if "susceptible" in ra else ""),
+                    remediation="Enable STS secure ranging and bind the ranging "
+                                "result to an authenticated session; do not treat a "
+                                "UWB distance as trustworthy without STS verification.")
+
+        # ── Replay of ranging frames ────────────────────────────────────────
+        replay_ans = self._prompt(
+            "Replay: were previously-captured UWB ranging frames (poll/response/"
+            "final or blink) replayed and ACCEPTED by the peer? Acceptance implies "
+            "no per-session STS/nonce freshness. (Passive capture then re-inject.)",
+            options=["Yes — replayed frames accepted",
+                     "No — replay rejected (fresh STS/nonce)",
+                     "Not tested"],
+            prompt_type="choice", skippable=True)
+        rpa = (replay_ans or "").lower()
+        if rpa.startswith("yes"):
+            self._f(self.T_REPLAY,
+                    "Previously-captured UWB ranging frames were replayed and "
+                    "accepted by the ranging peer, showing the exchange lacks a "
+                    "per-session freshness guarantee (fresh STS / nonce / counter). "
+                    "Replayable ranging enables spoofed presence and distance in "
+                    "RTLS and access-control use.",
+                    "High", tool="uwb", ip="", output_file=evidence,
+                    force_classification="Validated",
+                    remediation="Derive a fresh STS per ranging session from a "
+                                "monotonic counter / nonce and reject frames whose "
+                                "STS does not match the current session.")
+
+        # ── STS reuse / static ranging key ──────────────────────────────────
+        if parsed["sts_seen"] and not no_sts:
+            key_ans = self._prompt(
+                "STS is present. Is the STS/ranging key rotated per session, or is "
+                "the same STS seed/key reused across ranging rounds (observable as a "
+                "repeating STS pattern)? Reuse degrades STS back toward replayability.",
+                options=["Rotated per session (good)",
+                         "Static / reused STS seed observed",
+                         "Could not determine"],
+                prompt_type="choice", skippable=True)
+            if "static" in (key_ans or "").lower() or "reused" in (key_ans or "").lower():
+                self._f(self.T_STATIC_STS,
+                        "The STS appears to be derived from a static or reused seed/"
+                        "key rather than rotated per ranging session. A predictable "
+                        "or repeating STS erodes the integrity guarantee it is meant "
+                        "to provide, moving the system back toward replay and "
+                        "distance-manipulation exposure.",
+                        "Medium", tool="uwb", ip="", output_file=evidence,
+                        remediation="Provision a per-session STS from a rotating key "
+                                    "(FiRa dynamic STS / per-session key derivation); "
+                                    "never ship a fixed STS_KEY/STS_IV in firmware.")
+
+        # ── Cleartext positioning / payload ─────────────────────────────────
+        if parsed["cleartext_payload"]:
+            self._f(self.T_CLEARTEXT,
+                    "Positioning data (measured distance/coordinates) or a MAC-layer "
+                    "payload was observed in the clear in the UWB capture. Cleartext "
+                    "RTLS position data discloses the location of tracked assets "
+                    "(and, in a clinical setting, potentially staff/patients) to any "
+                    "passive UWB listener and defeats location privacy.",
+                    "Medium", tool="uwb", ip="", output_file=evidence,
+                    remediation="Encrypt/authenticate the ranging-result and any MAC "
+                                "payload at the application layer; do not broadcast "
+                                "resolved positions or asset identifiers in cleartext.")
+
+        # ── Static-address trackability (privacy) ───────────────────────────
+        static_dev = next((d for d in parsed["devices"]
+                           if d["kind"] in ("EUI-64", "short-16")), None)
+        if static_dev and parsed["blink_seen"]:
+            self._f(self.T_TRACKABLE,
+                    f"UWB blink/ranging frames broadcast a stable device address "
+                    f"({static_dev['addr']}, {static_dev['kind']}). A tag that emits "
+                    f"a fixed address in every blink can be tracked and correlated to "
+                    f"the asset (or person) it is attached to by any passive UWB "
+                    f"receiver, defeating location privacy for the RTLS deployment.",
+                    "Medium", tool="uwb", ip=static_dev["addr"], output_file=evidence,
+                    remediation="Rotate the tag's transmitted address/identifier "
+                                "(privacy-preserving randomised addressing) and expose "
+                                "the stable identity only under an authenticated session.")
+
+        # ── Jamming / DoS (destructive — gated) ─────────────────────────────
+        jam_ans = self._prompt(
+            "DESTRUCTIVE / SAFETY-GATED — Jamming (UWBAD-class): a co-channel UWB "
+            "jammer can deny ranging, dropping RTLS tracking or forcing an access "
+            "system to fail-open/closed. This will disrupt a LIVE deployment — only "
+            "proceed with authorisation and out-of-band coordination. Record a "
+            "jamming/DoS observation?",
+            options=["DUT ranging denied under jamming (DoS confirmed)",
+                     "DUT tolerated jamming (ranging continued)",
+                     "Not tested — non-destructive default"],
+            prompt_type="choice", skippable=True)
+        ja = (jam_ans or "").lower()
+        if "denied" in ja or "confirmed" in ja:
+            self._f(self.T_JAMMING,
+                    "Under a co-channel UWB jammer the DUT's ranging was denied, "
+                    "confirming a denial-of-service exposure. Loss of ranging can "
+                    "drop safety/asset-tracking (RTLS goes blind) or push a UWB "
+                    "access-control system into an unsafe fail state.",
+                    "Medium", tool="uwb", ip="", output_file=evidence,
+                    force_classification="Validated",
+                    remediation="Define a safe fail state on ranging loss, add "
+                                "jam/interference detection and alerting, and avoid "
+                                "using UWB ranging as the sole gate for safety-"
+                                "critical access.")
+        elif jam_ans and "tolerated" in ja:
+            self.ctx.logger.info("UWB jamming test: DUT tolerated jamming", tool=self.name)
+
+
+# ===========================================================================
+# SmartCard interface module  (integrated 2026-08-13 from _frag/SmartCard.py)
+# ===========================================================================
+# ---------------------------------------------------------------------------
+# Smart Card / PC-SC Module  (contact + contactless smart-card auth assessment)
+# ---------------------------------------------------------------------------
+# One module, six phases: reader/tool detection -> card ATR fingerprint ->
+# serial-number entropy -> unauthenticated APDU probing (SELECT + READ BINARY)
+# -> GlobalPlatform default-key / lifecycle triage -> (operator-gated) default
+# PIN test.  Detection is ORACLE-DRIVEN: the ATR bytes, the ISO-7816 status
+# words (0x9000 vs 0x6982), the GlobalPlatform card-lifecycle state and the
+# gp default-key SCP authentication result are all directly observable, so the
+# module rules out each CVM / key / cleartext-data weakness without any prior
+# knowledge of the card under test.  Everything default is NON-DESTRUCTIVE
+# (read-only SELECT/READ + read-only gp -info); the only PIN-verify path that
+# can decrement a retry counter and lock a LIVE card is gated behind an
+# explicit operator confirmation (§ SAFETY).
+
+# Well-known transparent elementary files worth a non-destructive READ BINARY.
+# EF.DIR (2F00) and EF.ATR/INFO (2F01) live directly under the MF on most
+# ISO-7816 cards and legitimately carry cleartext application/asset data — a
+# READ that returns 0x9000 + bytes *before any VERIFY* proves the file is
+# reachable with no cardholder verification.
+_SMARTCARD_CANDIDATE_EFS: list[tuple[str, str]] = [
+    ("2F00", "EF.DIR — application directory"),
+    ("2F01", "EF.ATR / EF.INFO — card information"),
+]
+
+# GlobalPlatformPro / gpshell default "test" key set (40..4F).  A card whose
+# Issuer Security Domain still authenticates an SCP secure channel with this
+# key has never had its manufacturing keys rotated.
+_SMARTCARD_DEFAULT_GP_KEY = "404142434445464748494A4B4C4D4E4F"
+
+# GlobalPlatform card-lifecycle states that indicate the card manager was never
+# transitioned to its locked production state (SECURED / CARD_LOCKED).
+_SMARTCARD_INSECURE_LIFECYCLE = ("OP_READY", "INITIALIZED")
+
+# A very small, well-published set of factory-default user PINs.  Used ONLY in
+# the operator-gated, single-attempt default-PIN path — never iterated.
+_SMARTCARD_DEFAULT_PINS = ["1234", "0000", "00000000", "12345678", "11111111"]
+
+
+def _smartcard_which(name: str) -> str:
+    """shutil.which wrapper (returns '' when the binary is absent)."""
+    return shutil.which(name) or ""
+
+
+def _smartcard_pcscd_running() -> bool:
+    """Best-effort check that the PC/SC daemon is reachable."""
+    try:
+        p = subprocess.run(["pgrep", "-x", "pcscd"], capture_output=True, text=True, timeout=5)
+        return p.returncode == 0
+    except Exception:
+        return False
+
+
+def _smartcard_parse_atr(text: str) -> str:
+    """Extract the first ATR hex string from pcsc_scan / opensc-tool output."""
+    if not text:
+        return ""
+    m = re.search(r"ATR:\s*([0-9A-Fa-f ]{6,})", text)
+    if m:
+        return re.sub(r"\s+", " ", m.group(1).strip()).upper()
+    # opensc-tool --atr prints a bare colon/space separated hex line.
+    for line in text.splitlines():
+        line = line.strip()
+        if re.fullmatch(r"([0-9A-Fa-f]{2}[:\s]){5,}[0-9A-Fa-f]{2}", line):
+            return re.sub(r"[:\s]+", " ", line).upper()
+    return ""
+
+
+def _smartcard_parse_readers(text: str) -> list[str]:
+    """Parse reader names from pcsc_scan / opensc-tool --list-readers output."""
+    readers: list[str] = []
+    for line in (text or "").splitlines():
+        m = re.match(r"\s*(?:Reader\s+\d+:|\d+\s+)(.+\S)", line)
+        if m and "no reader" not in line.lower():
+            name = m.group(1).strip()
+            if name and name not in readers:
+                readers.append(name)
+    return readers
+
+
+def _smartcard_parse_sw(text: str) -> str:
+    """Return the ISO-7816 status word (e.g. '9000') from opensc-tool output."""
+    m = re.search(r"SW1?\s*=?\s*0x([0-9A-Fa-f]{2}).{0,4}SW2\s*=?\s*0x([0-9A-Fa-f]{2})", text or "")
+    if m:
+        return (m.group(1) + m.group(2)).upper()
+    m = re.search(r"Received.*?([0-9A-Fa-f]{2})\s+([0-9A-Fa-f]{2})\s*$", text or "", re.M)
+    if m:
+        return (m.group(1) + m.group(2)).upper()
+    return ""
+
+
+def _smartcard_parse_apdu_data(text: str) -> str:
+    """Return response-data hex (excluding the trailing SW) from an APDU reply."""
+    if not text:
+        return ""
+    m = re.search(r"Received[^\n]*:\s*\n?((?:[0-9A-Fa-f]{2}[:\s]*)+)", text)
+    if not m:
+        return ""
+    data = re.sub(r"[:\s]+", " ", m.group(1).strip()).upper()
+    # opensc-tool prints the SW on the "Received (SW1=..,SW2=..)" line, so the
+    # captured block is response data only — return every byte.
+    return " ".join(data.split())
+
+
+def _smartcard_ascii_strings(hex_str: str, minlen: int = 4) -> list[str]:
+    """Extract printable ASCII runs from a space-separated hex byte string."""
+    out: list[str] = []
+    cur = ""
+    for tok in (hex_str or "").split():
+        try:
+            b = int(tok, 16)
+        except ValueError:
+            continue
+        if 0x20 <= b <= 0x7E:
+            cur += chr(b)
+        else:
+            if len(cur) >= minlen:
+                out.append(cur)
+            cur = ""
+    if len(cur) >= minlen:
+        out.append(cur)
+    return out
+
+
+def _smartcard_serial_predictable(serial: str) -> tuple[bool, str]:
+    """
+    Heuristic: does a card serial look low-entropy / sequential / predictable?
+    Returns (predictable, reason).  Conservative — only flags obvious cases.
+    """
+    s = re.sub(r"[\s:]+", "", serial or "").upper()
+    if not s or len(s) < 4:
+        return False, ""
+    digits = re.sub(r"[^0-9A-F]", "", s)
+    if not digits:
+        return False, ""
+    # All-zero prefix with a tiny numeric tail (0000000000000042).
+    if re.fullmatch(r"0*[0-9A-F]{1,4}", s):
+        return True, "serial is a zero-padded small value with almost no entropy"
+    # Strictly ascending or descending consecutive nibble sequence.
+    try:
+        vals = [int(c, 16) for c in s]
+        asc = all(vals[i + 1] - vals[i] == 1 for i in range(len(vals) - 1))
+        desc = all(vals[i] - vals[i + 1] == 1 for i in range(len(vals) - 1))
+        if asc or desc:
+            return True, "serial is a monotonic sequential run of nibbles"
+    except ValueError:
+        pass
+    # Single repeated character (AAAAAAAA / 11111111).
+    if len(set(s)) == 1:
+        return True, "serial is a single repeated character"
+    return False, ""
+
+
+class SmartCardModule(BaseModule):
+    """
+    Smart-card / PC-SC security assessment for devices using contact or
+    contactless smart-card authentication.
+
+    Uses an Identiv SCR3310 (or any PC/SC) reader to detect the card, fingerprint
+    its ATR, sample its serial-number entropy, probe for unauthenticated APDU
+    access to sensitive files (weak/absent CVM), triage GlobalPlatform card-
+    manager keys / lifecycle state, and — only under explicit operator
+    confirmation — test a single well-known default PIN.  Detection is oracle-
+    driven from ISO-7816 status words and gp's SCP authentication result, so no
+    card identity is assumed.
+    """
+    name        = "SmartCard"
+    description = "PC/SC smart-card assessment (reader → ATR → APDU/CVM → GlobalPlatform keys)"
+
+    # ── finding-title constants (kept in lockstep with findings_catalogue.json) ──
+    T_READER_DETECTED = "Smart Card Reader Detected"
+    T_DETECTED        = "Smart Card Detected"
+    T_ATR             = "Smart Card ATR Fingerprinted"
+    T_SERIAL_PRED     = "Predictable Smart Card Serial Number"
+    T_WEAK_CVM        = "Weak or Absent Cardholder Verification Method"
+    T_UNAUTH_APDU     = "Unauthenticated APDU Access to Sensitive File"
+    T_DEFAULT_GP      = "Default GlobalPlatform Card Manager Keys"
+    T_CLEARTEXT       = "Cleartext Data Object Readable on Smart Card"
+    T_DEFAULT_PIN     = "Default or Known Smart Card PIN Accepted"
+    T_LIFECYCLE       = "Insecure GlobalPlatform Card Lifecycle State"
+    T_NO_SECMSG       = "No Secure Messaging — Cleartext APDU Channel"
+    T_SKIPPED         = "SmartCard Testing SKIPPED — No PC/SC Reader or Tools Available"
+
+    # ── convenience wrappers ────────────────────────────────────────────────
+    def _dir(self, sub: str) -> Path:
+        d = self.ctx.instance_dir / "SmartCard" / sub
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    def _f(self, title: str, description: str, risk: str, **kw) -> None:
+        """Thin findings.create wrapper with sane smart-card defaults."""
+        self.ctx.findings.create(
+            ctx=self.ctx, title=title, description=description,
+            tool=kw.pop("tool", "opensc-tool"), source_type="primary",
+            force_risk=risk, **kw)
+
+    def _event(self, msg: str) -> None:
+        """Persist a timestamped phase EVENT to the on-disk audit log (§14j)."""
+        try:
+            self.ctx.logger.info(f"EVENT [SmartCard] {msg}", tool=self.name)
+        except Exception:
+            pass
+
+    # ── APDU helper (non-destructive by default) ────────────────────────────
+    def _apdu(self, apdu_hex: str, out_file: Path, timeout: int = 30) -> tuple[str, str]:
+        """
+        Send one raw APDU via opensc-tool --send-apdu.
+        Returns (status_word, response_data_hex).  Never raises.
+        """
+        colon = ":".join(apdu_hex.split())
+        try:
+            rc, out, err = run_tool(
+                ["opensc-tool", "--send-apdu", colon],
+                self.ctx, tool_name="opensc-tool", output_file=out_file, timeout=timeout)
+        except Exception as e:
+            self.ctx.logger.warn(f"APDU {apdu_hex} failed: {e}", tool=self.name)
+            return "", ""
+        blob = (out or "") + "\n" + (err or "")
+        return _smartcard_parse_sw(blob), _smartcard_parse_apdu_data(blob)
+
+    # ── main ────────────────────────────────────────────────────────────────
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            self._event(f"SmartCardModule v{VERSION} started for [{self.ctx.instance_loc}]")
+            if not self._phase0_setup():
+                return  # skipped — honest finding already emitted
+            card = self._phase1_detect()
+            if not card.get("present"):
+                self._mark_complete("Reader ready — no card presented")
+                return
+            self._phase2_fingerprint(card)
+            self._phase3_apdu_cvm(card)
+            self._phase4_globalplatform(card)
+            self._phase5_default_pin(card)
+            self._mark_complete("Smart-card assessment complete")
+        except Exception as e:
+            self._mark_error(str(e))
+
+    # ── Phase 0 — reader / toolchain detection ──────────────────────────────
+    def _phase0_setup(self) -> bool:
+        self._event("Phase 0 — reader & toolchain detection")
+        have = {t: _smartcard_which(t) for t in ("pcsc_scan", "opensc-tool", "gp")}
+        if not have["pcsc_scan"] and not have["opensc-tool"]:
+            self._f(self.T_SKIPPED,
+                    "Smart-card testing was NOT performed: neither pcsc_scan (pcsc-tools) "
+                    "nor opensc-tool (OpenSC) was found on PATH. Connect an Identiv SCR3310 "
+                    "(or any PC/SC) reader, install pcsc-tools + opensc (and, for card-manager "
+                    "key testing, GlobalPlatformPro 'gp'), start pcscd, and re-run the module.",
+                    "Informational", tool="opensc-tool")
+            self._mark_complete("SmartCard SKIPPED — pcsc-tools/opensc not installed")
+            return False
+
+        self._prompt(
+            f"Connect the Identiv SCR3310 (USB-A or USB-C) PC/SC reader and insert the "
+            f"smart card under test for [{self.ctx.instance_loc}]. Ensure pcscd is running. "
+            f"Press Enter to begin detection.",
+            options=["Ready"], prompt_type="choice")
+        self._prompt_connected_photo(
+            f"Identiv SCR3310 PC/SC reader connected for [{self.ctx.instance_loc}]")
+
+        if not _smartcard_pcscd_running():
+            self.ctx.logger.warn(
+                "pcscd does not appear to be running — detection may fail. "
+                "Start it with: sudo systemctl start pcscd", tool=self.name)
+        return True
+
+    # ── Phase 1 — reader + card presence detection ──────────────────────────
+    def _phase1_detect(self) -> dict:
+        self._event("Phase 1 — reader & card detection")
+        self.ctx.progress.set_module_status(
+            self.ctx.subdevice_key, self.ctx.interface, self.ctx.instance_key,
+            self.name, "running", "Detecting reader & card…")
+        out_dir = self._dir("01_detect")
+        card: dict = {"present": False, "atr": "", "readers": []}
+
+        # pcsc_scan snapshot (loops forever — bound it with timeout, like the
+        # Bluetooth module bounds btmon).
+        scan_txt = out_dir / f"{self.ctx.file_prefix}_pcsc_scan.txt"
+        scan_out = ""
+        if _smartcard_which("pcsc_scan"):
+            try:
+                run_tool(["bash", "-c", f"timeout 8 pcsc_scan || true"],
+                         self.ctx, tool_name="pcsc_scan", output_file=scan_txt, timeout=20)
+                scan_out = scan_txt.read_text(errors="replace")
+            except Exception as e:
+                self.ctx.logger.warn(f"pcsc_scan failed: {e}", tool=self.name)
+
+        # opensc-tool reader list + ATR (authoritative for later APDU work).
+        lr_txt = out_dir / f"{self.ctx.file_prefix}_opensc_readers.txt"
+        atr_txt = out_dir / f"{self.ctx.file_prefix}_opensc_atr.txt"
+        lr_out = atr_out = ""
+        if _smartcard_which("opensc-tool"):
+            try:
+                run_tool(["opensc-tool", "--list-readers"], self.ctx,
+                         tool_name="opensc-tool", output_file=lr_txt, timeout=30)
+                lr_out = lr_txt.read_text(errors="replace")
+            except Exception:
+                pass
+            try:
+                run_tool(["opensc-tool", "--atr"], self.ctx,
+                         tool_name="opensc-tool", output_file=atr_txt, timeout=30)
+                atr_out = atr_txt.read_text(errors="replace")
+            except Exception:
+                pass
+
+        readers = _smartcard_parse_readers(scan_out) or _smartcard_parse_readers(lr_out)
+        card["readers"] = readers
+        for r in readers:
+            self._f(self.T_READER_DETECTED,
+                    f"A PC/SC smart-card reader was detected: '{r}'. The reader provides the "
+                    f"contact/contactless channel used for all subsequent card testing.",
+                    "Informational", tool="pcsc_scan", affected_component=r,
+                    output_file=str(scan_txt if scan_out else lr_txt))
+
+        atr = _smartcard_parse_atr(atr_out) or _smartcard_parse_atr(scan_out)
+        card["atr"] = atr
+        card["present"] = bool(atr) or bool(re.search(r"card inserted|Card state.*present", scan_out, re.I))
+        if card["present"]:
+            loc = readers[0] if readers else "PC/SC reader"
+            self._f(self.T_DETECTED,
+                    f"A smart card was detected in {loc} during zero-knowledge scanning"
+                    + (f" (ATR {atr})" if atr else "") + ". Its presence confirms a live "
+                    f"smart-card authentication surface for the device under test.",
+                    "Informational", tool="pcsc_scan",
+                    output_file=str(scan_txt if scan_out else atr_txt))
+        else:
+            self.ctx.logger.info("No card ATR observed — reader present but no card.", tool=self.name)
+        return card
+
+    # ── Phase 2 — ATR fingerprint + serial-number entropy ───────────────────
+    def _phase2_fingerprint(self, card: dict) -> None:
+        self._event("Phase 2 — ATR fingerprint & serial entropy")
+        out_dir = self._dir("02_fingerprint")
+        atr = card.get("atr", "")
+
+        # ATR analysis (pcsc_tools ships ATR_analysis; opensc-tool --name maps
+        # the ATR to a known card model when possible).
+        name_txt = out_dir / f"{self.ctx.file_prefix}_opensc_name.txt"
+        card_name = ""
+        if _smartcard_which("opensc-tool"):
+            try:
+                rc, out, err = run_tool(["opensc-tool", "--name"], self.ctx,
+                                        tool_name="opensc-tool", output_file=name_txt, timeout=30)
+                card_name = (out or "").strip().splitlines()[-1].strip() if (out or "").strip() else ""
+            except Exception:
+                pass
+        if atr:
+            self._f(self.T_ATR,
+                    f"The card's Answer-To-Reset (ATR) was fingerprinted: {atr}"
+                    + (f" — identified as '{card_name}'." if card_name and "unknown" not in card_name.lower() else ".")
+                    + " The ATR discloses the card platform / chip / operating system and "
+                    "defines the applet and CVM surface tested in later phases.",
+                    "Informational", tool="opensc-tool", affected_component=card_name,
+                    output_file=str(name_txt))
+
+        # Serial number (works for PKCS#15 / GlobalPlatform cards).
+        serial_txt = out_dir / f"{self.ctx.file_prefix}_opensc_serial.txt"
+        serial = ""
+        if _smartcard_which("opensc-tool"):
+            try:
+                rc, out, err = run_tool(["opensc-tool", "--serial"], self.ctx,
+                                        tool_name="opensc-tool", output_file=serial_txt, timeout=30)
+                m = re.search(r"([0-9A-Fa-f]{2}(?:[:\s][0-9A-Fa-f]{2}){3,})", out or "")
+                serial = m.group(1).strip() if m else ""
+            except Exception:
+                pass
+        if serial:
+            predictable, reason = _smartcard_serial_predictable(serial)
+            if predictable:
+                self._f(self.T_SERIAL_PRED,
+                        f"The card serial number ({serial}) appears predictable: {reason}. "
+                        f"A guessable or sequential serial lets an attacker enumerate or clone "
+                        f"card identity, forge enrolment records, or correlate a card to a holder "
+                        f"without physical access.",
+                        "Low", tool="opensc-tool", affected_component=serial,
+                        output_file=str(serial_txt),
+                        remediation="Issue cards with cryptographically-random, high-entropy "
+                                    "serial/UID values; never derive the identifier from a "
+                                    "sequential batch counter.")
+
+    # ── Phase 3 — unauthenticated APDU probing / CVM triage ─────────────────
+    def _phase3_apdu_cvm(self, card: dict) -> None:
+        self._event("Phase 3 — unauthenticated APDU probing (SELECT + READ BINARY)")
+        if not _smartcard_which("opensc-tool"):
+            return
+        out_dir = self._dir("03_apdu")
+
+        # Select the Master File first (non-destructive).
+        self._apdu("00 A4 00 00 02 3F 00",
+                   out_dir / f"{self.ctx.file_prefix}_select_mf.txt")
+
+        readable_any = False
+        for fid, label in _SMARTCARD_CANDIDATE_EFS:
+            sel_f = out_dir / f"{self.ctx.file_prefix}_select_{fid}.txt"
+            sw_sel, _ = self._apdu(f"00 A4 00 00 02 {fid[:2]} {fid[2:]}", sel_f)
+            if sw_sel and not sw_sel.startswith("90") and sw_sel[:2] not in ("61", "62", "63"):
+                continue  # file absent / not selectable
+            rd_f = out_dir / f"{self.ctx.file_prefix}_read_{fid}.txt"
+            # READ BINARY, no prior VERIFY — this is the CVM oracle.
+            sw_rd, data = self._apdu("00 B0 00 00 00", rd_f)
+            if sw_rd.startswith("90") and data:
+                readable_any = True
+                self._f(self.T_UNAUTH_APDU,
+                        f"The elementary file {fid} ({label}) was read via a raw READ BINARY "
+                        f"APDU that returned status word 0x{sw_rd} with data, WITHOUT any prior "
+                        f"cardholder verification (no PIN/VERIFY was presented). Any party with "
+                        f"brief physical access to the card and a $30 reader can extract this "
+                        f"file's contents.",
+                        "High", tool="opensc-tool", affected_component=f"EF {fid}",
+                        output_file=str(rd_f),
+                        remediation="Protect sensitive elementary files with a CVM (PIN/biometric) "
+                                    "access condition and enforce it in the card OS access rules; "
+                                    "require secure messaging for READ BINARY on protected files.")
+                strings = _smartcard_ascii_strings(data)
+                if strings:
+                    self._f(self.T_CLEARTEXT,
+                            f"Data read from EF {fid} without authentication contains cleartext "
+                            f"printable strings (e.g. {', '.join(repr(s) for s in strings[:4])}). "
+                            f"Sensitive data objects stored and returned in the clear disclose "
+                            f"asset, holder or configuration information to anyone who can read the card.",
+                            "Medium", tool="opensc-tool", affected_component=f"EF {fid}",
+                            output_file=str(rd_f),
+                            remediation="Store sensitive data objects encrypted or behind a CVM; "
+                                        "do not return holder/asset identifiers from unauthenticated files.")
+                self._f(self.T_NO_SECMSG,
+                        f"The card returned sensitive file data from EF {fid} over a cleartext "
+                        f"(plain) APDU channel with no secure messaging applied. A passive USB or "
+                        f"contactless interceptor can capture the exchange verbatim.",
+                        "Medium", tool="opensc-tool", affected_component=f"EF {fid}",
+                        output_file=str(rd_f),
+                        remediation="Mandate GlobalPlatform / ISO-7816 secure messaging (C-MAC + "
+                                    "C-ENC) for all commands that carry or return sensitive data.")
+            elif sw_rd in ("6982",):
+                self.ctx.logger.info(
+                    f"EF {fid} correctly refused READ BINARY without CVM (SW 6982).", tool=self.name)
+
+        if readable_any:
+            self._f(self.T_WEAK_CVM,
+                    "The card served sensitive file content in response to raw READ BINARY APDUs "
+                    "with no Cardholder Verification Method enforced (no PIN was required, and the "
+                    "card did not answer 0x6982 'security status not satisfied'). Authentication to "
+                    "the card is effectively absent for the affected files.",
+                    "High", tool="opensc-tool",
+                    remediation="Define and enforce a CVM (PIN, PACE, or on-card biometric) access "
+                                "condition on every protected file and command; verify the card "
+                                "returns 0x6982 for unauthenticated access.")
+
+    # ── Phase 4 — GlobalPlatform default keys / lifecycle ───────────────────
+    def _phase4_globalplatform(self, card: dict) -> None:
+        self._event("Phase 4 — GlobalPlatform key & lifecycle triage")
+        if not _smartcard_which("gp"):
+            self.ctx.logger.info(
+                "GlobalPlatformPro 'gp' not on PATH — skipping card-manager key test.",
+                tool=self.name)
+            return
+        out_dir = self._dir("04_globalplatform")
+        info_txt = out_dir / f"{self.ctx.file_prefix}_gp_info.txt"
+
+        # gp -info authenticates the ISD SCP secure channel with the DEFAULT
+        # test key (40..4F).  Success => the manufacturing keys were never
+        # rotated.  This is a READ-ONLY operation (no applet install/delete).
+        rc, out, err = 0, "", ""
+        try:
+            rc, out, err = run_tool(["gp", "-info"], self.ctx,
+                                    tool_name="gp", output_file=info_txt, timeout=60)
+        except Exception as e:
+            self.ctx.logger.warn(f"gp -info failed: {e}", tool=self.name)
+            return
+        blob = (out or "") + "\n" + (err or "")
+        auth_ok = rc == 0 and re.search(
+            r"Key\s*Version|SCP0?[123]|Card\s*Data|GlobalPlatform|lifecycle|CardRecognition",
+            blob, re.I)
+        auth_fail = re.search(r"authenticat\w+\s+fail|wrong\s+key|6982|6300|Strict\s+mode", blob, re.I)
+
+        if auth_ok and not auth_fail:
+            self._f(self.T_DEFAULT_GP,
+                    "The card's GlobalPlatform Issuer Security Domain authenticated a secure "
+                    f"channel using the DEFAULT test key set ({_SMARTCARD_DEFAULT_GP_KEY}, the "
+                    "gp/gpshell 40..4F factory key). An attacker with the card can open the same "
+                    "channel to install, delete, or replace applets and read/rotate keys — full "
+                    "card-manager compromise.",
+                    "Critical", tool="gp", output_file=str(info_txt),
+                    cve_ids=[],
+                    remediation="Rotate the ISD keys (ENC/MAC/KEK) to unique, per-card random "
+                                "values before deployment via GlobalPlatform PUT KEY; never ship "
+                                "cards on the 40..4F default key set.")
+            # Lifecycle state (only meaningful once we can talk to the ISD).
+            m = re.search(r"(OP_READY|INITIALIZED|SECURED|CARD_LOCKED|TERMINATED)", blob, re.I)
+            state = m.group(1).upper() if m else ""
+            if state in _SMARTCARD_INSECURE_LIFECYCLE:
+                self._f(self.T_LIFECYCLE,
+                        f"The GlobalPlatform card lifecycle state is {state}, not SECURED. A card "
+                        f"left in {state} permits card-content management and key setup operations "
+                        f"that should be closed off once the card is issued.",
+                        "Medium", tool="gp", affected_component=state,
+                        output_file=str(info_txt),
+                        remediation="Transition the card to the SECURED lifecycle state (and lock "
+                                    "the card manager) as part of issuance so pre-personalisation "
+                                    "management commands are no longer accepted.")
+        else:
+            self.ctx.logger.info(
+                "gp -info did not authenticate with the default key — ISD keys appear rotated.",
+                tool=self.name)
+
+    # ── Phase 5 — default PIN test (SAFETY-gated, single attempt) ───────────
+    def _phase5_default_pin(self, card: dict) -> None:
+        self._event("Phase 5 — default PIN test (operator-gated)")
+        if not _smartcard_which("opensc-tool"):
+            return
+        ans = self._prompt(
+            "SAFETY: attempt a SINGLE bounded default-PIN VERIFY against the card?\n"
+            "A wrong PIN decrements the card's retry counter and can permanently LOCK a "
+            "LIVE medical/production card. Only proceed on a card you may risk. Gearbox will "
+            "try at most ONE well-known default PIN and stop — it will NOT brute force.\n"
+            "Choose the action:",
+            options=["Yes — try one default PIN (risk acknowledged)",
+                     "No — skip (non-destructive, recommended)"],
+            prompt_type="choice", skippable=True)
+        if not ans or not ans.lower().startswith("yes"):
+            self.ctx.logger.info(
+                "Operator declined the default-PIN test — skipped (non-destructive).",
+                tool=self.name)
+            return
+
+        out_dir = self._dir("05_pin")
+        pin = _SMARTCARD_DEFAULT_PINS[0]  # single attempt only — no iteration
+        pin_hex = " ".join(f"{ord(c):02X}" for c in pin)
+        lc = f"{len(pin):02X}"
+        verify_f = out_dir / f"{self.ctx.file_prefix}_verify_default_pin.txt"
+        # ISO-7816 VERIFY: 00 20 00 80 Lc <PIN>  (P2=80 = global PIN ref).
+        sw, _ = self._apdu(f"00 20 00 80 {lc} {pin_hex}", verify_f)
+        observed = self._prompt(
+            f"opensc-tool VERIFY returned status word 0x{sw or '????'} for default PIN '{pin}'. "
+            f"Record the operator's observation (did the card accept the PIN / how many tries remain?).",
+            options=["PIN ACCEPTED (0x9000)", "PIN rejected — tries remain",
+                     "Card locked / other"], prompt_type="choice", skippable=True)
+        if sw.startswith("90") or (observed or "").lower().startswith("pin accepted"):
+            self._f(self.T_DEFAULT_PIN,
+                    f"The card accepted a well-known factory default PIN ('{pin}') via an ISO-7816 "
+                    f"VERIFY command (SW 0x{sw or '9000'}). Anyone in possession of the card can "
+                    f"satisfy cardholder verification and unlock CVM-protected files and operations.",
+                    "High", tool="opensc-tool", output_file=str(verify_f),
+                    remediation="Force a PIN change away from all factory defaults at first use; "
+                                "enforce PIN complexity and a low retry counter with a secure "
+                                "unblock (PUK) procedure.")
+        else:
+            self.ctx.logger.info(
+                f"Default PIN '{pin}' rejected (SW 0x{sw or '????'}) — no default-PIN finding. "
+                f"Operator note: {observed}", tool=self.name)
+
+
+# ===========================================================================
+# ZWave interface module  (integrated 2026-08-13 from _frag/ZWave.py)
+# ===========================================================================
+# ---------------------------------------------------------------------------
+# Z-Wave Module  (868/908 MHz sub-GHz mesh — passive-first assessment)
+# ---------------------------------------------------------------------------
+# One module, four phases: hardware setup -> passive Z-Wave frame capture ->
+# node enumeration -> security triage.  Detection is ORACLE-DRIVEN from the
+# cleartext-observable Z-Wave frame header: the HomeID / NodeID fields and the
+# Command Class byte are transmitted in the clear on every frame, and the
+# Security (S0, CC 0x98) / Security_2 (S2, CC 0x9F) encapsulation command
+# classes are self-identifying, so the module rules out each weakness class
+# (no-security, S0 legacy key-exchange, S2 downgrade, replay) generically
+# without any prior knowledge of the device under test.
+#
+# SAFETY: anything that could disrupt a LIVE device (forced re-inclusion to
+# capture the S0 key exchange, command replay, NonceGet flooding) is gated
+# behind an explicit operator confirmation and defaults to a passive,
+# non-destructive observation.  Passive capture + parsing is always preferred.
+
+# Z-Wave regional PHY frequencies (SDR centre frequency, in Hz).
+_ZWAVE_REGIONS: list[dict] = [
+    {"label": "US / North America — 908.42 MHz", "freq": "908420000", "mhz": "908.42", "code": "US"},
+    {"label": "EU — 868.42 MHz",                 "freq": "868420000", "mhz": "868.42", "code": "EU"},
+    {"label": "ANZ — 921.42 MHz",                "freq": "921420000", "mhz": "921.42", "code": "ANZ"},
+    {"label": "Hong Kong — 919.82 MHz",          "freq": "919820000", "mhz": "919.82", "code": "HK"},
+    {"label": "India — 865.22 MHz",              "freq": "865220000", "mhz": "865.22", "code": "IN"},
+    {"label": "Japan — 922.5 MHz",               "freq": "922500000", "mhz": "922.5",  "code": "JP"},
+]
+
+# Hardware options offered at Phase 0.  quiver = the Quiver firmware-flash
+# payload that provisions the board (see /opt/pr0t31n/Quiver).
+_ZWAVE_HARDWARE: list[dict] = [
+    {"key": "hackrf", "sdr": True, "tx_capable": True,
+     "label": "HackRF One — EZ-Wave / scapy-radio (GNU Radio SDR)",
+     "quiver": "FIRMWARE - Firmware Update (hackrf)",
+     "setup": ["Update host tools/firmware via Quiver: 'FIRMWARE - Firmware Update (hackrf)'.",
+               "Passive scan:  ezstumbler.py -p -t 30              (discover HomeIDs/NodeIDs).",
+               "Interrogate:   ezrecon.py -i <HomeID> -n <NodeID>  (version/CC/config).",
+               "Fingerprint:   ezfingerprint.py -i <HomeID> -n <NodeID> (3rd vs 5th gen PHY).",
+               "scapy-radio provides the GNU Radio Z-Wave PHY blocks for capture + TX.",
+               "HackRF can TRANSMIT — replay / downgrade tests are RF-active (gated)."]},
+    {"key": "catsniffer", "sdr": False, "tx_capable": False,
+     "label": "CatSniffer (TI CC1352 multiprotocol) — Z-Wave sniffer firmware",
+     "quiver": "FIRMWARE - Flash CatSniffer Sub-GHz sniffer",
+     "setup": ["Flash Z-Wave/Sub-GHz sniffer firmware via Quiver: 'FIRMWARE - Flash CatSniffer Sub-GHz sniffer'.",
+               "Serial capture via SerialPassthrough / pycatsniffer bridged into Wireshark.",
+               "Passive receive only on this firmware — no RF injection.",
+               "TOP PICK for clean passive Z-Wave frame capture (hardware PHY, low CPU)."]},
+    {"key": "rtlsdr", "sdr": True, "tx_capable": False,
+     "label": "RTL-SDR — waving-z / rtl_433 (passive receive only)",
+     "quiver": None,
+     "setup": ["No firmware flash needed. Plug in and confirm with rtl_test.",
+               "waving-z:  rtl_sdr -f <freq> -s 2000000 -g 25 - | ./wave-in -",
+               "rtl_433:   rtl_433 -f <freq> -R <zwave-decoder>   (partial Z-Wave support).",
+               "RECEIVE ONLY — cannot transmit, so replay/downgrade tests are unavailable."]},
+]
+
+# Z-Wave Security encapsulation Command Classes (self-identifying, in the clear).
+_ZW_CC_SECURITY_S0 = 0x98   # COMMAND_CLASS_SECURITY      (S0 legacy)
+_ZW_CC_SECURITY_S2 = 0x9F   # COMMAND_CLASS_SECURITY_2    (S2)
+
+# A subset of common actuator/sensor command classes whose presence in the
+# CLEAR (not wrapped in 0x98/0x9F) means the control channel is unencrypted.
+_ZW_CC_NAMES: dict[int, str] = {
+    0x20: "Basic", 0x25: "Binary Switch", 0x26: "Multilevel Switch",
+    0x62: "Door Lock", 0x63: "User Code", 0x40: "Thermostat Mode",
+    0x43: "Thermostat Setpoint", 0x71: "Alarm/Notification",
+    0x30: "Binary Sensor", 0x31: "Multilevel Sensor", 0x5A: "Device Reset Locally",
+    0x98: "Security (S0)", 0x9F: "Security_2 (S2)", 0x84: "Wake Up",
+    0x86: "Version", 0x72: "Manufacturer Specific", 0x70: "Configuration",
+}
+
+
+def _zwave_which(name: str) -> Optional[str]:
+    """Locate a Z-Wave SDR tool (PATH + common EZ-Wave / waving-z install dirs)."""
+    p = shutil.which(name)
+    if p:
+        return p
+    for cand in (f"/usr/bin/{name}", f"/usr/local/bin/{name}", f"/opt/{name}"):
+        if os.path.exists(cand):
+            return cand
+    if name in ("ezstumbler.py", "ezrecon.py", "ezfingerprint.py"):
+        for base in ("/opt/EZ-Wave/tools", str(Path.home() / "EZ-Wave/tools")):
+            cand = os.path.join(base, name)
+            if os.path.exists(cand):
+                return cand
+    if name in ("wave-in", "wave-out", "waving-z"):
+        for base in ("/opt/waving-z", "/opt/waving-z/build", str(Path.home() / "waving-z")):
+            cand = os.path.join(base, name if name != "waving-z" else "wave-in")
+            if os.path.exists(cand):
+                return cand
+    return None
+
+
+def _zwave_classify_cc(cc_byte: int) -> tuple[str, bool]:
+    """
+    Classify a Z-Wave Command Class byte's security posture.
+    Returns (security_class, encrypted):
+      0x98 -> ("S0", True)   0x9F -> ("S2", True)   anything else -> ("none", False)
+    """
+    if cc_byte == _ZW_CC_SECURITY_S0:
+        return ("S0", True)
+    if cc_byte == _ZW_CC_SECURITY_S2:
+        return ("S2", True)
+    return ("none", False)
+
+
+def _zwave_parse_frames(text: str) -> list[dict]:
+    """
+    Best-effort parse of captured Z-Wave frames from ezstumbler / waving-z /
+    rtl_433 textual output into frame dicts:
+        {home_id, src, dst, cc, cc_name, security, encrypted, raw}
+
+    Two grounded shapes are recognised:
+      1. Structured lines that name the fields, e.g.
+           "HomeID: 0xE1F2A3B4  Src: 01  Dst: 05  CC: 0x25 (Binary Switch)"
+         (ezstumbler / waving-z decoded output).
+      2. Raw hex frames — HomeID is the leading 4 bytes; the Command Class byte
+         follows the frame-control/length/dest header (offset 7 in a singlecast
+         frame).  Used as a fallback when only a hex dump is available.
+    """
+    frames: list[dict] = []
+    seen: set = set()
+    low = text or ""
+
+    # Shape 1 — labelled fields.
+    for line in low.splitlines():
+        hid = re.search(r"home\s*id[:=]?\s*(?:0x)?([0-9a-fA-F]{8})", line, re.I)
+        if not hid:
+            continue
+        home = hid.group(1).upper()
+        src = re.search(r"\bsrc(?:\s*node)?[:=]?\s*(?:0x)?([0-9a-fA-F]{1,3})", line, re.I)
+        dst = re.search(r"\bdst(?:\s*node)?[:=]?\s*(?:0x)?([0-9a-fA-F]{1,3})", line, re.I)
+        cc = re.search(r"\bcc[:=]?\s*(?:0x)?([0-9a-fA-F]{2})", line, re.I)
+        cc_byte = int(cc.group(1), 16) if cc else -1
+        sec, enc = _zwave_classify_cc(cc_byte) if cc_byte >= 0 else ("unknown", False)
+        key = (home, src.group(1) if src else "", dst.group(1) if dst else "", cc_byte)
+        if key in seen:
+            continue
+        seen.add(key)
+        frames.append({
+            "home_id":  home,
+            "src":      (src.group(1).upper() if src else ""),
+            "dst":      (dst.group(1).upper() if dst else ""),
+            "cc":       cc_byte,
+            "cc_name":  _ZW_CC_NAMES.get(cc_byte, "unknown"),
+            "security": sec,
+            "encrypted": enc,
+            "raw":      line.strip()[:200],
+        })
+
+    if frames:
+        return frames
+
+    # Shape 2 — raw hex-frame fallback.
+    for m in re.finditer(r"((?:[0-9a-fA-F]{2}[\s:]?){9,})", low):
+        octets = re.findall(r"[0-9a-fA-F]{2}", m.group(1))
+        if len(octets) < 9:
+            continue
+        home = "".join(octets[0:4]).upper()
+        try:
+            src = octets[4].upper()
+            dst = octets[6].upper()
+            cc_byte = int(octets[7], 16)
+        except (IndexError, ValueError):
+            continue
+        sec, enc = _zwave_classify_cc(cc_byte)
+        key = (home, src, dst, cc_byte)
+        if key in seen:
+            continue
+        seen.add(key)
+        frames.append({
+            "home_id":  home, "src": src, "dst": dst, "cc": cc_byte,
+            "cc_name":  _ZW_CC_NAMES.get(cc_byte, "unknown"),
+            "security": sec, "encrypted": enc, "raw": m.group(1).strip()[:200],
+        })
+    return frames
+
+
+class ZWaveModule(BaseModule):
+    """
+    Zero-knowledge Z-Wave (868/908 MHz) security assessment.
+
+    Runs the full chain — hardware setup, passive frame capture, node
+    enumeration, and security triage — against whatever Z-Wave mesh the device
+    under test participates in, ruling out each known weakness class
+    (unencrypted control, S0 legacy key exchange, S2→S0 downgrade, replay,
+    NonceGet DoS) from cleartext-observable frame headers.  No HomeID/NodeID is
+    assumed; discovery is passive and the RF-active tests are operator-gated.
+    """
+    name        = "ZWave"
+    description = "Zero-knowledge Z-Wave assessment (capture → enumeration → security triage)"
+
+    # ── finding-title constants (kept in lockstep with findings_catalogue.json) ──
+    T_DETECTED     = "Z-Wave Device Detected"
+    T_ENUM         = "Z-Wave Network Enumerated"
+    T_UNENCRYPTED  = "Unencrypted Z-Wave Control Frames"
+    T_S0_LEGACY    = "Z-Wave S0 Legacy Security Class in Use"
+    T_S0_KEYEXTRACT= "Z-Wave S0 Network Key Extractable on Inclusion"
+    T_ZSHAVE       = "Z-Wave S2 Security Downgrade to S0 Accepted"
+    T_REPLAY       = "Z-Wave Command Replay Accepted"
+    T_S2_OK        = "Z-Wave S2 Secure Class Confirmed"
+    T_NONCE_DOS    = "Z-Wave S0 NonceGet Denial-of-Service Exposure"
+    T_SKIPPED      = "Z-Wave Testing SKIPPED — No SDR or Sniffer Available"
+
+    # ── convenience wrappers ────────────────────────────────────────────────
+    def _dir(self, sub: str) -> Path:
+        d = self.ctx.instance_dir / "ZWave" / sub
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    def _f(self, title: str, description: str, risk: str, **kw) -> None:
+        """Thin findings.create wrapper with sane Z-Wave defaults."""
+        self.ctx.findings.create(
+            ctx=self.ctx, title=title, description=description,
+            tool=kw.pop("tool", "ezwave"), source_type="primary",
+            force_risk=risk, **kw)
+
+    def _event(self, msg: str) -> None:
+        """Persist a timestamped phase EVENT to the on-disk audit log (§14j)."""
+        try:
+            self.ctx.logger.info(f"EVENT [ZWave] {msg}", tool=self.name)
+        except Exception:
+            pass
+
+    # ── main ────────────────────────────────────────────────────────────────
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            self._event(f"ZWaveModule v{VERSION} started for [{self.ctx.instance_loc}]")
+            hw = self._phase0_hardware()
+            if hw is None:
+                return  # skipped — honest finding already emitted
+            frames = self._phase1_capture(hw)
+            homes = self._phase2_enumerate(frames)
+            self._phase3_security(hw, frames, homes)
+            self._mark_complete(
+                f"Z-Wave assessment complete — {len(frames)} frame(s), "
+                f"{len(homes)} HomeID(s)")
+        except Exception as e:
+            self._mark_error(str(e))
+
+    # ── Phase 0 — hardware selection + setup ────────────────────────────────
+    def _phase0_hardware(self) -> Optional[dict]:
+        self._event("Phase 0 — hardware selection & setup")
+        labels = [h["label"] for h in _ZWAVE_HARDWARE]
+        choice = self._prompt(
+            "Select the Z-Wave testing hardware in use. Passive capture works "
+            "with any option; RF-active tests (replay / downgrade) require a "
+            "TX-capable SDR (HackRF).\n"
+            "Refer to Quiver to flash the board's firmware before continuing.",
+            options=labels + ["Skip Z-Wave testing"],
+            prompt_type="choice", skippable=True)
+
+        hw = next((h for h in _ZWAVE_HARDWARE if h["label"] == choice), None)
+        if hw is None or (choice or "").lower().startswith("skip"):
+            self._f(self.T_SKIPPED,
+                    "No Z-Wave SDR or sniffer was selected for this instance, so "
+                    "Z-Wave testing was NOT performed. Attach a HackRF One (EZ-Wave / "
+                    "scapy-radio), a CatSniffer flashed with Sub-GHz firmware, or an "
+                    "RTL-SDR (waving-z / rtl_433) and re-run the module.",
+                    "Informational", tool="ezwave")
+            self._mark_complete("Z-Wave SKIPPED — no hardware selected")
+            return None
+
+        # Region / frequency selection (868 EU vs 908 US, etc.).
+        reg_labels = [r["label"] for r in _ZWAVE_REGIONS]
+        reg_choice = self._prompt(
+            "Select the Z-Wave regional frequency the device under test operates on "
+            "(this sets the SDR centre frequency for capture).",
+            options=reg_labels, prompt_type="choice", skippable=True)
+        region = next((r for r in _ZWAVE_REGIONS if r["label"] == reg_choice),
+                      _ZWAVE_REGIONS[0])
+        hw = dict(hw)
+        hw["region"] = region
+
+        self.ctx.logger.info(
+            f"Selected Z-Wave hardware: {hw['label']} @ {region['mhz']} MHz "
+            f"({region['code']})", tool=self.name)
+        if hw.get("quiver"):
+            self.ctx.logger.info(
+                f"Flash via Quiver payload: '{hw['quiver']}'", tool=self.name)
+        for ln in hw["setup"]:
+            self.ctx.logger.info(f"  {ln}", tool=self.name)
+        setup_txt = self._dir("00_setup") / f"{self.ctx.file_prefix}_hardware_setup.txt"
+        try:
+            setup_txt.write_text(
+                f"Z-Wave testing hardware: {hw['label']}\n"
+                f"Region: {region['label']} (centre freq {region['freq']} Hz)\n"
+                + (f"Quiver flash payload: {hw['quiver']}\n" if hw.get("quiver") else "")
+                + "\n" + "\n".join(hw["setup"]) + "\n", encoding="utf-8")
+        except Exception:
+            pass
+        self._prompt_connected_photo(
+            f"{hw['label']} connected for [{self.ctx.instance_loc}]")
+
+        # Verify at least one usable capture CLI is present.
+        have_tool = any(_zwave_which(t) for t in
+                        ("ezstumbler.py", "wave-in", "rtl_433", "rtl_sdr"))
+        if not have_tool:
+            self._f(self.T_SKIPPED,
+                    "The selected hardware requires a Z-Wave capture CLI (EZ-Wave "
+                    "ezstumbler.py, waving-z wave-in, or rtl_433 / rtl_sdr) but none "
+                    "was found on PATH. Install EZ-Wave / waving-z / rtl-sdr "
+                    "(see install.py) and re-run.",
+                    "Informational", tool="ezwave")
+            self._mark_complete("Z-Wave SKIPPED — capture CLI not installed")
+            return None
+        return hw
+
+    # ── Phase 1 — passive frame capture ─────────────────────────────────────
+    def _phase1_capture(self, hw: dict) -> list[dict]:
+        self._event("Phase 1 — passive Z-Wave frame capture")
+        self.ctx.progress.set_module_status(
+            self.ctx.subdevice_key, self.ctx.interface, self.ctx.instance_key,
+            self.name, "running", "Capturing Z-Wave frames…")
+        out_dir = self._dir("01_capture")
+        freq = hw.get("region", _ZWAVE_REGIONS[0])["freq"]
+        text = ""
+
+        # Preferred: EZ-Wave passive stumble (decodes HomeID/NodeID/CC directly).
+        ez = _zwave_which("ezstumbler.py")
+        if ez:
+            cap = out_dir / f"{self.ctx.file_prefix}_ezstumbler.txt"
+            try:
+                rc, out, err = run_tool(
+                    ["python2", ez, "-p", "-t", "45"], self.ctx,
+                    tool_name="ezstumbler", output_file=cap, timeout=90)
+                text += (out or "")
+            except Exception as e:
+                self.ctx.logger.warn(f"ezstumbler capture failed: {e}", tool=self.name)
+
+        # waving-z passive receive (rtl_sdr | wave-in pipeline).
+        if not text.strip():
+            wi = _zwave_which("wave-in")
+            if wi and _zwave_which("rtl_sdr"):
+                cap = out_dir / f"{self.ctx.file_prefix}_wavingz.txt"
+                try:
+                    rc, out, err = run_tool(
+                        ["bash", "-c",
+                         f"timeout 45 rtl_sdr -f {freq} -s 2000000 -g 25 - 2>/dev/null "
+                         f"| {wi} - || true"],
+                        self.ctx, tool_name="wave-in", output_file=cap, timeout=90)
+                    text += (out or "")
+                except Exception as e:
+                    self.ctx.logger.warn(f"waving-z capture failed: {e}", tool=self.name)
+
+        # rtl_433 fallback (partial Z-Wave decode).
+        if not text.strip() and _zwave_which("rtl_433"):
+            cap = out_dir / f"{self.ctx.file_prefix}_rtl433.txt"
+            try:
+                rc, out, err = run_tool(
+                    ["bash", "-c", f"timeout 45 rtl_433 -f {freq} -F json || true"],
+                    self.ctx, tool_name="rtl_433", output_file=cap, timeout=90)
+                text += (out or "")
+            except Exception as e:
+                self.ctx.logger.warn(f"rtl_433 capture failed: {e}", tool=self.name)
+
+        frames = _zwave_parse_frames(text)
+        self.ctx.logger.info(
+            f"Captured {len(frames)} Z-Wave frame(s)", tool=self.name)
+
+        # If nothing was captured, fall back to an operator observation prompt so
+        # the run is honest about whether the mesh was actually seen.
+        if not frames:
+            ans = self._prompt(
+                "No Z-Wave frames were auto-captured. From a Wireshark/CatSniffer "
+                "capture, was any Z-Wave traffic (HomeID / NodeID / Command Class) "
+                "observed on this frequency?",
+                options=["Yes — traffic observed (record manually)",
+                         "No — no Z-Wave traffic seen"],
+                prompt_type="choice", skippable=True)
+            if not ans or ans.lower().startswith("no"):
+                self._f(self.T_SKIPPED,
+                        "No Z-Wave frames were captured and the operator confirmed no "
+                        "traffic was observed on the selected frequency. Z-Wave security "
+                        "triage could not be performed — verify the device is powered, "
+                        "on-frequency, and actively transmitting, then re-run.",
+                        "Informational", tool="ezwave",
+                        output_file=str(out_dir))
+        return frames
+
+    # ── Phase 2 — node enumeration ──────────────────────────────────────────
+    def _phase2_enumerate(self, frames: list[dict]) -> dict:
+        self._event("Phase 2 — node enumeration")
+        homes: dict[str, set] = {}
+        for fr in frames:
+            hid = fr["home_id"]
+            homes.setdefault(hid, set())
+            for nid in (fr.get("src"), fr.get("dst")):
+                if nid:
+                    homes[hid].add(nid)
+
+        out_dir = self._dir("02_enumeration")
+        for hid, nodes in homes.items():
+            node_list = ", ".join(sorted(nodes)) or "unknown"
+            evid = out_dir / f"{self.ctx.file_prefix}_homeid_{hid}.txt"
+            try:
+                evid.write_text(
+                    f"HomeID: 0x{hid}\nNodeIDs observed: {node_list}\n\n"
+                    + "\n".join(fr["raw"] for fr in frames if fr["home_id"] == hid)
+                    + "\n", encoding="utf-8")
+            except Exception:
+                pass
+            # E.1 — discovery INFO (one per HomeID).
+            self._f(self.T_DETECTED,
+                    f"A Z-Wave network was detected during passive capture: "
+                    f"HomeID 0x{hid} with {len(nodes)} NodeID(s) observed ({node_list}). "
+                    f"The HomeID and NodeIDs are transmitted in the clear on every frame "
+                    f"and confirm a live Z-Wave mesh in RF range of the device under test.",
+                    "Informational", tool="ezwave", ip=f"0x{hid}",
+                    output_file=str(evid))
+            # E.2 — node enumeration (mesh topology disclosure).
+            self._f(self.T_ENUM,
+                    f"The Z-Wave mesh under HomeID 0x{hid} was enumerated passively from "
+                    f"cleartext frame headers, disclosing {len(nodes)} NodeID(s) "
+                    f"({node_list}) and their command-class traffic. Node enumeration maps "
+                    f"the controller/slave topology and defines the per-node attack surface "
+                    f"assessed in the security phase.",
+                    "Informational", tool="ezwave", ip=f"0x{hid}",
+                    output_file=str(evid))
+        return homes
+
+    # ── Phase 3 — security triage ───────────────────────────────────────────
+    def _phase3_security(self, hw: dict, frames: list[dict], homes: dict) -> None:
+        self._event("Phase 3 — Z-Wave security triage")
+        out_dir = self._dir("03_security")
+
+        # Per-HomeID security posture from the observed command-class mix.
+        for hid in homes:
+            hframes = [f for f in frames if f["home_id"] == hid]
+            has_s0 = any(f["security"] == "S0" for f in hframes)
+            has_s2 = any(f["security"] == "S2" for f in hframes)
+            # Cleartext control frames = a non-security CC carrying an actionable
+            # actuator/lock/sensor command class in the clear.
+            cleartext = [f for f in hframes
+                         if f["security"] == "none" and f["cc"] in _ZW_CC_NAMES
+                         and f["cc"] not in (_ZW_CC_SECURITY_S0, _ZW_CC_SECURITY_S2)]
+            evid = out_dir / f"{self.ctx.file_prefix}_security_{hid}.txt"
+            try:
+                evid.write_text(
+                    f"HomeID 0x{hid} security posture\n"
+                    f"  S0 frames: {sum(1 for f in hframes if f['security']=='S0')}\n"
+                    f"  S2 frames: {sum(1 for f in hframes if f['security']=='S2')}\n"
+                    f"  cleartext control frames: {len(cleartext)}\n\n"
+                    + "\n".join(f"{f['cc_name']} (CC 0x{f['cc']:02x}) sec={f['security']}"
+                                for f in hframes if f["cc"] >= 0)
+                    + "\n", encoding="utf-8")
+            except Exception:
+                pass
+
+            # A.1 — unencrypted control frames (no S0/S2).
+            if cleartext:
+                ccs = ", ".join(sorted({f["cc_name"] for f in cleartext}))
+                self._f(self.T_UNENCRYPTED,
+                        f"HomeID 0x{hid} carries actionable control traffic in the CLEAR — "
+                        f"no S0 (CC 0x98) or S2 (CC 0x9F) encapsulation was observed on "
+                        f"command class(es): {ccs}. Any passive listener can read device "
+                        f"state and, with a TX-capable radio, forge or replay commands "
+                        f"(lock/unlock, switch on/off, alarm suppression) at will.",
+                        "High", tool="ezwave", ip=f"0x{hid}", output_file=str(evid),
+                        remediation="Enforce S2 (Security_2) on every node; remove any node "
+                        "that cannot be securely included; never operate actuators or locks "
+                        "over unencrypted command classes.")
+
+            # A.2 — S0 legacy security in use.
+            if has_s0 and not has_s2:
+                self._f(self.T_S0_LEGACY,
+                        f"HomeID 0x{hid} uses the legacy S0 Security command class (CC 0x98). "
+                        f"S0 relies on AES-OFB/CBC-MAC with a network key that is exchanged at "
+                        f"inclusion under a HARDCODED all-zero temporary key "
+                        f"(0x00000000000000000000000000000000); an attacker who captures the "
+                        f"inclusion handshake recovers the network key and can decrypt and "
+                        f"forge all S0 traffic thereafter. S0 also lacks the anti-replay and "
+                        f"forward-secrecy properties of S2.",
+                        "Medium", tool="ezwave", ip=f"0x{hid}", output_file=str(evid),
+                        cve_ids=[], remediation="Migrate all nodes to S2; retire S0-only "
+                        "devices. If S0 is unavoidable, perform inclusion inside a shielded "
+                        "enclosure so the key exchange cannot be sniffed.")
+                # The S0 hardcoded-key inclusion weakness (surface flag).
+                self._f(self.T_S0_KEYEXTRACT,
+                        f"Because HomeID 0x{hid} uses S0, its network key is derivable by any "
+                        f"attacker who captures a device inclusion: the Network Key Set frame "
+                        f"is encrypted only under the well-known temporary key "
+                        f"0x00000000000000000000000000000000, so the S0 network key can be "
+                        f"extracted offline and every past/future S0 frame decrypted. "
+                        f"Re-inclusion of a node (e.g. after a power loss) re-exposes the key.",
+                        "High", tool="ezwave", ip=f"0x{hid}", output_file=str(evid),
+                        remediation="Use S2 (ECDH-authenticated key exchange with out-of-band "
+                        "DSK) so the network key is never sent under a hardcoded key; shield "
+                        "any required S0 inclusion.")
+
+            # A.3 — S2 confirmed (the good case).
+            if has_s2:
+                self._f(self.T_S2_OK,
+                        f"HomeID 0x{hid} was observed using the S2 Security_2 command class "
+                        f"(CC 0x9F). S2 performs an ECDH (Curve25519) authenticated key "
+                        f"exchange with an out-of-band DSK and provides per-frame nonce-based "
+                        f"anti-replay, so its control traffic is not passively decryptable or "
+                        f"trivially replayable. Confirm ALL nodes are S2 and that no S0 "
+                        f"fallback is permitted.",
+                        "Informational", tool="ezwave", ip=f"0x{hid}", output_file=str(evid))
+
+        # ── RF-ACTIVE tests (gated — could disrupt a live device) ───────────
+        tx_ok = hw.get("tx_capable")
+        self._active_downgrade_probe(out_dir, homes, tx_ok)
+        self._active_replay_probe(out_dir, homes, tx_ok)
+        self._nonce_dos_probe(out_dir, homes)
+
+    def _active_downgrade_probe(self, out_dir: Path, homes: dict, tx_ok: bool) -> None:
+        """Z-Shave S2→S0 downgrade — RF-active; operator-gated, non-destructive default."""
+        if not homes:
+            return
+        note = ("This transmits a forged KEX_REPORT during an inclusion and could "
+                "disrupt a LIVE device." if tx_ok else
+                "The selected radio is receive-only, so this can only be OBSERVED, "
+                "not driven.")
+        ans = self._prompt(
+            f"SAFETY GATE — Z-Shave S2→S0 downgrade test. {note} "
+            f"During a device inclusion, did the controller ACCEPT a KEX_REPORT that "
+            f"negotiated the security class DOWN to S0 (i.e. no S2-only enforcement)?",
+            options=["Yes — downgrade to S0 accepted",
+                     "No — S2-only enforced / downgrade rejected",
+                     "Not tested / skip"],
+            prompt_type="choice", skippable=True)
+        a = (ans or "").lower()
+        if a.startswith("yes"):
+            evid = out_dir / f"{self.ctx.file_prefix}_zshave_downgrade.txt"
+            try:
+                evid.write_text(f"Operator observation: {ans}\n", encoding="utf-8")
+            except Exception:
+                pass
+            self._f(self.T_ZSHAVE,
+                    "During inclusion the controller accepted a downgrade of the negotiated "
+                    "security class from S2 to the legacy S0 command class (the 'Z-Shave' "
+                    "attack). An attacker in RF range at inclusion time can force S0, then "
+                    "recover the network key via the hardcoded all-zero temporary key and "
+                    "control the device. S2-only inclusion is not being enforced.",
+                    "High", tool="ezwave", output_file=str(evid),
+                    force_classification="Validated",
+                    remediation="Enforce S2-only inclusion with no S0 fallback; reject any "
+                    "KEX_REPORT that requests a lower security class; require out-of-band DSK "
+                    "verification at inclusion.")
+
+    def _active_replay_probe(self, out_dir: Path, homes: dict, tx_ok: bool) -> None:
+        """Command replay of unencrypted frames — RF-active; operator-gated."""
+        if not homes:
+            return
+        if not tx_ok:
+            self.ctx.logger.info(
+                "Replay test skipped — selected radio cannot transmit.", tool=self.name)
+            return
+        ans = self._prompt(
+            "SAFETY GATE — Z-Wave command replay. This RETRANSMITS a previously captured "
+            "unencrypted command frame and WILL actuate the device if accepted (e.g. "
+            "unlock a lock, toggle a switch). Only proceed on a device authorised for "
+            "active testing. Did the device ACT on the replayed frame?",
+            options=["Yes — device acted on the replay",
+                     "No — replay rejected / no effect",
+                     "Do not run / skip"],
+            prompt_type="choice", skippable=True)
+        a = (ans or "").lower()
+        if a.startswith("yes"):
+            evid = out_dir / f"{self.ctx.file_prefix}_replay.txt"
+            try:
+                evid.write_text(f"Operator observation: {ans}\n", encoding="utf-8")
+            except Exception:
+                pass
+            self._f(self.T_REPLAY,
+                    "A previously captured unencrypted (or S0) Z-Wave command frame was "
+                    "retransmitted and the device acted on it, confirming no effective "
+                    "anti-replay protection. An attacker can record a legitimate command "
+                    "(lock/unlock, on/off) and replay it later to actuate the device without "
+                    "the network key.",
+                    "High", tool="ezwave", output_file=str(evid),
+                    force_classification="Validated",
+                    remediation="Enforce S2, whose Singlecast nonce/SPAN sequencing rejects "
+                    "replayed frames; never operate actuators over unencrypted or S0 command "
+                    "classes.")
+
+    def _nonce_dos_probe(self, out_dir: Path, homes: dict) -> None:
+        """S0-No-More NonceGet DoS exposure — surface flag; default non-destructive."""
+        if not homes:
+            return
+        ans = self._prompt(
+            "SAFETY GATE — S0 'NonceGet' Denial-of-Service exposure (S0-No-More). Flooding "
+            "a gateway with S0 NonceGet requests can EXHAUST its nonce table and HALT the "
+            "whole mesh — do NOT run this against a live medical device. Based on the "
+            "gateway's behaviour, does it accept unauthenticated S0 NonceGet requests "
+            "(making it DoS-exposed)?",
+            options=["Yes — accepts unauthenticated NonceGet (exposed)",
+                     "No — rate-limited / S2-only",
+                     "Do not test / skip"],
+            prompt_type="choice", skippable=True)
+        a = (ans or "").lower()
+        if a.startswith("yes"):
+            evid = out_dir / f"{self.ctx.file_prefix}_nonce_dos.txt"
+            try:
+                evid.write_text(f"Operator observation: {ans}\n", encoding="utf-8")
+            except Exception:
+                pass
+            self._f(self.T_NONCE_DOS,
+                    "The Z-Wave gateway accepts unauthenticated S0 NonceGet requests. An "
+                    "attacker can flood NonceGet frames (the 'S0-No-More' attack) to exhaust "
+                    "the gateway's nonce state and block legitimate S0 encryption, halting "
+                    "the mesh — a denial-of-service that requires only RF range and a valid "
+                    "included NodeID.",
+                    "Medium", tool="ezwave", output_file=str(evid),
+                    remediation="Migrate off S0 to S2; rate-limit NonceGet handling; drop "
+                    "NonceGet requests from NodeIDs that are not actively transacting.")
+
+
+# ===========================================================================
+# LoRa interface module  (integrated 2026-08-13 from _frag/LoRa.py)
+# ===========================================================================
+# ---------------------------------------------------------------------------
+# LoRa / LoRaWAN Module  (passive PHY capture + LoRaWAN security triage)
+# ---------------------------------------------------------------------------
+# One module, three phases: hardware setup -> LoRa capture -> LoRaWAN security.
+# Detection is grounded in cleartext-observable radio signals: the LoRaWAN MHDR
+# MType (top 3 bits of the first PHYPayload byte) reveals Join-Request /
+# Join-Accept vs data uplinks (ABP vs OTAA), the FHDR carries the DevAddr and a
+# 16-bit frame counter, and — for proprietary (non-LoRaWAN) LoRa — the whole
+# payload is app data.  The module rules out each known LoRaWAN weakness class
+# (static ABP session keys, OTAA join replay from missing DevNonce tracking,
+# default/weak AppKey, missing frame-counter validation, cleartext application
+# payload, pre-1.1 join-replay exposure) from a passive capture plus bounded
+# operator confirmation, never assuming a specific device identity.  Anything
+# that could disrupt a LIVE medical device (frame replay / injection into the
+# network) is gated behind an explicit operator confirmation and defaults to
+# non-destructive passive capture.
+
+# Region -> default uplink centre frequency (Hz, as a string for the CLIs) and
+# the ISM band label.  The operator selects the region at Phase 0.
+_LORA_REGIONS: dict[str, dict] = {
+    "EU868":   {"freq": "868.1e6", "band": "863-870 MHz (EU868)"},
+    "US915":   {"freq": "903.9e6", "band": "902-928 MHz (US915)"},
+    "AS923":   {"freq": "923.2e6", "band": "915-928 MHz (AS923)"},
+    "AU915":   {"freq": "915.2e6", "band": "915-928 MHz (AU915)"},
+    "IN865":   {"freq": "865.0625e6", "band": "865-867 MHz (IN865)"},
+    "EU433":   {"freq": "433.175e6", "band": "433 MHz (EU433)"},
+}
+
+# Hardware options offered at Phase 0.  quiver = the exact Quiver firmware-flash
+# payload that provisions the board (see /opt/pr0t31n/Quiver).  Boards flashed
+# with single-channel-sniffer firmware emit decoded LoRa/LoRaWAN frames over the
+# USB serial port; SDRs feed rtl_433 (ISM survey) + URH (raw IQ capture).
+_LORA_HARDWARE: list[dict] = [
+    {"key": "heltec", "serial": True, "sdr": False,
+     "label": "Heltec LoRa32 v3 (SX1262) — single-channel LoRa sniffer firmware",
+     "quiver": "FIRMWARE - Flash LoRa single-channel sniffer",
+     "baud": 115200,
+     "setup": ["Flash with Quiver payload: 'FIRMWARE - Flash LoRa single-channel",
+               "  sniffer' (targets heltec_wifi_lora_32_V3 / SX1262).",
+               "Set the sniffer to the region's uplink channel + SF before capture.",
+               "Decoded frames (MHDR / DevAddr / FCnt / FRMPayload) stream over the",
+               "  USB CDC serial port at 115200 baud — captured to a .txt transcript."]},
+    {"key": "lilygo", "serial": True, "sdr": False,
+     "label": "LilyGo LoRa32 (T3, SX1276/78) — single-channel LoRa sniffer firmware",
+     "quiver": "FIRMWARE - Flash LoRa single-channel sniffer",
+     "baud": 115200,
+     "setup": ["Flash with Quiver payload: 'FIRMWARE - Flash LoRa single-channel",
+               "  sniffer' (targets ttgo-lora32-v21 / SX1276).",
+               "Single channel + single spreading factor at a time — sweep SF7-SF12",
+               "  across the region's uplink channels to maximise capture coverage.",
+               "Decoded frames stream over the USB serial port (115200 baud)."]},
+    {"key": "sdr", "serial": False, "sdr": True,
+     "label": "RTL-SDR / HackRF — rtl_433 ISM survey + URH raw LoRa IQ capture",
+     "quiver": None,
+     "baud": 0,
+     "setup": ["No firmware flash needed. rtl_433 surveys co-located ISM devices",
+               "  in the LoRa band but does NOT demodulate CSS LoRa itself.",
+               "URH (urh_cli) captures raw IQ at the region's centre frequency for",
+               "  offline LoRa demodulation / crib-drag analysis.",
+               "For decoded LoRaWAN frames prefer a single-channel-sniffer board",
+               "  (options 1-2); this SDR path yields a raw capture + survey."]},
+]
+
+# LoRaWAN MHDR MType (bits 7:5 of the first PHYPayload byte) -> message class.
+_LORA_MTYPE: dict[int, str] = {
+    0: "Join-Request", 1: "Join-Accept", 2: "Unconfirmed Data Up",
+    3: "Unconfirmed Data Down", 4: "Confirmed Data Up",
+    5: "Confirmed Data Down", 6: "RFU", 7: "Proprietary",
+}
+
+
+def _lora_which(name: str) -> Optional[str]:
+    """Locate a LoRa/SDR tool binary (PATH + common install dirs + urh source)."""
+    p = shutil.which(name)
+    if p:
+        return p
+    cands = [f"/usr/bin/{name}", f"/usr/local/bin/{name}", f"/opt/{name}"]
+    if name in ("urh_cli", "urh_cli.py"):
+        cands += ["/usr/local/bin/urh_cli", "/usr/bin/urh_cli",
+                  "/opt/urh/src/urh/cli/urh_cli.py"]
+    for c in cands:
+        if os.path.exists(c):
+            return c
+    return None
+
+
+def _lora_serial_ports() -> list[str]:
+    """Return candidate USB-serial ports a flashed LoRa board is likely on."""
+    return [p for p in ("/dev/ttyACM0", "/dev/ttyUSB0", "/dev/ttyACM1",
+                        "/dev/ttyUSB1") if os.path.exists(p)]
+
+
+def _lora_mtype_name(first_byte: int) -> str:
+    return _LORA_MTYPE.get((first_byte >> 5) & 0x07, "Unknown")
+
+
+def _lora_looks_cleartext(data: bytes) -> bool:
+    """True when >70% of the payload bytes are printable ASCII — a strong hint
+    the application layer shipped its data in the clear (raw LoRa, or a LoRaWAN
+    FRMPayload that was never app-layer encrypted)."""
+    if len(data) < 4:
+        return False
+    printable = sum(1 for b in data if 0x20 <= b <= 0x7E)
+    return (printable / len(data)) > 0.70
+
+
+def _lora_parse_frames(text: str) -> list[dict]:
+    """Best-effort parse of a single-channel-sniffer transcript.
+
+    Accepts several common firmware output styles and extracts one dict per
+    decoded frame: {mtype, mtype_raw, devaddr, fcnt, phy_hex, cleartext}.
+    Recognises (a) an explicit 'PHYPayload: <hex>' field, and (b) any standalone
+    hex token of >= 12 bytes on a line (the raw PHYPayload most firmwares print).
+    """
+    frames: list[dict] = []
+    seen: set = set()
+    for raw in (text or "").splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        m = re.search(r"PHYPayload\s*[:=]\s*([0-9A-Fa-f]{24,})", line)
+        hexes: list[str] = []
+        if m:
+            hexes.append(m.group(1))
+        else:
+            for tok in re.findall(r"\b([0-9A-Fa-f]{24,})\b", line):
+                if len(tok) % 2 == 0:
+                    hexes.append(tok)
+        for h in hexes:
+            h = h.lower()
+            if h in seen:
+                continue
+            seen.add(h)
+            try:
+                blob = bytes.fromhex(h)
+            except ValueError:
+                continue
+            if len(blob) < 8:
+                continue
+            first = blob[0]
+            mt = (first >> 5) & 0x07
+            fr = {"mtype": _lora_mtype_name(first), "mtype_raw": mt,
+                  "devaddr": "", "fcnt": None, "phy_hex": h, "cleartext": False}
+            if mt in (2, 3, 4, 5) and len(blob) >= 8:
+                # FHDR: DevAddr(4, little-endian) | FCtrl(1) | FCnt(2, LE)
+                fr["devaddr"] = "".join(f"{b:02X}" for b in blob[1:5][::-1])
+                fr["fcnt"] = blob[6] | (blob[7] << 8)
+                fopts_len = blob[5] & 0x0F
+                body = blob[8 + fopts_len:]
+                if len(body) > 1:  # FPort(1) + FRMPayload
+                    fr["cleartext"] = _lora_looks_cleartext(body[1:])
+            elif mt == 7:  # Proprietary / raw LoRa — entire payload is app data
+                fr["cleartext"] = _lora_looks_cleartext(blob)
+            frames.append(fr)
+    return frames
+
+
+class LoRaModule(BaseModule):
+    """
+    Passive LoRa / LoRaWAN (433 / 868 / 915 MHz) security assessment.
+
+    Runs hardware setup -> passive LoRa capture -> LoRaWAN security triage
+    against whatever the device under test transmits, ruling out each known
+    LoRaWAN weakness class from cleartext-observable radio signals (MHDR MType,
+    DevAddr, frame counter, FRMPayload printability) plus bounded operator
+    confirmation.  Defaults to non-destructive passive capture; any replay /
+    injection that could disrupt a live medical device is gated behind an
+    explicit operator confirmation.
+    """
+    name        = "LoRa"
+    description = "LoRa / LoRaWAN passive assessment (capture → LoRaWAN security triage)"
+
+    # ── finding-title constants (kept in lockstep with findings_catalogue.json) ──
+    T_TX_DETECTED  = "LoRa Transmission Detected"
+    T_LORAWAN_NET  = "LoRaWAN Network Traffic Detected"
+    T_RAW_UNENC    = "Raw LoRa Payload Transmitted Without Encryption"
+    T_ABP_STATIC   = "LoRaWAN ABP Activation — Static Session Keys"
+    T_OTAA_REPLAY  = "LoRaWAN OTAA Join Replay — Missing DevNonce Tracking"
+    T_DEFAULT_KEY  = "LoRaWAN Default or Weak AppKey"
+    T_FCNT_REPLAY  = "LoRaWAN Missing Frame-Counter Validation"
+    T_CLEARTEXT    = "LoRaWAN Cleartext Application Payload"
+    T_V10_JOIN     = "LoRaWAN 1.0.x — No Join-Request Replay Protection"
+    T_SKIPPED      = "LoRa Testing SKIPPED — No SDR or LoRa Radio Available"
+
+    # ── convenience wrappers ────────────────────────────────────────────────
+    def _dir(self, sub: str) -> Path:
+        d = self.ctx.instance_dir / "LoRa" / sub
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    def _f(self, title: str, description: str, risk: str, **kw) -> None:
+        """Thin findings.create wrapper with sane LoRa defaults."""
+        self.ctx.findings.create(
+            ctx=self.ctx, title=title, description=description,
+            tool=kw.pop("tool", "lora"), source_type="primary",
+            force_risk=risk, **kw)
+
+    def _event(self, msg: str) -> None:
+        """Persist a timestamped phase EVENT to the on-disk audit log (§14j)."""
+        try:
+            self.ctx.logger.info(f"EVENT [LoRa] {msg}", tool=self.name)
+        except Exception:
+            pass
+
+    # ── main ────────────────────────────────────────────────────────────────
+    def run(self) -> None:
+        self._mark_running()
+        try:
+            self._event(f"LoRaModule v{VERSION} started for [{self.ctx.instance_loc}]")
+            hw = self._phase0_hardware()
+            if hw is None:
+                return  # skipped — honest finding already emitted
+            region, frames, cap_file = self._phase1_capture(hw)
+            self._phase2_lorawan(hw, region, frames, cap_file)
+            self._mark_complete(
+                f"LoRa assessment complete — {len(frames)} frame(s) parsed")
+        except Exception as e:
+            self._mark_error(str(e))
+
+    # ── Phase 0 — hardware selection + setup ────────────────────────────────
+    def _phase0_hardware(self) -> Optional[dict]:
+        self._event("Phase 0 — hardware selection & setup")
+        labels = [h["label"] for h in _LORA_HARDWARE]
+        choice = self._prompt(
+            "Select the LoRa testing hardware in use. Options 1-2 are LoRa32 boards "
+            "flashed with single-channel-sniffer firmware (decoded frames over USB "
+            "serial); option 3 is an SDR (rtl_433 ISM survey + URH raw IQ capture).\n"
+            "Refer to Quiver to flash the board's firmware before continuing.",
+            options=labels + ["Skip LoRa testing"],
+            prompt_type="choice", skippable=True)
+
+        hw = next((h for h in _LORA_HARDWARE if h["label"] == choice), None)
+        if hw is None or (choice or "").lower().startswith("skip"):
+            self._f(self.T_SKIPPED,
+                    "No SDR or LoRa radio was selected for this instance, so LoRa / "
+                    "LoRaWAN testing was NOT performed. Flash a Heltec LoRa32 v3 or "
+                    "LilyGo LoRa32 with single-channel-sniffer firmware via Quiver, or "
+                    "attach an RTL-SDR / HackRF (rtl_433 + urh_cli), and re-run the module.",
+                    "Informational", tool="lora")
+            self._mark_complete("LoRa SKIPPED — no hardware selected")
+            return None
+
+        self.ctx.logger.info(f"Selected LoRa hardware: {hw['label']}", tool=self.name)
+        if hw.get("quiver"):
+            self.ctx.logger.info(
+                f"Flash via Quiver payload: '{hw['quiver']}'", tool=self.name)
+        for ln in hw["setup"]:
+            self.ctx.logger.info(f"  {ln}", tool=self.name)
+        setup_txt = self._dir("00_setup") / f"{self.ctx.file_prefix}_hardware_setup.txt"
+        try:
+            setup_txt.write_text(
+                f"LoRa testing hardware: {hw['label']}\n"
+                + (f"Quiver flash payload: {hw['quiver']}\n" if hw.get("quiver") else "")
+                + "\n" + "\n".join(hw["setup"]) + "\n", encoding="utf-8")
+        except Exception:
+            pass
+        self._prompt_connected_photo(
+            f"{hw['label']} connected for [{self.ctx.instance_loc}]")
+
+        # Verify the required capture tooling / port is present for the chosen path.
+        if hw["serial"] and not _lora_serial_ports():
+            self._f(self.T_SKIPPED,
+                    "The selected LoRa32 sniffer board exposes no USB serial port "
+                    "(/dev/ttyACM* or /dev/ttyUSB*). Flash the single-channel-sniffer "
+                    "firmware via Quiver and confirm the board enumerates, then re-run.",
+                    "Informational", tool="lora")
+            self._mark_complete("LoRa SKIPPED — no serial port for sniffer board")
+            return None
+        if hw["sdr"] and not (_lora_which("rtl_433") or _lora_which("urh_cli")):
+            self._f(self.T_SKIPPED,
+                    "The SDR path requires rtl_433 and/or URH (urh_cli) but neither was "
+                    "found on PATH. Install rtl-433 and universal-radio-hacker "
+                    "(see install.py LoRa phase) and re-run.",
+                    "Informational", tool="lora")
+            self._mark_complete("LoRa SKIPPED — rtl_433/urh_cli not installed")
+            return None
+        return hw
+
+    # ── Phase 1 — passive LoRa capture ──────────────────────────────────────
+    def _phase1_capture(self, hw: dict) -> tuple:
+        self._event("Phase 1 — passive LoRa capture")
+        self.ctx.progress.set_module_status(
+            self.ctx.subdevice_key, self.ctx.interface, self.ctx.instance_key,
+            self.name, "running", "Capturing LoRa traffic…")
+        out_dir = self._dir("01_capture")
+
+        region = self._prompt(
+            "Which regional LoRa band is the device under test operating in? "
+            "(sets the capture centre frequency).",
+            options=list(_LORA_REGIONS.keys()) + ["Unknown / EU868 default"],
+            prompt_type="choice", skippable=True)
+        rkey = region if region in _LORA_REGIONS else "EU868"
+        freq = _LORA_REGIONS[rkey]["freq"]
+        band = _LORA_REGIONS[rkey]["band"]
+
+        dur = 90
+        cap_file = out_dir / f"{self.ctx.file_prefix}_lora_capture_{rkey}.txt"
+        frames: list[dict] = []
+
+        if hw["serial"]:
+            port = _lora_serial_ports()[0]
+            self._prompt(
+                f"Ready to passively capture decoded LoRa frames on {band} from {port}. "
+                f"Ensure the sniffer board is tuned to the device's uplink channel + SF, "
+                f"then trigger a transmission on the device under test (e.g. force a "
+                f"sensor reading or a fresh join). Press Ready to start the {dur}s capture.",
+                options=["Ready"], prompt_type="choice")
+            try:
+                run_tool(["bash", "-c",
+                          f"stty -F {port} {hw['baud']} raw -echo 2>/dev/null; "
+                          f"timeout {dur} cat {port} 2>/dev/null || true"],
+                         self.ctx, tool_name="lora-sniffer",
+                         output_file=cap_file, timeout=dur + 20)
+            except Exception as e:
+                self.ctx.logger.warn(f"serial capture failed: {e}", tool=self.name)
+        else:
+            # SDR path: rtl_433 ISM survey (JSON) + URH raw IQ capture (best-effort).
+            if _lora_which("rtl_433"):
+                survey = out_dir / f"{self.ctx.file_prefix}_rtl433_survey_{rkey}.json"
+                try:
+                    run_tool(["bash", "-c",
+                              f"timeout {dur} rtl_433 -f {freq} -F json -M time "
+                              f"> {survey} 2>/dev/null || true"],
+                             self.ctx, tool_name="rtl_433",
+                             output_file=survey, timeout=dur + 20)
+                except Exception:
+                    pass
+            if _lora_which("urh_cli"):
+                iq = out_dir / f"{self.ctx.file_prefix}_urh_lora_{rkey}.complex"
+                urh = _lora_which("urh_cli")
+                runner = (["python3", urh] if urh.endswith(".py") else [urh])
+                self._prompt(
+                    f"Ready to capture raw LoRa IQ at {freq} Hz ({band}) with URH. "
+                    f"Trigger a transmission on the device under test, then press Ready.",
+                    options=["Ready"], prompt_type="choice")
+                try:
+                    run_tool(["bash", "-c",
+                              f"timeout {dur} {' '.join(runner)} --receive "
+                              f"--device RTL-SDR --frequency {freq} --sample-rate 1e6 "
+                              f"--file {iq} >/dev/null 2>&1 || true"],
+                             self.ctx, tool_name="urh_cli",
+                             output_file=iq, timeout=dur + 20)
+                except Exception:
+                    pass
+            # An SDR can't hand back decoded LoRaWAN frames without offline demod, so
+            # let the operator paste a decoded PHYPayload transcript if they have one.
+            paste = self._prompt(
+                "If you have decoded LoRaWAN PHYPayload hex (from URH demod, a gateway "
+                "log, or a single-channel sniffer), paste one hex frame per line to "
+                "seed the LoRaWAN triage, or type 'skip'.",
+                prompt_type="text", skippable=True)
+            if paste and paste.lower() != "skip":
+                cap_file.write_text(paste, encoding="utf-8")
+
+        try:
+            frames = _lora_parse_frames(cap_file.read_text(errors="replace")) \
+                if cap_file.exists() else []
+        except Exception:
+            frames = []
+        self.ctx.logger.info(
+            f"Parsed {len(frames)} LoRa frame(s) from capture", tool=self.name)
+
+        # Discovery findings — LoRa transmission + (if MType matches) LoRaWAN traffic.
+        if frames:
+            mtypes = sorted({f["mtype"] for f in frames})
+            self._f(self.T_TX_DETECTED,
+                    f"LoRa transmissions were captured on {band} during passive scanning: "
+                    f"{len(frames)} frame(s) observed (MType(s): {', '.join(mtypes)}). "
+                    f"Confirmed live LoRa radio activity expands the wireless attack "
+                    f"surface and defines the targets for LoRaWAN security triage.",
+                    "Informational", tool="lora", output_file=str(cap_file))
+            if any(f["mtype_raw"] in (0, 1, 2, 3, 4, 5) for f in frames):
+                devaddrs = sorted({f["devaddr"] for f in frames if f["devaddr"]})
+                self._f(self.T_LORAWAN_NET,
+                        f"LoRaWAN protocol traffic was identified in the capture "
+                        f"(Join and/or MAC data frames). DevAddr(s): "
+                        f"{', '.join(devaddrs) or 'n/a'}. The MHDR/FHDR structure confirms "
+                        f"a LoRaWAN network is in range and reachable to a passive listener.",
+                        "Informational", tool="lora", output_file=str(cap_file))
+        return rkey, frames, cap_file
+
+    # ── Phase 2 — LoRaWAN security triage ───────────────────────────────────
+    def _phase2_lorawan(self, hw: dict, region: str, frames: list, cap_file: Path) -> None:
+        self._event("Phase 2 — LoRaWAN security triage")
+        evid = str(cap_file)
+
+        saw_join = any(f["mtype_raw"] in (0, 1) for f in frames)
+        saw_data = any(f["mtype_raw"] in (2, 3, 4, 5) for f in frames)
+        saw_proprietary = any(f["mtype_raw"] == 7 for f in frames)
+        cleartext_frames = [f for f in frames if f["cleartext"]]
+
+        # --- Raw (non-LoRaWAN) LoRa with cleartext payload -------------------
+        if saw_proprietary and any(f["cleartext"] for f in frames if f["mtype_raw"] == 7):
+            self._f(self.T_RAW_UNENC,
+                    "A proprietary (non-LoRaWAN) LoRa frame carried an application payload "
+                    "that decodes to printable/structured cleartext, indicating the payload "
+                    "is transmitted without any encryption. Any passive listener in radio "
+                    "range can read sensor/telemetry data and, absent a MIC, forge or replay "
+                    "commands to the device.",
+                    "High", tool="lora", output_file=evid,
+                    cve_ids=[], remediation="Encrypt and authenticate the application payload "
+                    "(AES-CTR/GCM with a per-device key + a monotonic counter), or adopt "
+                    "LoRaWAN and rely on its MIC + FRMPayload encryption.")
+
+        # --- Activation model: ABP vs OTAA ----------------------------------
+        model = self._prompt(
+            "How is the device under test activated onto the LoRaWAN network? "
+            + ("(a Join-Request/Accept was seen in the capture → OTAA is in use). "
+               if saw_join else
+               "(only data frames were seen — no Join in this capture). "),
+            options=["OTAA (Over-The-Air Activation — join procedure)",
+                     "ABP (Activation By Personalization — static keys)",
+                     "Unknown / not determined"],
+            prompt_type="choice", skippable=True)
+        m = (model or "").lower()
+        is_abp = m.startswith("abp") or (saw_data and not saw_join and "otaa" not in m)
+        is_otaa = m.startswith("otaa") or saw_join
+
+        # --- ABP static session keys ----------------------------------------
+        if is_abp:
+            self._f(self.T_ABP_STATIC,
+                    "The device is activated by ABP, so the NwkSKey and AppSKey are "
+                    "provisioned as static, long-lived key material rather than derived "
+                    "per session by a join. On a device reset the frame counter returns to "
+                    "zero while the keys stay the same — reusing the counter (the AES-CTR "
+                    "IV) across sessions enables a known-plaintext / crib-dragging attack "
+                    "and lets previously-captured uplinks be replayed.",
+                    "High", tool="lora", output_file=evid,
+                    remediation="Prefer OTAA so fresh session keys are derived per join; "
+                    "if ABP is mandatory, persist the frame counters across reboots, never "
+                    "reset them, and rotate the session keys on a schedule.")
+
+        # --- OTAA join replay (missing DevNonce tracking, <1.1) -------------
+        if is_otaa:
+            ver = self._prompt(
+                "Which LoRaWAN version does the device/network implement, and does the "
+                "network server persist and reject previously-seen DevNonce values?",
+                options=["1.0.x AND server does NOT track/reject repeated DevNonce",
+                         "1.0.x with a bounded DevNonce cache (still replay-window exposed)",
+                         "1.1 (monotonic DevNonce counter + join-server nonce tracking)",
+                         "Unknown"],
+                prompt_type="choice", skippable=True)
+            v = (ver or "").lower()
+            if v.startswith("1.0"):
+                self._f(self.T_OTAA_REPLAY,
+                        "The device uses OTAA under LoRaWAN 1.0.x, where the end device "
+                        "cannot detect a repeated Join-Accept and the network server only "
+                        "remembers a bounded number of recent DevNonce values. A captured "
+                        "Join-Request can be replayed after that window rolls over, forcing "
+                        "a re-join and a session-key reset an attacker can exploit for "
+                        "denial-of-service or to pin the device to attacker-observable keys.",
+                        "High", tool="lora", output_file=evid,
+                        cve_ids=[], remediation="Upgrade to LoRaWAN 1.1 (monotonic DevNonce "
+                        "counter enforced by the join server); where 1.0.x is required, "
+                        "persist the full DevNonce history per device and reject any repeat.")
+                self._f(self.T_V10_JOIN,
+                        "The network operates LoRaWAN 1.0.x, in which Join-Request messages "
+                        "carry no replay protection prior to the 1.1 DevNonce counter. This "
+                        "is a protocol-version exposure independent of a specific replay "
+                        "observation and applies to every OTAA device on the network.",
+                        "Medium", tool="lora", output_file=evid,
+                        remediation="Migrate the network and devices to LoRaWAN 1.1, which "
+                        "adds monotonic DevNonce handling and join-server nonce tracking.")
+
+        # --- Default / weak AppKey ------------------------------------------
+        keyq = self._prompt(
+            "Is the root AppKey (OTAA) or the session keys (ABP) a default, all-zero, "
+            "sequential, vendor-shared, or DevEUI-derived value — i.e. printed on the "
+            "device, in the manual/firmware, or identical across a production batch?",
+            options=["Yes — default/weak/shared/derivable key",
+                     "No — unique random per device, provisioned securely",
+                     "Unknown"],
+            prompt_type="choice", skippable=True)
+        if (keyq or "").lower().startswith("yes"):
+            self._f(self.T_DEFAULT_KEY,
+                    "The device's LoRaWAN root/session key is default, all-zero, "
+                    "vendor-shared, or derivable from the DevEUI (a hard-coded credential). "
+                    "Recovering the AppKey lets an attacker derive the session keys, decrypt "
+                    "all FRMPayloads, forge a valid MIC, and impersonate the device — "
+                    "collapsing the entire LoRaWAN security model for that node.",
+                    "Critical", tool="lora", output_file=evid,
+                    force_classification="Validated",
+                    remediation="Provision a unique, random, secret AppKey per device at "
+                    "manufacture; never print, log, share, or derive it from public "
+                    "identifiers; store it in a secure element and rotate on compromise.")
+
+        # --- Missing frame-counter validation (replay) ----------------------
+        # Passive hint: a repeated FCnt in the capture already indicates weak
+        # replay handling. An active replay into a LIVE network could disrupt a
+        # medical device — gate it behind explicit operator confirmation.
+        fcnts = [f["fcnt"] for f in frames if f["fcnt"] is not None]
+        repeated_fcnt = len(fcnts) != len(set(fcnts)) and len(fcnts) > 1
+        replay_ok = None
+        if repeated_fcnt:
+            replay_ok = True
+        else:
+            ans = self._prompt(
+                "Frame-counter replay test. Replaying a captured uplink to the LoRaWAN "
+                "network is an ACTIVE test that could disrupt a live device/network — "
+                "only proceed with authorization. Was a previously-captured uplink "
+                "(same or lower FCnt) ACCEPTED by the network server when replayed?",
+                options=["Yes — replayed frame was accepted (no FCnt check)",
+                         "No — replay rejected (FCnt validation enforced)",
+                         "Skip — do not perform an active replay"],
+                prompt_type="choice", skippable=True)
+            a = (ans or "").lower()
+            if a.startswith("yes"):
+                replay_ok = True
+            elif a.startswith("no"):
+                replay_ok = False
+        if replay_ok:
+            self._f(self.T_FCNT_REPLAY,
+                    "The network accepted a LoRaWAN uplink whose frame counter was equal to "
+                    "or lower than a previously-seen value (observed as a repeated FCnt in "
+                    "the capture, or confirmed by an authorized replay). Without strict "
+                    "monotonic frame-counter validation an attacker can replay captured "
+                    "uplinks — re-triggering actions or masking live telemetry with stale "
+                    "readings.",
+                    "High", tool="lora", output_file=evid,
+                    force_classification="Validated" if repeated_fcnt else "",
+                    remediation="Enforce strict monotonic frame-counter checks at the "
+                    "network server (reject any FCnt <= last seen), enable 32-bit frame "
+                    "counters, and alert on counter resets or rollovers.")
+
+        # --- Cleartext application payload (LoRaWAN, no app-layer crypto) ----
+        if cleartext_frames and (is_abp or is_otaa or saw_data):
+            appq = self._prompt(
+                "The captured FRMPayload decodes to printable/structured data. Does the "
+                "application rely SOLELY on LoRaWAN's FRMPayload encryption with no "
+                "additional end-to-end application-layer encryption (so the network "
+                "server / any key-holder sees the data in the clear)?",
+                options=["Yes — LoRaWAN encryption only, no app-layer E2E",
+                         "No — payload is additionally app-layer encrypted",
+                         "Unknown"],
+                prompt_type="choice", skippable=True)
+            if not (appq or "").lower().startswith("no"):
+                self._f(self.T_CLEARTEXT,
+                        "The application payload is protected only by LoRaWAN's session-key "
+                        "FRMPayload encryption, with no independent end-to-end application-"
+                        "layer encryption. Any holder of the session keys — the network "
+                        "server, a compromised join server, or an attacker who recovered a "
+                        "weak/default key — reads the plaintext, and for raw or "
+                        "misconfigured payloads a passive listener may read it directly.",
+                        "Medium", tool="lora", output_file=evid,
+                        remediation="Add end-to-end application-layer encryption/"
+                        "authentication (e.g. AES-GCM with a key held only by the device and "
+                        "the application server) so LoRaWAN network operators cannot read or "
+                        "forge sensitive payloads.")
 
 
 # ---------------------------------------------------------------------------
@@ -13762,6 +17956,20 @@ class CanAssessModule(BaseModule):
 # RFID Modules
 # ---------------------------------------------------------------------------
 
+def _rfid_chameleon_cli() -> Optional[str]:
+    """Locate a Chameleon Ultra CLI (alternate HF/LF reader/emulator to Proxmark3).
+    Checks the common command names shipped by RfidResearchGroup/ChameleonUltra."""
+    for name in ("chameleon_cli", "chameleon_ultra", "cu"):
+        p = shutil.which(name)
+        if p:
+            return p
+    for cand in ("/opt/ChameleonUltra/software/script/chameleon_cli_main.py",
+                 str(Path.home() / "ChameleonUltra/software/script/chameleon_cli_main.py")):
+        if os.path.exists(cand):
+            return cand
+    return None
+
+
 class RFIDSniffModule(BaseModule):
     name        = "RFIDSniff"
     description = "Capture RFID/NFC card data using Proxmark or similar"
@@ -13772,8 +17980,8 @@ class RFIDSniffModule(BaseModule):
             out_dir = self.ctx.instance_dir / "RFIDSniff"
             out_dir.mkdir(parents=True, exist_ok=True)
             answer = self._prompt(
-                f"Connect Proxmark3 (or similar) RFID reader near port "
-                f"[{self.ctx.instance_loc}]. Place test RFID card in range. "
+                f"Connect an RFID/NFC reader near port [{self.ctx.instance_loc}] — "
+                f"Proxmark3 (pm3) or Chameleon Ultra. Place the test card in range. "
                 f"Press Enter to begin.",
                 options=["Ready", "Skip"], prompt_type="choice", skippable=True)
             if "skip" in answer.lower() or answer == "2":
@@ -13781,7 +17989,7 @@ class RFIDSniffModule(BaseModule):
                 self._mark_connected_photo_na("RFID test skipped")
                 return
             self._prompt_connected_photo(
-                f"Proxmark3 RFID reader positioned at [{self.ctx.instance_loc}]")
+                f"RFID reader (Proxmark3 / Chameleon Ultra) positioned at [{self.ctx.instance_loc}]")
 
             out_file = out_dir / f"{self.ctx.file_prefix}_rfid_sniff.txt"
             if tool_available("pm3"):
@@ -13799,9 +18007,33 @@ class RFIDSniffModule(BaseModule):
                         output_text=content[:1500],
                         risk="Informational",
                     )
+            elif _rfid_chameleon_cli():
+                # Chameleon Ultra fallback. Its CLI (RfidResearchGroup/ChameleonUltra
+                # chameleon_cli) mirrors Proxmark HF/LF search verbs; command names may
+                # vary by CLI version, so this is best-effort and the raw output is
+                # preserved for the operator.
+                cli = _rfid_chameleon_cli()
+                run_tool([cli, "hf", "14a", "scan"], self.ctx, tool_name="chameleon_ultra",
+                         output_file=out_file, timeout=60)
+                if out_file.exists() and out_file.stat().st_size > 0:
+                    self._observe(
+                        title=f"RFID Scan Results — {self.ctx.instance_key}",
+                        description=f"Chameleon Ultra HF scan for [{self.ctx.instance_loc}].",
+                        tool="chameleon_ultra", output_file=str(out_file),
+                        output_text=out_file.read_text(errors="replace")[:1500],
+                        risk="Informational")
             else:
                 out_file.write_text(
-                    "proxmark3 (pm3) not available. RFID sniff requires Proxmark3 hardware.\n")
+                    "No RFID reader CLI available. RFID sniff requires a Proxmark3 (pm3) "
+                    "or a Chameleon Ultra (chameleon_cli) on PATH.\n")
+                self.ctx.findings.create(
+                    ctx=self.ctx,
+                    title="RFID testing SKIPPED — no RFID reader available",
+                    description=("Gearbox found no RFID reader CLI on PATH (Proxmark3 'pm3' "
+                                 "or Chameleon Ultra 'chameleon_cli'). RFID/NFC was NOT tested. "
+                                 "Attach a supported reader and re-run the module."),
+                    tool="rfid-sniff", source_type="primary", force_risk="Informational",
+                    ip="", port=str(self.ctx.instance_loc))
             self._mark_complete("RFID sniff done")
         except Exception as e:
             self._mark_error(str(e))
@@ -13895,7 +18127,8 @@ class JtagDetectModule(BaseModule):
         self._mark_running()
         try:
             import shutil as _shu, subprocess as _sp
-            self._prompt("Connect a JTAG/SWD probe (e.g., J-Link, ST-Link, Olimex). "
+            self._prompt("Connect a JTAG/SWD probe — ST-Link V2, J-Link, Bus Pirate 5, "
+                          "or Olimex — to the target's debug pads. "
                           + f"Testing port: [{self.ctx.instance_loc}]. Press Enter to begin.",
                           options=["Ready"], prompt_type="choice")
             self._prompt_connected_photo(f"JTAG/SWD probe connected at [{self.ctx.instance_loc}]")
@@ -13915,7 +18148,10 @@ class JtagDetectModule(BaseModule):
                 self._mark_complete("JTAG/SWD SKIPPED — openocd not installed")
                 return
             # Try a chain probe with a couple of common interface scripts.
+            # ST-Link V2 is tried first (openocd interface/stlink.cfg); Bus Pirate
+            # and J-Link/Olimex follow.
             interface_scripts = ["interface/stlink.cfg", "interface/jlink.cfg",
+                                  "interface/buspirate.cfg",
                                   "interface/ftdi/olimex-arm-usb-tiny-h.cfg"]
             timeout = _gb_resolve_timeout("openocd", 3 * 3600)
             for iface in interface_scripts:
@@ -13960,11 +18196,13 @@ class SpiFlashDumpModule(BaseModule):
         self._mark_running()
         try:
             import shutil as _shu, subprocess as _sp
-            self._prompt("Connect a flashrom-supported programmer (e.g., CH341A, "
-                          + "Bus Pirate, USB Blaster) to the SPI flash pads. "
+            self._prompt("Connect a flashrom-supported programmer to the SPI flash — "
+                          "CH341A, Bus Pirate 5, or FT2232 — using a SOP8/SOP16 SOIC "
+                          "test clip for an in-circuit read (no desolder). "
                           + f"Testing port: [{self.ctx.instance_loc}]. Press Enter to begin.",
                           options=["Ready"], prompt_type="choice")
-            self._prompt_connected_photo(f"SPI programmer connected at [{self.ctx.instance_loc}]")
+            self._prompt_connected_photo(
+                f"SPI programmer + SOIC clip connected at [{self.ctx.instance_loc}]")
             out_dir = self.ctx.instance_dir / "SpiFlashDump"
             out_dir.mkdir(parents=True, exist_ok=True)
             flashrom = _shu.which("flashrom")
@@ -13980,12 +18218,22 @@ class SpiFlashDumpModule(BaseModule):
                     ip="", port=str(self.ctx.instance_loc))
                 self._mark_complete("SPI flash dump SKIPPED — flashrom not installed")
                 return
-            # Try a few common programmers; let the operator-photo confirm hardware
-            programmers = ["ch341a_spi", "buspirate_spi", "ft2232_spi"]
+            # Try a few common programmers; let the operator-photo confirm hardware.
+            # buspirate_spi (Bus Pirate 5) requires an explicit serial dev= path, so
+            # resolve the first likely Bus Pirate CDC port and append it.
+            _bp_port = next((p for p in ("/dev/ttyUSB0", "/dev/ttyACM0",
+                                         "/dev/ttyUSB1", "/dev/ttyACM1")
+                             if os.path.exists(p)), None)
+            programmers = ["ch341a_spi", "ft2232_spi"]
+            if _bp_port:
+                programmers.insert(1, f"buspirate_spi:dev={_bp_port}")
+            else:
+                programmers.insert(1, "buspirate_spi")
             timeout = _gb_resolve_timeout("flashrom", 4 * 3600)
             for prog in programmers:
-                out_file = out_dir / f"flashrom_dump_{prog}.bin"
-                log_file = out_dir / f"flashrom_log_{prog}.txt"
+                slug = re.sub(r"[^A-Za-z0-9]+", "_", prog).strip("_")
+                out_file = out_dir / f"flashrom_dump_{slug}.bin"
+                log_file = out_dir / f"flashrom_log_{slug}.txt"
                 cmd = [flashrom, "-p", prog, "-r", str(out_file)]
                 try:
                     res = _sp.run(cmd, capture_output=True, text=True, timeout=timeout)
@@ -14269,6 +18517,13 @@ _MODULE_REGISTRY: dict[str, type] = {
     "FirmwareAnalysis":    FirmwareAnalysisModule,
     "SerialConsoleLogin":  SerialConsoleLoginModule,
     "RFIDDeepRead":        RFIDDeepReadModule,
+    # 2026-08-13 — wireless / RF / smart-card interface modules
+    "WiFi":             WiFiModule,
+    "SubGHz":           SubGHzModule,
+    "UWB":              UWBModule,
+    "SmartCard":        SmartCardModule,
+    "ZWave":            ZWaveModule,
+    "LoRa":             LoRaModule,
     "EthernetCleanup":  EthernetCleanupModule,
 }
 

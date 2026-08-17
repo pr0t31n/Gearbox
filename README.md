@@ -2,13 +2,13 @@
 
 **Device security assessment orchestrator** — multi-interface hardware testing from photo capture through Nessus vulnerability scanning, in a single structured pipeline.
 
-Gearbox automates security assessments of physical devices across Ethernet, USB, HDMI, serial, RFID, Zigbee, Bluetooth (BR/EDR + BLE), and CAN bus interfaces. It reads a YAML project file defining device subcomponents and interface instances, then runs a phased pipeline of 40+ testing modules against each instance: network discovery and DHCP server setup, Nessus scanning, LLMNR/NBT-NS poisoning, per-host port scanning, banner grabbing, TLS/SSL analysis, SSH hardening, SMB enumeration, web vulnerability scanning, and interface-specific hardware tests. All findings are deduplicated, CVE-enriched, and written to structured JSONL and SQLite output. When launched by [Gauntlet](../gauntlet/), Gearbox switches to protocol token mode for live streaming to the web UI.
+Gearbox automates security assessments of physical devices across Ethernet, USB, HDMI, serial, RFID, Zigbee, Bluetooth (BR/EDR + BLE), Wi-Fi (802.11), Sub-GHz RF, UWB, smart card (PC/SC), Z-Wave, LoRa/LoRaWAN, and CAN bus interfaces. It reads a YAML project file defining device subcomponents and interface instances, then runs a phased pipeline of 40+ testing modules against each instance: network discovery and DHCP server setup, Nessus scanning, LLMNR/NBT-NS poisoning, per-host port scanning, banner grabbing, TLS/SSL analysis, SSH hardening, SMB enumeration, web vulnerability scanning, and interface-specific hardware tests. All findings are deduplicated, CVE-enriched, and written to structured JSONL and SQLite output. When launched by [Gauntlet](../gauntlet/), Gearbox switches to protocol token mode for live streaming to the web UI.
 
 ---
 
 ## Features
 
-- **Multi-interface pipeline** — Ethernet, USB, HDMI, Serial/CAN, RFID, Zigbee, Bluetooth (BR/EDR + BLE), and network tap interfaces each get their own module set
+- **Multi-interface pipeline** — Ethernet, USB, HDMI, Serial/CAN, RFID, Zigbee, Bluetooth (BR/EDR + BLE), Wi-Fi, Sub-GHz, UWB, SmartCard, Z-Wave, LoRa, and network tap interfaces each get their own module set
 - **Zero-knowledge Bluetooth assessment** — seven-phase BR/EDR + BLE chain (discovery → pairing/SMP triage → passive sniff + crackle → active exploitation) with oracle-driven detection across Bluetooth 2.0 through BLE 5.4; hardware-picker with Quiver firmware-flash guidance
 - **Per-instance orchestration** — YAML defines subdevices, interfaces, and individual port instances; each instance runs the full pipeline independently with its own output directory and findings context
 - **Background parallelism** — Nessus and Responder run as background threads through phases 1 and 2; per-host service checks (SSL, SSH, SMB, web, NFS, FTP, banner grab) run concurrently (6 workers)
@@ -75,11 +75,17 @@ Optional (interface-specific):
 | `crackle` | Bluetooth (LE-Legacy crack) | Build from source (`git clone mikeryan/crackle && make`) |
 | `sniff_receiver.py` (Sniffle) | Bluetooth (passive LE capture) | `git clone nccgroup/Sniffle` + flash board via Quiver |
 | `ubertooth-btle` | Bluetooth (LE sniff) | `apt install ubertooth` + flash via Quiver |
+| `aircrack-ng`, `hcxdumptool`, `reaver`, `bully`, `mdk4`, `iw` | Wi-Fi | `apt install aircrack-ng hcxdumptool reaver bully mdk4 iw` |
+| `rtl_433`, `hackrf_transfer`, `rfcat`, `urh_cli` | SubGHz / LoRa / Z-Wave | `apt install rtl-433 hackrf` + `pip install urh` |
+| `pcsc_scan`, `opensc-tool`, `gp` | SmartCard | `apt install pcscd pcsc-tools opensc` |
+| `tshark`, `uwb-sniffer` | UWB | `apt install tshark` + flash sniffer via Quiver |
 
 The Bluetooth toolchain is installed by the dedicated **Phase 4b** of `install.py`
-(`--skip-bt` to opt out), which is isolated so a distro-specific package can never abort
-the core install. Passive sniffing requires a flashed sniffer board — provision it with
-**Quiver** before running the Bluetooth module.
+(`--skip-bt` to opt out), and the Wi-Fi / RF / smart-card toolchain by **Phase 4c**
+(`--skip-wireless` to opt out). Both phases are isolated and install every package
+individually, so a distro-specific or Kali-only package can never abort the core
+install. Passive RF sniffing requires a flashed sniffer/SDR board — provision it with
+**Quiver** before running the corresponding module.
 
 Go 1.18+ is required for nuclei and gowitness. Gearbox will detect and offer to install it automatically.
 
@@ -173,7 +179,7 @@ subdevices:
           - location: "DB9 Console Port"
 ```
 
-Supported interface types: `Ethernet`, `USB`, `HDMI`, `Serial`, `Zigbee`, `Bluetooth`, `RFID`, `Ethernet_tap`
+Supported interface types: `Ethernet`, `USB`, `HDMI`, `Serial`, `Zigbee`, `Bluetooth`, `RFID`, `WiFi`, `SubGHz`, `UWB`, `SmartCard`, `ZWave`, `LoRa`, `Ethernet_tap`
 
 Each instance gets its own output directory, findings database, and module completion state.
 
@@ -303,6 +309,74 @@ DoS — across Bluetooth 2.0/2.1/3.0 BR/EDR through BLE 5.4.
 > **not** a promiscuous over-the-air sniffer. Passive capture / crackle / LESC
 > confirmation require a flashed sniffer board (Sniffle, nRF Sniffer, ButteRFly, or
 > Ubertooth), provisioned via Quiver.
+
+### Wi-Fi (`WiFi`)
+
+Zero-knowledge 802.11 assessment — discovery, encryption/MFP triage, WPS and PMKID
+capture, WPA3 transition-mode downgrade, and bounded rogue-AP / deauth checks. Monitor
+mode + injection are Linux-only; the module self-skips honestly when no adapter or
+toolkit is present.
+
+| Module | Description | Tools |
+|--------|-------------|-------|
+| **Photo** | Photo capture of the Wi-Fi adapter connected to the DUT | qrcode |
+| **WiFi** | Full chain: discovery → open/WEP/WPA-PSK triage → PMKID/handshake capture → WPS pixie-dust → 802.11w/WPA3 checks → bounded rogue-AP/deauth | airmon-ng, airodump-ng, aircrack-ng, reaver, bully, wash, hcxdumptool, hcxpcapngtool, wifite, bettercap, mdk4, iw |
+
+### Sub-GHz (`SubGHz`)
+
+Passive-first 300–928 MHz RF triage — signal detection, `rtl_433` decode of
+unencrypted telemetry, fixed-vs-rolling-code remotes, replay feasibility, and
+missing-message-authentication / jamming exposure.
+
+| Module | Description | Tools |
+|--------|-------------|-------|
+| **Photo** | Photo capture of the SDR/radio connected to the DUT | qrcode |
+| **SubGHz** | Signal survey, OOK/FSK decode, replay + auth triage | rfcat, rtl_433, hackrf_transfer, hackrf_sweep, urh_cli |
+
+### UWB (`UWB`)
+
+IEEE 802.15.4z Ultra-Wideband ranging assessment — STS presence, ranging
+authentication, distance-reduction (ghost-peak) / relay / replay susceptibility,
+cleartext positioning data, static-key (STS reuse) and blink-frame trackability.
+Sniffer firmware is flashed onto the DWM3001C / Heltec dongle via Quiver.
+
+| Module | Description | Tools |
+|--------|-------------|-------|
+| **Photo** | Photo capture of the UWB sniffer/anchor connected to the DUT | qrcode |
+| **UWB** | Ranging-frame capture and secure-ranging triage | uwb-sniffer, tshark |
+
+### Smart Card (`SmartCard`)
+
+Contact + contactless PC/SC smart-card assessment — reader/card detection, ATR
+fingerprinting, CVM checks, unauthenticated APDU access, default GlobalPlatform
+card-manager keys, default PINs, and cleartext (no secure-messaging) channels.
+
+| Module | Description | Tools |
+|--------|-------------|-------|
+| **Photo** | Photo capture of the PC/SC reader connected to the DUT | qrcode |
+| **SmartCard** | ATR fingerprint, CVM/APDU/GP-key/PIN triage | pcsc_scan, opensc-tool, gp |
+
+### Z-Wave (`ZWave`)
+
+Passive-first 868/908 MHz Z-Wave assessment — device/network enumeration, unencrypted
+control frames, S0 legacy security class, S0 key extraction on inclusion, S2→S0
+downgrade, command replay, and S0 NonceGet DoS exposure.
+
+| Module | Description | Tools |
+|--------|-------------|-------|
+| **Photo** | Photo capture of the SDR/sniffer connected to the DUT | qrcode |
+| **ZWave** | Frame capture, S0/S2 security-class and replay triage | ezwave, rtl_433 |
+
+### LoRa (`LoRa`)
+
+Passive LoRa PHY capture + LoRaWAN security triage — transmission/network detection,
+unencrypted payloads, ABP static session keys, OTAA join replay (DevNonce),
+default/weak AppKey, missing frame-counter validation, and 1.0.x join-replay exposure.
+
+| Module | Description | Tools |
+|--------|-------------|-------|
+| **Photo** | Photo capture of the SDR/LoRa radio connected to the DUT | qrcode |
+| **LoRa** | ISM survey, IQ capture, LoRaWAN key/frame-counter triage | rtl_433, urh_cli |
 
 ### Network Tap (`Ethernet_tap`)
 

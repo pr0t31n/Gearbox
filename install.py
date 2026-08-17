@@ -221,6 +221,129 @@ BT_GIT_REPOS = [
 ]
 
 # ---------------------------------------------------------------------------
+# Wireless / RF / Smart-card testing toolchain
+#   (Sections: WiFiModule, SubGHzModule, UWBModule, SmartCardModule,
+#              ZWaveModule, LoRaModule)
+# ---------------------------------------------------------------------------
+# Installed by a dedicated best-effort phase (phase_wireless) — every package
+# is attempted individually so a distro-specific or Kali-only package can never
+# abort the batch. 802.11 monitor-mode + injection tooling is Linux-only in
+# practice; the apt block is therefore only applied on Linux distros.
+WIRELESS_APT_PKGS = [
+    "aircrack-ng",
+    "reaver",
+    "bully",
+    "pixiewps",
+    "hcxdumptool",
+    "hcxtools",
+    "wifite",
+    "bettercap",
+    "mdk4",
+    "iw",
+    "wireless-tools",
+    "net-tools",
+    "rtl-433",
+    "rtl-sdr",
+    "hackrf",
+    "libhackrf-dev",
+    "librtlsdr-dev",
+    "soapysdr-tools",
+    "gnuradio",
+    "gnuradio-dev",
+    "python3-pyqt5",
+    "python3-numpy",
+    "wireshark-common",
+    "tshark",
+    "pcscd",
+    "pcsc-tools",
+    "opensc",
+    "libpcsclite1",
+    "libccid",
+    "gr-osmosdr",
+    "gr-lora",
+    "sdrpp",
+]
+
+WIRELESS_BREW_PKGS = [
+    "aircrack-ng",
+    "bettercap",
+    "rtl_433",
+    "rtl-sdr",
+    "hackrf",
+    "soapysdr",
+    "gnuradio",
+    "wireshark",
+    "pcsc-tools",
+    "opensc",
+]
+
+WIRELESS_PIP_PACKAGES = [
+    "urh>=2.9.4",
+    "pyusb>=1.2",
+    "numpy>=1.21",
+    "pyserial>=3.5",
+]
+
+WIRELESS_GIT_REPOS = [
+    {
+        "url":        "https://github.com/atlas0fd00m/rfcat",
+        "dest":       "/opt/rfcat",
+        "label":      "rfcat (YARD Stick One host tool)",
+        "linux_only": False,
+        "post_cmds":  ["rfcat_pip_build"],
+    },
+    {
+        "url":        "https://github.com/homewsn/whsniff.git",
+        "dest":       "/opt/whsniff",
+        "label":      "whsniff (CC2531 / Sonoff ZBDongle / CatSniffer Zigbee → pcap)",
+        "linux_only": True,
+        "post_cmds":  ["whsniff_build"],
+    },
+    {
+        "url":        "https://github.com/RfidResearchGroup/ChameleonUltra.git",
+        "dest":       "/opt/ChameleonUltra",
+        "label":      "Chameleon Ultra CLI (alternate RFID/NFC reader/emulator)",
+        "linux_only": False,
+        "post_cmds":  [],
+    },
+    {
+        "url":        "https://github.com/Uberi/DWM3001C-starter-firmware.git",
+        "dest":       "/opt/DWM3001C-starter-firmware",
+        "label":      "DWM3001C starter firmware + UWB sniffer/UCI tooling",
+        "linux_only": False,
+        "post_cmds":  [],
+    },
+    {
+        "url":        "https://github.com/cureHsu/EZ-Wave.git",
+        "dest":       "/opt/EZ-Wave",
+        "label":      "EZ-Wave (Z-Wave SDR recon/exploit)",
+        "linux_only": True,
+        "post_cmds":  [],
+    },
+    {
+        "url":        "https://github.com/baol/waving-z.git",
+        "dest":       "/opt/waving-z",
+        "label":      "waving-z (RTL-SDR Z-Wave decoder)",
+        "linux_only": True,
+        "post_cmds":  ["cmake_build"],
+    },
+    {
+        "url":        "https://github.com/JiapengLi/lorawan-parser.git",
+        "dest":       "/opt/lorawan-parser",
+        "label":      "lorawan-parser (LoRaWAN PHYPayload decoder)",
+        "linux_only": False,
+        "post_cmds":  [],
+    },
+    {
+        "url":        "https://github.com/rpp0/gr-lora.git",
+        "dest":       "/opt/gr-lora",
+        "label":      "gr-lora (GNU Radio LoRa demodulator)",
+        "linux_only": True,
+        "post_cmds":  [],
+    },
+]
+
+# ---------------------------------------------------------------------------
 # Phase 1 — System packages
 # ---------------------------------------------------------------------------
 
@@ -428,6 +551,38 @@ def _build_crackle(dry_run: bool) -> None:
                 warn(f"Could not symlink crackle: {exc}")
 
 
+def _build_cmake(dest: str, label: str, dry_run: bool) -> None:
+    info(f"Building {label} (cmake)…")
+    build_dir = str(Path(dest) / "build")
+    run(['mkdir', '-p', build_dir], dry_run=dry_run)
+    run(['cmake', '..'], cwd=build_dir, dry_run=dry_run)
+    run(['make', '-j4'], cwd=build_dir, dry_run=dry_run)
+
+
+def _build_whsniff(dest: str, dry_run: bool) -> None:
+    """Build whsniff (needs libusb-1.0-dev) and symlink onto PATH."""
+    info("Building whsniff (make)…")
+    _install_individually(["apt-get", "install", "-y"], ["libusb-1.0-0-dev"], dry_run)
+    run(["make"], cwd=dest, dry_run=dry_run)
+    src = Path(dest) / "whsniff"
+    link = Path("/usr/local/bin/whsniff")
+    if not dry_run and src.exists() and not link.exists():
+        try:
+            link.symlink_to(src); success(f"Symlinked whsniff → {link}")
+        except OSError as exc:
+            warn(f"Could not symlink whsniff: {exc}")
+
+
+def _build_rfcat_pip(dest: str, dry_run: bool) -> None:
+    info("Installing rfcat (pip install . — YARD Stick One host tool)…")
+    pip_cmd = find_pip()
+    rc = run(pip_cmd + ["install", "--break-system-packages", "."], cwd=dest, dry_run=dry_run)
+    if rc == 0:
+        success("  rfcat installed")
+    else:
+        warn("  rfcat pip build failed — YARD Stick One features degrade gracefully")
+
+
 def clone_or_update(repo: dict, os_id: str, dry_run: bool) -> None:
     url   = repo["url"]
     dest  = repo["dest"]
@@ -460,6 +615,16 @@ def clone_or_update(repo: dict, os_id: str, dry_run: bool) -> None:
             _build_ethtool(dry_run)
         elif post == "crackle_build":
             _build_crackle(dry_run)
+        elif post == "cmake_build" and is_linux:
+            _build_cmake(dest, label, dry_run)
+        elif post == "cmake_build" and not is_linux:
+            warn(f"{label}: skipping cmake build on {os_id}.")
+        elif post == "rfcat_pip_build":
+            _build_rfcat_pip(dest, dry_run)
+        elif post == "whsniff_build" and is_linux:
+            _build_whsniff(dest, dry_run)
+        elif post == "whsniff_build" and not is_linux:
+            warn(f"{label}: skipping whsniff build on {os_id}.")
 
 
 def phase_git(os_id: str, dry_run: bool) -> None:
@@ -532,6 +697,55 @@ def phase_bluetooth(os_id: str, dry_run: bool) -> None:
     info("Quiver:  'FIRMWARE - Flash Sniffle firmware' (TI CC1352P-4 / CC26x2R1) for")
     info("crackle-readable pcaps, or 'FIRMWARE - Flash nRF Sniffer firmware' (nRF52840/")
     info("nRF52833) for Wireshark, or 'FIRMWARE - Flash ButteRFly (BLE MITM)' for injection.")
+
+
+# ---------------------------------------------------------------------------
+# Phase 4c — Wireless / RF / Smart-card toolchain
+# ---------------------------------------------------------------------------
+
+def phase_wireless(os_id: str, dry_run: bool) -> None:
+    phase_header("PHASE 4c — Wireless / RF / Smart-card Toolchain")
+
+    # ── System packages (per-package best-effort — never abort the batch) ────
+    if os_id in ("kali", "ubuntu"):
+        require_root()
+        info("Installing Wi-Fi / SDR / smart-card packages (best-effort, individual)…")
+        _install_individually(["apt-get", "install", "-y"], WIRELESS_APT_PKGS, dry_run)
+    elif os_id == "rhel":
+        require_root()
+        _install_individually(["dnf", "install", "-y"], WIRELESS_APT_PKGS, dry_run)
+    elif os_id == "suse":
+        require_root()
+        _install_individually(["zypper", "install", "-y"], WIRELESS_APT_PKGS, dry_run)
+    elif os_id == "macos":
+        warn("macOS: 802.11 monitor mode / injection unsupported — only SDR-decode,")
+        warn("smart-card (native PC/SC) and analysis tooling are usable here.")
+        brew_bin = shutil.which("brew")
+        if brew_bin and os.environ.get("SUDO_USER"):
+            base = ["sudo", "-u", os.environ["SUDO_USER"], brew_bin, "install"]
+            _install_individually(base, WIRELESS_BREW_PKGS, dry_run)
+        else:
+            info("Install manually:  brew install " + " ".join(WIRELESS_BREW_PKGS))
+    else:
+        warn(f"Unknown OS '{os_id}' — install Wi-Fi / SDR / smart-card tools manually.")
+
+    # ── Python libraries (best-effort) ───────────────────────────────────────
+    info("Installing wireless Python libraries (urh, pyusb, numpy, pyserial)…")
+    pip_cmd = find_pip()
+    for pkg in WIRELESS_PIP_PACKAGES:
+        rc = run(pip_cmd + ["install", "--break-system-packages", pkg], dry_run=dry_run)
+        if rc == 0:
+            success(f"  {pkg} installed")
+        else:
+            warn(f"  {pkg} failed (needs build deps?) — features degrade gracefully")
+
+    # ── Source-build tooling (rfcat, EZ-Wave, waving-z, lorawan-parser, …) ────
+    for repo in WIRELESS_GIT_REPOS:
+        clone_or_update(repo, os_id, dry_run)
+
+    success("Wireless / RF / smart-card toolchain phase complete.")
+    info("Radio capture needs SDR/sniffer hardware — flash sniffer firmware with")
+    info("Quiver (LoRa / Z-Wave CatSniffer, UWB DWM3001C, Sub-GHz YARD Stick One).")
 
 
 # ---------------------------------------------------------------------------
@@ -663,6 +877,8 @@ VERIFY_TOOLS = [
     # Bluetooth / BLE
     "bluetoothctl", "hcitool", "hciconfig", "sdptool", "l2ping", "btmgmt",
     "gatttool", "bettercap", "crackle",
+    # Wireless / RF / smart-card
+    "aircrack-ng", "rtl_433", "hackrf_transfer", "pcsc_scan", "opensc-tool",
 ]
 
 VERIFY_PY_MODULES = [
@@ -674,6 +890,8 @@ VERIFY_PY_MODULES = [
     ("cryptography","cryptography"),
     ("bleak",       "bleak"),
     ("btlejack",    "btlejack"),
+    ("numpy",       "numpy"),
+    ("pyusb",       "usb"),
 ]
 
 
@@ -702,7 +920,7 @@ def phase_verify() -> None:
 
     print()
     cprint("  Git tools:", BOLD)
-    for repo in GIT_REPOS_ALL:
+    for repo in GIT_REPOS_ALL + WIRELESS_GIT_REPOS:
         dest = Path(repo["dest"])
         if dest.exists():
             success(f"  {repo['label']:30s} cloned at {repo['dest']}")
@@ -731,6 +949,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--skip-go",   action="store_true", help="Skip Go tool installation")
     p.add_argument("--skip-git",  action="store_true", help="Skip git repository cloning")
     p.add_argument("--skip-bt",   action="store_true", help="Skip Bluetooth/BLE toolchain installation")
+    p.add_argument("--skip-wireless", action="store_true", help="Skip wireless / RF / smart-card toolchain installation")
     p.add_argument("--check",     action="store_true", help="Dry-run — print commands without executing")
     return p.parse_args()
 
@@ -796,6 +1015,12 @@ def main() -> None:
         phase_bluetooth(os_id, dry_run)
     else:
         info("Skipping Bluetooth phase (--skip-bt).")
+
+    # Phase 4c — Wireless / RF / Smart-card toolchain
+    if not args.skip_wireless:
+        phase_wireless(os_id, dry_run)
+    else:
+        info("Skipping wireless phase (--skip-wireless).")
 
     # Phase 5 — Symlinks
     if is_root() or dry_run:

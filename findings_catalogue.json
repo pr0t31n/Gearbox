@@ -2,9 +2,9 @@
   "version": "1.6.0",
   "tool": "gearbox",
   "generated": "(complete: upgraded existing + scaffolded missing)",
-  "total": 187,
+  "total": 253,
   "from_existing": 87,
-  "newly_scaffolded": 100,
+  "newly_scaffolded": 166,
   "findings": [
     {
       "id": "GB-DISC-001",
@@ -455,7 +455,7 @@
       "validation_tools": [
         "OWASP-A06:2021"
       ],
-      "description": "Nessus Professional identified a critical severity vulnerability (CVSS \u2265 9.0). This typically represents unauthenticated remote code execution, authentication bypass with full system impact, or a well-known exploit with active weaponisation.",
+      "description": "Nessus Professional identified a critical severity vulnerability (CVSS ≥ 9.0). This typically represents unauthenticated remote code execution, authentication bypass with full system impact, or a well-known exploit with active weaponisation.",
       "impact": "",
       "_x_severity": "CRITICAL",
       "_x_category": "Vulnerability Assessment",
@@ -500,7 +500,7 @@
       "validation_tools": [
         "OWASP-A06:2021"
       ],
-      "description": "Nessus Professional identified a high severity vulnerability (CVSS 7.0\u20138.9). Often exploitable by local or adjacent attackers with limited prerequisites.",
+      "description": "Nessus Professional identified a high severity vulnerability (CVSS 7.0–8.9). Often exploitable by local or adjacent attackers with limited prerequisites.",
       "impact": "",
       "_x_severity": "HIGH",
       "_x_category": "Vulnerability Assessment",
@@ -545,7 +545,7 @@
       "validation_tools": [
         "OWASP-A06:2021"
       ],
-      "description": "Nessus Professional identified a medium severity vulnerability (CVSS 4.0\u20136.9). May require special conditions to exploit but presents meaningful risk.",
+      "description": "Nessus Professional identified a medium severity vulnerability (CVSS 4.0–6.9). May require special conditions to exploit but presents meaningful risk.",
       "impact": "",
       "_x_severity": "MEDIUM",
       "_x_category": "Vulnerability Assessment",
@@ -736,7 +736,7 @@
     },
     {
       "id": "GB-VULN-008",
-      "title": "Nuclei Template Match \u2014 CVE",
+      "title": "Nuclei Template Match — CVE",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -781,7 +781,7 @@
     },
     {
       "id": "GB-VULN-009",
-      "title": "Nuclei Template Match \u2014 Misconfiguration",
+      "title": "Nuclei Template Match — Misconfiguration",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -826,7 +826,7 @@
     },
     {
       "id": "GB-VULN-010",
-      "title": "Nuclei Template Match \u2014 Exposed Panel",
+      "title": "Nuclei Template Match — Exposed Panel",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -963,7 +963,7 @@
     },
     {
       "id": "GB-TLS-003",
-      "title": "SSL/TLS \u2014 Protocol Version Below TLS 1.2",
+      "title": "SSL/TLS — Protocol Version Below TLS 1.2",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -1014,7 +1014,7 @@
     },
     {
       "id": "GB-TLS-004",
-      "title": "SSL/TLS \u2014 Weak Cipher Suite Accepted",
+      "title": "SSL/TLS — Weak Cipher Suite Accepted",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -1059,7 +1059,7 @@
     },
     {
       "id": "GB-TLS-005",
-      "title": "SSL/TLS \u2014 CRIME / BEAST / LUCKY13 Vulnerability",
+      "title": "SSL/TLS — CRIME / BEAST / LUCKY13 Vulnerability",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -1108,7 +1108,7 @@
     },
     {
       "id": "GB-TLS-006",
-      "title": "SSL/TLS \u2014 Missing HSTS Header",
+      "title": "SSL/TLS — Missing HSTS Header",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -1153,7 +1153,7 @@
     },
     {
       "id": "GB-TLS-007",
-      "title": "SSL/TLS \u2014 Weak Certificate Signature Algorithm",
+      "title": "SSL/TLS — Weak Certificate Signature Algorithm",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -1200,7 +1200,7 @@
     },
     {
       "id": "GB-TLS-008",
-      "title": "SSL/TLS \u2014 Certificate Hostname Mismatch",
+      "title": "SSL/TLS — Certificate Hostname Mismatch",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -1613,7 +1613,7 @@
     },
     {
       "id": "GB-WEB-001",
-      "title": "Web \u2014 Default Credentials Accepted",
+      "title": "Web — Default Credentials Accepted",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -1705,7 +1705,7 @@
     },
     {
       "id": "GB-WEB-003",
-      "title": "Web \u2014 Missing Security Headers",
+      "title": "Web — Missing Security Headers",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -1795,7 +1795,7 @@
     },
     {
       "id": "GB-WEB-005",
-      "title": "Web \u2014 HTTP Exposed (No HTTPS Redirect)",
+      "title": "Web — HTTP Exposed (No HTTPS Redirect)",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -1842,7 +1842,7 @@
     },
     {
       "id": "GB-WEB-006",
-      "title": "Web \u2014 Insecure Cookie Attributes",
+      "title": "Web — Insecure Cookie Attributes",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -2916,7 +2916,7 @@
       "searchsploit_terms": [],
       "metasploit_modules": [],
       "kev": false,
-      "remediation_brief": "Informational \u2014 expected behaviour. Review whether observed network configuration aligns with intended design.",
+      "remediation_brief": "Informational — expected behaviour. Review whether observed network configuration aligns with intended design.",
       "remediation_component": "",
       "remediation_category": "",
       "remediation_effort": "",
@@ -2925,7 +2925,7 @@
       "impact": "",
       "_x_severity": "INFO",
       "_x_category": "Network Discovery",
-      "_x_remediation": "Informational \u2014 expected behaviour. Review whether observed network configuration aligns with intended design.",
+      "_x_remediation": "Informational — expected behaviour. Review whether observed network configuration aligns with intended design.",
       "_x_references": []
     },
     {
@@ -3054,7 +3054,7 @@
       "validation_tools": [
         "CWE-294"
       ],
-      "description": "A previously captured CAN frame was successfully replayed and accepted as a legitimate message by one or more nodes on the bus. CAN provides no built-in authentication or sequence numbering, meaning any captured frame can be retransmitted at will to reproduce an action \u2014 such as unlocking a door, disabling a safety system, or triggering an actuator \u2014 without knowledge of the originating system. This class of attack is particularly dangerous in automotive and industrial control environments where CAN commands directly affect physical state.",
+      "description": "A previously captured CAN frame was successfully replayed and accepted as a legitimate message by one or more nodes on the bus. CAN provides no built-in authentication or sequence numbering, meaning any captured frame can be retransmitted at will to reproduce an action — such as unlocking a door, disabling a safety system, or triggering an actuator — without knowledge of the originating system. This class of attack is particularly dangerous in automotive and industrial control environments where CAN commands directly affect physical state.",
       "impact": "",
       "_x_severity": "CRITICAL",
       "_x_category": "Physical / Hardware",
@@ -3092,7 +3092,7 @@
       "searchsploit_terms": [],
       "metasploit_modules": [],
       "kev": false,
-      "remediation_brief": "Disable TLS 1.0 and TLS 1.1 on the server; accept only TLS 1.2 and TLS 1.3. Prefer AEAD cipher suites (AES-GCM, ChaCha20-Poly1305) over CBC modes. If TLS 1.0 must remain enabled for legacy clients, configure server-side mitigation by preferring RC4 (deprecated) or \u2014 better \u2014 use TLS_FALLBACK_SCSV and enforce cipher order.",
+      "remediation_brief": "Disable TLS 1.0 and TLS 1.1 on the server; accept only TLS 1.2 and TLS 1.3. Prefer AEAD cipher suites (AES-GCM, ChaCha20-Poly1305) over CBC modes. If TLS 1.0 must remain enabled for legacy clients, configure server-side mitigation by preferring RC4 (deprecated) or — better — use TLS_FALLBACK_SCSV and enforce cipher order.",
       "remediation_component": "",
       "remediation_category": "",
       "remediation_effort": "",
@@ -3104,7 +3104,7 @@
       "impact": "",
       "_x_severity": "MEDIUM",
       "_x_category": "Cryptography",
-      "_x_remediation": "Disable TLS 1.0 and TLS 1.1 on the server; accept only TLS 1.2 and TLS 1.3. Prefer AEAD cipher suites (AES-GCM, ChaCha20-Poly1305) over CBC modes. If TLS 1.0 must remain enabled for legacy clients, configure server-side mitigation by preferring RC4 (deprecated) or \u2014 better \u2014 use TLS_FALLBACK_SCSV and enforce cipher order.",
+      "_x_remediation": "Disable TLS 1.0 and TLS 1.1 on the server; accept only TLS 1.2 and TLS 1.3. Prefer AEAD cipher suites (AES-GCM, ChaCha20-Poly1305) over CBC modes. If TLS 1.0 must remain enabled for legacy clients, configure server-side mitigation by preferring RC4 (deprecated) or — better — use TLS_FALLBACK_SCSV and enforce cipher order.",
       "_x_references": [
         "CVE-2011-3389",
         "CWE-326"
@@ -3194,7 +3194,7 @@
         "CVE-2016-2183",
         "CWE-326"
       ],
-      "description": "The TLS server negotiates cipher suites using 64-bit block ciphers such as 3DES (Triple-DES) or Blowfish, making it vulnerable to the SWEET32 birthday attack. After approximately 2^32 blocks (~32 GB of data over a single TLS session), the birthday bound is reached and an attacker can exploit block collisions in CBC mode to recover plaintext. While 32 GB may seem large, long-lived TLS sessions \u2014 such as those in web applications with keep-alive or WebSocket connections \u2014 can reach this volume in hours.",
+      "description": "The TLS server negotiates cipher suites using 64-bit block ciphers such as 3DES (Triple-DES) or Blowfish, making it vulnerable to the SWEET32 birthday attack. After approximately 2^32 blocks (~32 GB of data over a single TLS session), the birthday bound is reached and an attacker can exploit block collisions in CBC mode to recover plaintext. While 32 GB may seem large, long-lived TLS sessions — such as those in web applications with keep-alive or WebSocket connections — can reach this volume in hours.",
       "impact": "",
       "_x_severity": "MEDIUM",
       "_x_category": "Cryptography",
@@ -3343,7 +3343,7 @@
     },
     {
       "id": "GB-NET-008",
-      "title": "NFS Export Points Enumerated \u2014 Potentially Unauthenticated Access",
+      "title": "NFS Export Points Enumerated — Potentially Unauthenticated Access",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -3425,7 +3425,7 @@
         "CWE-284",
         "CWE-732"
       ],
-      "description": "One or more NFS exports are configured with insecure options that increase the risk of unauthorised access or privilege escalation. Common insecure settings include no_root_squash (which allows root on the client to act as root on the server), rw on broad CIDR ranges, no_all_squash, or insecure (allowing connections from non-privileged ports). A client with rw and no_root_squash access can write arbitrary files \u2014 including SUID binaries or SSH authorised_keys entries \u2014 that enable full host compromise.",
+      "description": "One or more NFS exports are configured with insecure options that increase the risk of unauthorised access or privilege escalation. Common insecure settings include no_root_squash (which allows root on the client to act as root on the server), rw on broad CIDR ranges, no_all_squash, or insecure (allowing connections from non-privileged ports). A client with rw and no_root_squash access can write arbitrary files — including SUID binaries or SSH authorised_keys entries — that enable full host compromise.",
       "impact": "",
       "_x_severity": "HIGH",
       "_x_category": "Network Services",
@@ -3519,7 +3519,7 @@
         "CWE-311",
         "CWE-319"
       ],
-      "description": "A network service communicating over a cleartext protocol was identified, including one or more of: FTP (21), Telnet (23), HTTP (80), TFTP (69), rsh (514), rlogin (513), rexec (512), or finger (79). Cleartext protocols transmit all data \u2014 including authentication credentials, session tokens, and sensitive application data \u2014 in a form readable by any attacker with network access, whether via passive interception on a shared segment or an active man-in-the-middle position.",
+      "description": "A network service communicating over a cleartext protocol was identified, including one or more of: FTP (21), Telnet (23), HTTP (80), TFTP (69), rsh (514), rlogin (513), rexec (512), or finger (79). Cleartext protocols transmit all data — including authentication credentials, session tokens, and sensitive application data — in a form readable by any attacker with network access, whether via passive interception on a shared segment or an active man-in-the-middle position.",
       "impact": "",
       "_x_severity": "MEDIUM",
       "_x_category": "Network Services",
@@ -3610,7 +3610,7 @@
       "validation_tools": [
         "CWE-614"
       ],
-      "description": "A session or sensitive cookie was identified without the Secure attribute. Without this flag, the browser will transmit the cookie over both HTTPS and plaintext HTTP connections. If the application supports or redirects through any HTTP endpoint \u2014 even briefly \u2014 the session cookie will be included in the cleartext request and is visible to network attackers. This condition is commonly exploited via SSL stripping attacks that downgrade HTTPS to HTTP before the Secure cookie check takes effect.",
+      "description": "A session or sensitive cookie was identified without the Secure attribute. Without this flag, the browser will transmit the cookie over both HTTPS and plaintext HTTP connections. If the application supports or redirects through any HTTP endpoint — even briefly — the session cookie will be included in the cleartext request and is visible to network attackers. This condition is commonly exploited via SSL stripping attacks that downgrade HTTPS to HTTP before the Secure cookie check takes effect.",
       "impact": "",
       "_x_severity": "LOW",
       "_x_category": "Web Application",
@@ -3993,7 +3993,7 @@
     },
     {
       "id": "GB-001",
-      "title": "CEC Bus Devices Discoverable Without Authentication \u2014 {self.ctx.instance_key}",
+      "title": "CEC Bus Devices Discoverable Without Authentication — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4032,7 +4032,7 @@
     },
     {
       "id": "GB-002",
-      "title": "CEC Devices Enumerated \u2014 {self.ctx.instance_key}",
+      "title": "CEC Devices Enumerated — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4071,7 +4071,7 @@
     },
     {
       "id": "GB-003",
-      "title": "CEC Power State Exposed \u2014 Unauthorised Control Possible \u2014 {self.ctx.instance_key}",
+      "title": "CEC Power State Exposed — Unauthorised Control Possible — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4110,7 +4110,7 @@
     },
     {
       "id": "GB-004",
-      "title": "CEC Scan Complete \u2014 No Devices Responded \u2014 {self.ctx.instance_key}",
+      "title": "CEC Scan Complete — No Devices Responded — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4149,7 +4149,7 @@
     },
     {
       "id": "GB-005",
-      "title": "Cleartext Credential Captured \u2014 {user}",
+      "title": "Cleartext Credential Captured — {user}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4188,7 +4188,7 @@
     },
     {
       "id": "GB-006",
-      "title": "Cleartext Credentials Captured \u2014 {user}",
+      "title": "Cleartext Credentials Captured — {user}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4227,7 +4227,7 @@
     },
     {
       "id": "GB-007",
-      "title": "DDC/CI Display Control Channel Accessible \u2014 {self.ctx.instance_key}",
+      "title": "DDC/CI Display Control Channel Accessible — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4266,7 +4266,7 @@
     },
     {
       "id": "GB-008",
-      "title": "DDC/CI Interface Accessible \u2014 {self.ctx.instance_key}",
+      "title": "DDC/CI Interface Accessible — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4305,7 +4305,7 @@
     },
     {
       "id": "GB-009",
-      "title": "Default Page Detected \u2014 {label} ({url})",
+      "title": "Default Page Detected — {label} ({url})",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4344,7 +4344,7 @@
     },
     {
       "id": "GB-010",
-      "title": "Default/Test Page Exposed \u2014 {label} at {url}",
+      "title": "Default/Test Page Exposed — {label} at {url}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4383,7 +4383,7 @@
     },
     {
       "id": "GB-011",
-      "title": "Devices Discovered via DHCP \u2014 {self.ctx.instance_key}",
+      "title": "Devices Discovered via DHCP — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4422,7 +4422,7 @@
     },
     {
       "id": "GB-012",
-      "title": "DHCP Leases Issued \u2014 {self.ctx.instance_key}",
+      "title": "DHCP Leases Issued — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4461,7 +4461,7 @@
     },
     {
       "id": "GB-013",
-      "title": "Display Info Retrieved \u2014 {self.ctx.instance_key}",
+      "title": "Display Info Retrieved — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4500,7 +4500,7 @@
     },
     {
       "id": "GB-014",
-      "title": "EDID Data Retrieved \u2014 {self.ctx.instance_key}",
+      "title": "EDID Data Retrieved — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4539,7 +4539,7 @@
     },
     {
       "id": "GB-015",
-      "title": "EDID Extension Blocks Present \u2014 {self.ctx.instance_key}",
+      "title": "EDID Extension Blocks Present — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4578,7 +4578,7 @@
     },
     {
       "id": "GB-016",
-      "title": "Ethernet Link Detected \u2014 {self.ctx.instance_key}",
+      "title": "Ethernet Link Detected — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4617,7 +4617,7 @@
     },
     {
       "id": "GB-017",
-      "title": "Ethernet Port Disabled \u2014 {self.ctx.instance_key}",
+      "title": "Ethernet Port Disabled — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4656,7 +4656,7 @@
     },
     {
       "id": "GB-018",
-      "title": "FTP Bounce Attack Possible \u2014 {ip}:{port}",
+      "title": "FTP Bounce Attack Possible — {ip}:{port}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4695,7 +4695,7 @@
     },
     {
       "id": "GB-019",
-      "title": "FTP Service Analysis \u2014 {ip}:{port}",
+      "title": "FTP Service Analysis — {ip}:{port}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4734,7 +4734,7 @@
     },
     {
       "id": "GB-020",
-      "title": "HDCP Negotiation Incomplete \u2014 {self.ctx.instance_key}",
+      "title": "HDCP Negotiation Incomplete — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4773,7 +4773,7 @@
     },
     {
       "id": "GB-021",
-      "title": "HDCP Not Enforced \u2014 {self.ctx.instance_key}",
+      "title": "HDCP Not Enforced — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4812,7 +4812,7 @@
     },
     {
       "id": "GB-022",
-      "title": "HDCP Status Not Readable \u2014 {self.ctx.instance_key}",
+      "title": "HDCP Status Not Readable — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4851,7 +4851,7 @@
     },
     {
       "id": "GB-023",
-      "title": "HDCP Status Read \u2014 {self.ctx.instance_key}",
+      "title": "HDCP Status Read — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4890,7 +4890,7 @@
     },
     {
       "id": "GB-024",
-      "title": "HID Attack Device Executed Payload \u2014 {self.ctx.instance_key}",
+      "title": "HID Attack Device Executed Payload — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4929,7 +4929,7 @@
     },
     {
       "id": "GB-025",
-      "title": "Interesting Protocols Detected \u2014 {self.ctx.instance_key}",
+      "title": "Interesting Protocols Detected — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -4968,7 +4968,7 @@
     },
     {
       "id": "GB-026",
-      "title": "Keyboard Shortcut Access \u2014 {self.ctx.instance_key}",
+      "title": "Keyboard Shortcut Access — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5163,7 +5163,7 @@
     },
     {
       "id": "GB-031",
-      "title": "Network Configuration Established \u2014 {self.ctx.instance_key}",
+      "title": "Network Configuration Established — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5202,7 +5202,7 @@
     },
     {
       "id": "GB-032",
-      "title": "Network Configuration via DHCP \u2014 {self.ctx.instance_key}",
+      "title": "Network Configuration via DHCP — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5241,7 +5241,7 @@
     },
     {
       "id": "GB-033",
-      "title": "NFS Enumeration \u2014 {ip}",
+      "title": "NFS Enumeration — {ip}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5280,7 +5280,7 @@
     },
     {
       "id": "GB-034",
-      "title": "NFS Insecure Export Options \u2014 {ip}",
+      "title": "NFS Insecure Export Options — {ip}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5319,7 +5319,7 @@
     },
     {
       "id": "GB-035",
-      "title": "NFS Share Exposed \u2014 {ip}",
+      "title": "NFS Share Exposed — {ip}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5358,7 +5358,7 @@
     },
     {
       "id": "GB-036",
-      "title": "Responder Capture Log \u2014 {self.ctx.instance_key}",
+      "title": "Responder Capture Log — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5397,7 +5397,7 @@
     },
     {
       "id": "GB-037",
-      "title": "RFID Credential Replay Successful \u2014 {self.ctx.instance_key}",
+      "title": "RFID Credential Replay Successful — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5436,7 +5436,7 @@
     },
     {
       "id": "GB-038",
-      "title": "RFID Scan Results \u2014 {self.ctx.instance_key}",
+      "title": "RFID Scan Results — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5514,7 +5514,7 @@
     },
     {
       "id": "GB-040",
-      "title": "Screenshot Captured \u2014 {url}",
+      "title": "Screenshot Captured — {url}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5592,7 +5592,7 @@
     },
     {
       "id": "GB-042",
-      "title": "Security Headers Analysis \u2014 {url}",
+      "title": "Security Headers Analysis — {url}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5631,7 +5631,7 @@
     },
     {
       "id": "GB-043",
-      "title": "Security Headers Check \u2014 {url}",
+      "title": "Security Headers Check — {url}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5670,7 +5670,7 @@
     },
     {
       "id": "GB-044",
-      "title": "Service Banner \u2014 {ip}:{port} ({svc})",
+      "title": "Service Banner — {ip}:{port} ({svc})",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5709,7 +5709,7 @@
     },
     {
       "id": "GB-045",
-      "title": "SMB Service Analysis \u2014 {ip}:{port}",
+      "title": "SMB Service Analysis — {ip}:{port}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5748,7 +5748,7 @@
     },
     {
       "id": "GB-046",
-      "title": "SSH Audit \u2014 {ip}:{port}",
+      "title": "SSH Audit — {ip}:{port}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5787,7 +5787,7 @@
     },
     {
       "id": "GB-047",
-      "title": "SSH Service Analysis \u2014 {ip}:{port}",
+      "title": "SSH Service Analysis — {ip}:{port}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5826,7 +5826,7 @@
     },
     {
       "id": "GB-048",
-      "title": "SSL Certificate Issuer \u2014 {issuer}",
+      "title": "SSL Certificate Issuer — {issuer}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5904,7 +5904,7 @@
     },
     {
       "id": "GB-050",
-      "title": "SSL/TLS Assessment \u2014 {ip}:{port}",
+      "title": "SSL/TLS Assessment — {ip}:{port}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5943,7 +5943,7 @@
     },
     {
       "id": "GB-051",
-      "title": "TLS Certificate \u2014 {url}",
+      "title": "TLS Certificate — {url}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -5982,7 +5982,7 @@
     },
     {
       "id": "GB-052",
-      "title": "Traffic Capture \u2014 Boot Sequence ({self.ctx.instance_key})",
+      "title": "Traffic Capture — Boot Sequence ({self.ctx.instance_key})",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6021,7 +6021,7 @@
     },
     {
       "id": "GB-053",
-      "title": "Traffic Capture \u2014 Running Operation ({self.ctx.instance_key})",
+      "title": "Traffic Capture — Running Operation ({self.ctx.instance_key})",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6060,7 +6060,7 @@
     },
     {
       "id": "GB-054",
-      "title": "Traffic Capture \u2014 Shutdown Sequence ({self.ctx.instance_key})",
+      "title": "Traffic Capture — Shutdown Sequence ({self.ctx.instance_key})",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6099,7 +6099,7 @@
     },
     {
       "id": "GB-055",
-      "title": "Unencrypted Protocol Detected: {_proto_name} \u2014 {_hip}:{_portid}",
+      "title": "Unencrypted Protocol Detected: {_proto_name} — {_hip}:{_portid}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6138,7 +6138,7 @@
     },
     {
       "id": "GB-056",
-      "title": "USB HID Keyboard Accepted \u2014 {self.ctx.instance_key}",
+      "title": "USB HID Keyboard Accepted — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6177,7 +6177,7 @@
     },
     {
       "id": "GB-057",
-      "title": "USB Mass Storage Accepted \u2014 {self.ctx.instance_key}",
+      "title": "USB Mass Storage Accepted — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6216,7 +6216,7 @@
     },
     {
       "id": "GB-058",
-      "title": "USB Mass Storage Partially Accepted \u2014 {self.ctx.instance_key}",
+      "title": "USB Mass Storage Partially Accepted — {self.ctx.instance_key}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6255,7 +6255,7 @@
     },
     {
       "id": "GB-059",
-      "title": "Web Assessment \u2014 {url}",
+      "title": "Web Assessment — {url}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6294,7 +6294,7 @@
     },
     {
       "id": "GB-060",
-      "title": "Web Links Extracted \u2014 {url}",
+      "title": "Web Links Extracted — {url}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6333,7 +6333,7 @@
     },
     {
       "id": "GB-061",
-      "title": "Web Spider Results \u2014 {url}",
+      "title": "Web Spider Results — {url}",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6528,7 +6528,7 @@
     },
     {
       "id": "GB-066",
-      "title": "DB9 Port: No Active Protocol Detected \u2014",
+      "title": "DB9 Port: No Active Protocol Detected —",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6723,7 +6723,7 @@
     },
     {
       "id": "GB-071",
-      "title": "Serial Port Responds to Commands \u2014",
+      "title": "Serial Port Responds to Commands —",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -6904,7 +6904,7 @@
     },
     {
       "id": "GB-BT-004",
-      "title": "Static or Public Bluetooth Address \u2014 Device Trackable",
+      "title": "Static or Public Bluetooth Address — Device Trackable",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -7006,7 +7006,7 @@
     },
     {
       "id": "GB-BT-006",
-      "title": "Just Works Pairing \u2014 No MITM Protection",
+      "title": "Just Works Pairing — No MITM Protection",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -7062,7 +7062,7 @@
     },
     {
       "id": "GB-BT-007",
-      "title": "LE Legacy Pairing \u2014 Passively Decryptable",
+      "title": "LE Legacy Pairing — Passively Decryptable",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -7164,7 +7164,7 @@
         "btmon",
         "manual/enclosure inspection"
       ],
-      "description": "The device authenticates LE Secure Connections pairing with a static or reused 6-digit passkey \u2014 printed on the enclosure, embedded in firmware/manual, or identical across units \u2014 rather than a fresh random per-pairing value.",
+      "description": "The device authenticates LE Secure Connections pairing with a static or reused 6-digit passkey — printed on the enclosure, embedded in firmware/manual, or identical across units — rather than a fresh random per-pairing value.",
       "impact": "A hard-coded or shared passkey defeats the MITM protection of LESC Passkey Entry: anyone who can read the printed/documented value can complete an authenticated man-in-the-middle relay, reducing LESC to Just Works in practice.",
       "_x_severity": "HIGH",
       "_x_category": "Bluetooth Pairing",
@@ -7369,7 +7369,7 @@
     },
     {
       "id": "GB-BT-013",
-      "title": "KNOB \u2014 Bluetooth Encryption Key Entropy Downgrade (CVE-2019-9506)",
+      "title": "KNOB — Bluetooth Encryption Key Entropy Downgrade (CVE-2019-9506)",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -7418,7 +7418,7 @@
     },
     {
       "id": "GB-BT-014",
-      "title": "BLUFFS \u2014 Bluetooth Forward/Future Secrecy Weakness (CVE-2023-24023)",
+      "title": "BLUFFS — Bluetooth Forward/Future Secrecy Weakness (CVE-2023-24023)",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -7467,7 +7467,7 @@
     },
     {
       "id": "GB-BT-015",
-      "title": "BIAS \u2014 Bluetooth Impersonation (CVE-2020-10135)",
+      "title": "BIAS — Bluetooth Impersonation (CVE-2020-10135)",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -7517,7 +7517,7 @@
     },
     {
       "id": "GB-BT-016",
-      "title": "BLURtooth \u2014 Cross-Transport Key Overwrite (CVE-2020-15802)",
+      "title": "BLURtooth — Cross-Transport Key Overwrite (CVE-2020-15802)",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -7564,7 +7564,7 @@
     },
     {
       "id": "GB-BT-017",
-      "title": "BLESA \u2014 BLE Reconnection Spoofing (CVE-2020-9770)",
+      "title": "BLESA — BLE Reconnection Spoofing (CVE-2020-9770)",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -7711,7 +7711,7 @@
         "bleak"
       ],
       "description": "A GATT write to a device characteristic succeeded over an unpaired, unencrypted link (ATT Write Response with no security error).",
-      "impact": "Unauthenticated write access permits configuration change, actuation, factory reset, or firmware/OTA abuse with no credential \u2014 the highest-impact GATT finding, and safety-critical on a medical device.",
+      "impact": "Unauthenticated write access permits configuration change, actuation, factory reset, or firmware/OTA abuse with no credential — the highest-impact GATT finding, and safety-critical on a medical device.",
       "_x_severity": "CRITICAL",
       "_x_category": "Bluetooth GATT",
       "_x_remediation": "Require an authenticated, encrypted, bonded link (LESC + MITM) for all writes; add application-layer authorization (signed / challenge-response commands) to control points and OTA.",
@@ -7820,7 +7820,7 @@
         "nRF52840 dongle"
       ],
       "description": "The device's BLE System-on-Chip belongs to a vendor/part with known SweynTooth firmware vulnerabilities in the Link Layer, L2CAP, SMP or ATT (crash, deadlock, or the Telink Zero-LTK Installation security bypass).",
-      "impact": "Depending on the SoC and SDK version, an in-range attacker can crash or deadlock the device (DoS, may require power-cycle) or, on affected Telink parts, install an all-zero LTK for arbitrary read/write \u2014 safety-relevant per FDA/CISA advisory ICS-ALERT-20-063-01.",
+      "impact": "Depending on the SoC and SDK version, an in-range attacker can crash or deadlock the device (DoS, may require power-cycle) or, on affected Telink parts, install an all-zero LTK for arbitrary read/write — safety-relevant per FDA/CISA advisory ICS-ALERT-20-063-01.",
       "_x_severity": "HIGH",
       "_x_category": "Bluetooth SoC",
       "_x_remediation": "Update the BLE controller firmware/SDK to a patched release; where the SoC is end-of-life, apply architectural mitigations (restrict pairing, disable unused profiles, physical/RF controls).",
@@ -8075,7 +8075,7 @@
         "l2ping"
       ],
       "description": "The device degraded or reset under a bounded L2CAP echo / l2ping flood (BlueSmack), indicating it does not bound or rate-limit oversized echo requests.",
-      "impact": "An in-range attacker who knows the BD_ADDR can hang or reboot the device, denying service \u2014 critical for a safety or clinical device.",
+      "impact": "An in-range attacker who knows the BD_ADDR can hang or reboot the device, denying service — critical for a safety or clinical device.",
       "_x_severity": "MEDIUM",
       "_x_category": "Bluetooth DoS",
       "_x_remediation": "Patch the stack for input-length validation; rate-limit/throttle L2CAP echo and connection requests; make the radio non-connectable when unused.",
@@ -8174,7 +8174,7 @@
         "btmon"
       ],
       "description": "The device crashed or deadlocked when sent a malformed Link-Layer / HCI PDU (the generic class covering SweynTooth/BrakTooth-style firmware defects and Android BlueFrag CVE-2020-0022).",
-      "impact": "A malformed advertising/connect/control PDU \u2014 often broadcast with no BD_ADDR required \u2014 crashes the target and can escalate to remote code execution on vulnerable stacks.",
+      "impact": "A malformed advertising/connect/control PDU — often broadcast with no BD_ADDR required — crashes the target and can escalate to remote code execution on vulnerable stacks.",
       "_x_severity": "HIGH",
       "_x_category": "Bluetooth DoS",
       "_x_remediation": "Update controller firmware and host stack (PDU length/format validation, buffer bounding); disable unused profiles; rate-limit.",
@@ -8182,7 +8182,7 @@
     },
     {
       "id": "GB-BT-029",
-      "title": "Bluetooth Testing SKIPPED \u2014 No Adapter or Sniffer Available",
+      "title": "Bluetooth Testing SKIPPED — No Adapter or Sniffer Available",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -8226,6 +8226,4250 @@
       "_x_category": "Bluetooth Discovery",
       "_x_remediation": "Attach a BlueZ adapter for active GATT/pairing work, or flash a sniffer board via Quiver (Sniffle / nRF Sniffer / ButteRFly / Ubertooth) for passive capture, then re-run the module.",
       "_x_references": []
+    },
+    {
+      "id": "GB-WIFI-001",
+      "title": "Wi-Fi Network Discovered",
+      "aliases": [
+        "802.11 Access Point Discovered",
+        "Wireless Network Enumerated"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "ID.AM-01",
+        "DE.CM-01"
+      ],
+      "nist_800_53": [
+        "CM-8",
+        "SI-4"
+      ],
+      "nist_800_171": [
+        "3.4.1",
+        "3.14.6"
+      ],
+      "pci_dss_4": [
+        "11.2.1"
+      ],
+      "iso_27001": [
+        "A.8.1"
+      ],
+      "iso_27002": [
+        "8.1"
+      ],
+      "soc2": [
+        "CC7.1"
+      ],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1595",
+          "tactic": "Reconnaissance",
+          "name": "Active Scanning"
+        }
+      ],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Reconcile every discovered SSID/BSSID against the authorised wireless inventory; disable or shield any access point or wireless interface that is not required for the device under test.",
+      "remediation_component": "Network",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "airodump-ng",
+        "iw",
+        "wash",
+        "Wireshark"
+      ],
+      "description": "An 802.11 access point was detected during zero-knowledge scanning, along with its beacon/RSN metadata (SSID, BSSID, channel, privacy/cipher/AKM suites, associated clients).",
+      "impact": "Confirms a live wireless attack surface and provides the BSSID, channel and encryption details needed to target every subsequent per-AP encryption, WPS, PMKID/handshake, PMF and evil-twin test.",
+      "_x_severity": "INFO",
+      "_x_category": "Wi-Fi Discovery",
+      "_x_remediation": "Reconcile every discovered SSID/BSSID against the authorised wireless inventory; disable interfaces that are not required.",
+      "_x_references": [
+        "https://www.aircrack-ng.org/doku.php?id=airodump-ng"
+      ]
+    },
+    {
+      "id": "GB-WIFI-002",
+      "title": "Open Wi-Fi Network — No Encryption",
+      "aliases": [
+        "Unencrypted Wireless Network",
+        "Open SSID"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-319"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-02",
+        "PR.AA-05"
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "SC-13",
+        "AC-18"
+      ],
+      "nist_800_171": [
+        "3.13.8",
+        "3.1.16"
+      ],
+      "pci_dss_4": [
+        "4.2.1",
+        "2.2.7"
+      ],
+      "iso_27001": [
+        "A.8.24",
+        "A.8.20"
+      ],
+      "iso_27002": [
+        "8.24",
+        "8.20"
+      ],
+      "soc2": [
+        "CC6.7"
+      ],
+      "hitrust": [],
+      "gdpr": [
+        "Art.32"
+      ],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Credential Access",
+          "name": "Network Sniffing"
+        }
+      ],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Deploy WPA3-SAE (or at minimum WPA2-CCMP/Enterprise) with 802.11w PMF required; never operate a medical or clinical device on an open SSID.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "airodump-ng",
+        "iw",
+        "Wireshark"
+      ],
+      "description": "The access point provides no link-layer encryption (open authentication). All frames to and from associated devices are transmitted in cleartext.",
+      "impact": "Any listener in radio range can passively read all traffic and actively inject or modify frames, capturing PHI/telemetry and hijacking sessions without any credential.",
+      "_x_severity": "HIGH",
+      "_x_category": "Wi-Fi Encryption",
+      "_x_remediation": "Deploy WPA3-SAE with 802.11w PMF required; never run a medical device on an open SSID.",
+      "_x_references": [
+        "https://cwe.mitre.org/data/definitions/319.html"
+      ]
+    },
+    {
+      "id": "GB-WIFI-003",
+      "title": "WEP Encryption in Use",
+      "aliases": [
+        "Wired Equivalent Privacy Enabled",
+        "WEP-Protected Network"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "CRITICAL",
+      "cwe": [
+        "CWE-327",
+        "CWE-326"
+      ],
+      "cve_examples": [
+        "CVE-2001-0540"
+      ],
+      "cvss_v3_base": 9.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-02",
+        "PR.AA-05"
+      ],
+      "nist_800_53": [
+        "SC-13",
+        "SC-8",
+        "AC-18"
+      ],
+      "nist_800_171": [
+        "3.13.11",
+        "3.13.8"
+      ],
+      "pci_dss_4": [
+        "4.2.1",
+        "2.2.7"
+      ],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.24"
+      ],
+      "soc2": [
+        "CC6.7"
+      ],
+      "hitrust": [],
+      "gdpr": [
+        "Art.32"
+      ],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Credential Access",
+          "name": "Network Sniffing"
+        }
+      ],
+      "searchsploit_terms": [
+        "wep crack",
+        "aircrack wep"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Immediately replace WEP with WPA3-SAE (or WPA2-CCMP with a strong passphrase) and 802.11w PMF; WEP has no secure configuration and must be decommissioned.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "airodump-ng",
+        "aircrack-ng"
+      ],
+      "description": "The access point uses WEP, a cryptographically broken cipher whose RC4/IV key can be recovered from captured traffic using statistical (PTW), chopchop, or fragmentation attacks.",
+      "impact": "An attacker can recover the WEP key in minutes from ordinary captured traffic, then decrypt all traffic and join the network — a total loss of confidentiality, integrity, and access control.",
+      "_x_severity": "CRITICAL",
+      "_x_category": "Wi-Fi Encryption",
+      "_x_remediation": "Replace WEP with WPA3-SAE or WPA2-CCMP immediately; WEP cannot be secured.",
+      "_x_references": [
+        "https://www.aircrack-ng.org/doku.php?id=how_to_crack_wep_with_no_clients"
+      ]
+    },
+    {
+      "id": "GB-WIFI-004",
+      "title": "WPA/WPA2-PSK Handshake Capturable",
+      "aliases": [
+        "EAPOL 4-Way Handshake Captured",
+        "WPA Handshake Harvestable"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-294",
+        "CWE-326"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.9,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-05",
+        "PR.DS-02"
+      ],
+      "nist_800_53": [
+        "IA-5",
+        "SC-13",
+        "AC-18"
+      ],
+      "nist_800_171": [
+        "3.5.7",
+        "3.13.11"
+      ],
+      "pci_dss_4": [
+        "2.2.7",
+        "8.3.6"
+      ],
+      "iso_27001": [
+        "A.5.17",
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "5.17",
+        "8.24"
+      ],
+      "soc2": [
+        "CC6.1"
+      ],
+      "hitrust": [],
+      "gdpr": [
+        "Art.32"
+      ],
+      "mitre_attack": [
+        {
+          "technique": "T1110.002",
+          "tactic": "Credential Access",
+          "name": "Brute Force: Password Cracking"
+        }
+      ],
+      "searchsploit_terms": [
+        "wpa handshake crack",
+        "hashcat 22000"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Use a long (>15 char) random WPA passphrase or migrate to WPA3-SAE, which resists offline handshake cracking; require 802.11w PMF to raise the cost of forcing a re-handshake.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "airodump-ng",
+        "aircrack-ng",
+        "hashcat",
+        "aireplay-ng"
+      ],
+      "description": "The WPA/WPA2-PSK 4-way EAPOL handshake was captured (passively, or after a bounded deauth), providing a verifiable offline oracle for the pre-shared key.",
+      "impact": "The captured handshake can be attacked offline at full GPU speed with dictionaries and rules; a weak, default, or reused passphrase is recovered, granting full access to the wireless network.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Wi-Fi Authentication",
+      "_x_remediation": "Use a long random passphrase or WPA3-SAE; require PMF.",
+      "_x_references": [
+        "https://hashcat.net/wiki/doku.php?id=cracking_wpawpa2"
+      ]
+    },
+    {
+      "id": "GB-WIFI-005",
+      "title": "WPA PMKID Capturable (Clientless)",
+      "aliases": [
+        "Clientless PMKID Attack",
+        "RSN PMKID Harvestable"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-294",
+        "CWE-326"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.9,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-05",
+        "PR.DS-02"
+      ],
+      "nist_800_53": [
+        "IA-5",
+        "SC-13",
+        "AC-18"
+      ],
+      "nist_800_171": [
+        "3.5.7",
+        "3.13.11"
+      ],
+      "pci_dss_4": [
+        "2.2.7",
+        "8.3.6"
+      ],
+      "iso_27001": [
+        "A.5.17",
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "5.17",
+        "8.24"
+      ],
+      "soc2": [
+        "CC6.1"
+      ],
+      "hitrust": [],
+      "gdpr": [
+        "Art.32"
+      ],
+      "mitre_attack": [
+        {
+          "technique": "T1110.002",
+          "tactic": "Credential Access",
+          "name": "Brute Force: Password Cracking"
+        }
+      ],
+      "searchsploit_terms": [
+        "pmkid attack",
+        "hcxdumptool pmkid"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Use a long random WPA passphrase or migrate to WPA3-SAE (not PMKID-crackable); disable PMKID/OKC caching on the AP where the platform allows.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "hcxdumptool",
+        "hcxpcapngtool",
+        "hashcat"
+      ],
+      "description": "An RSN PMKID was solicited and captured from the AP with a single association request and no connected client (hcxdumptool -> hcxpcapngtool, hashcat mode 22000).",
+      "impact": "Because the PMKID is derived from the PMK, the WPA/WPA2-PSK passphrase can be recovered offline without ever capturing a client handshake; a weak or default passphrase is trivially cracked, granting full network access.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Wi-Fi Authentication",
+      "_x_remediation": "Use a long random passphrase or WPA3-SAE; disable PMKID caching.",
+      "_x_references": [
+        "https://hashcat.net/forum/thread-7717.html"
+      ]
+    },
+    {
+      "id": "GB-WIFI-006",
+      "title": "WPS Enabled",
+      "aliases": [
+        "Wi-Fi Protected Setup Enabled",
+        "WPS Registrar Exposed"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-1391",
+        "CWE-307"
+      ],
+      "cve_examples": [
+        "CVE-2011-5053"
+      ],
+      "cvss_v3_base": 6.5,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-05",
+        "PR.PS-01"
+      ],
+      "nist_800_53": [
+        "AC-18",
+        "IA-2",
+        "CM-7"
+      ],
+      "nist_800_171": [
+        "3.1.16",
+        "3.4.6"
+      ],
+      "pci_dss_4": [
+        "2.2.7",
+        "8.3.6"
+      ],
+      "iso_27001": [
+        "A.8.9",
+        "A.5.17"
+      ],
+      "iso_27002": [
+        "8.9",
+        "5.17"
+      ],
+      "soc2": [
+        "CC6.1"
+      ],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1110",
+          "tactic": "Credential Access",
+          "name": "Brute Force"
+        }
+      ],
+      "searchsploit_terms": [
+        "reaver wps",
+        "wps pin brute"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Disable WPS entirely (external-registrar and PIN methods). If push-button is operationally required, ensure the PIN method is off and an AP-side lockout throttles failed registrar attempts.",
+      "remediation_component": "Network",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "wash",
+        "reaver",
+        "bully"
+      ],
+      "description": "The access point advertises Wi-Fi Protected Setup. The 8-digit registrar PIN is validated in two independently-checkable halves, collapsing the effective keyspace to roughly 11,000 attempts.",
+      "impact": "An attacker can brute-force the WPS PIN online (hours) and recover the WPA passphrase regardless of its strength, unless the AP enforces a robust failed-attempt lockout.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Wi-Fi Authentication",
+      "_x_remediation": "Disable WPS; if unavoidable use push-button only with lockout.",
+      "_x_references": [
+        "https://cwe.mitre.org/data/definitions/307.html"
+      ]
+    },
+    {
+      "id": "GB-WIFI-007",
+      "title": "WPS Pixie-Dust Vulnerable",
+      "aliases": [
+        "WPS Offline PIN Recovery",
+        "Pixie-Dust Attack"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-330",
+        "CWE-1391"
+      ],
+      "cve_examples": [
+        "CVE-2014-9605"
+      ],
+      "cvss_v3_base": 8.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-05",
+        "PR.PS-01"
+      ],
+      "nist_800_53": [
+        "AC-18",
+        "IA-2",
+        "SC-13"
+      ],
+      "nist_800_171": [
+        "3.1.16",
+        "3.5.7"
+      ],
+      "pci_dss_4": [
+        "2.2.7",
+        "8.3.6"
+      ],
+      "iso_27001": [
+        "A.8.9",
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.9",
+        "8.24"
+      ],
+      "soc2": [
+        "CC6.1"
+      ],
+      "hitrust": [],
+      "gdpr": [
+        "Art.32"
+      ],
+      "mitre_attack": [
+        {
+          "technique": "T1110",
+          "tactic": "Credential Access",
+          "name": "Brute Force"
+        }
+      ],
+      "searchsploit_terms": [
+        "pixiewps",
+        "reaver pixie dust",
+        "pixie dust wps"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Disable WPS entirely; the underlying nonce-generation weakness cannot be configured away. Rotate the WPA passphrase after disabling, as it must be considered compromised.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "reaver",
+        "bully",
+        "pixiewps"
+      ],
+      "description": "The WPS registrar generates predictable/low-entropy E-S1/E-S2 Diffie-Hellman nonces, allowing the WPS PIN to be recovered offline from a single M1-M3 exchange (the pixie-dust attack).",
+      "impact": "The WPS PIN — and therefore the WPA passphrase — is recovered offline in seconds with no online guessing, granting full network access regardless of passphrase strength.",
+      "_x_severity": "HIGH",
+      "_x_category": "Wi-Fi Authentication",
+      "_x_remediation": "Disable WPS and rotate the passphrase; the nonce weakness is unpatchable via config.",
+      "_x_references": [
+        "https://github.com/wiire-a/pixiewps"
+      ]
+    },
+    {
+      "id": "GB-WIFI-008",
+      "title": "Missing 802.11w Management Frame Protection",
+      "aliases": [
+        "No PMF",
+        "Deauthenticatable Network",
+        "Unprotected Management Frames"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-940",
+        "CWE-1188",
+        "CWE-345"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 6.5,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-02",
+        "PR.IR-04"
+      ],
+      "nist_800_53": [
+        "SC-5",
+        "AC-18",
+        "SC-8"
+      ],
+      "nist_800_171": [
+        "3.13.1",
+        "3.1.16"
+      ],
+      "pci_dss_4": [
+        "2.2.7"
+      ],
+      "iso_27001": [
+        "A.8.20",
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.20",
+        "8.24"
+      ],
+      "soc2": [
+        "A1.2"
+      ],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1498",
+          "tactic": "Impact",
+          "name": "Network Denial of Service"
+        }
+      ],
+      "searchsploit_terms": [
+        "deauth attack",
+        "aireplay deauth"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Set Protected Management Frames to 'required' (802.11w MFPR) on the AP and device; WPA3-SAE mandates PMF. Where clients cannot support it, at minimum enable PMF-capable and prioritise a WPA3 migration.",
+      "remediation_component": "Network",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "iw",
+        "aireplay-ng",
+        "mdk4",
+        "Wireshark"
+      ],
+      "description": "The network does not require 802.11w Management Frame Protection (the MFPR bit is clear in the RSN capabilities), so deauthentication and disassociation frames are unauthenticated.",
+      "impact": "An in-range attacker can forge management frames to evict clients on demand (availability loss) and force EAPOL re-handshakes for offline PSK cracking — a reliable DoS and handshake-harvesting primitive against a wireless-dependent device.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Wi-Fi Configuration",
+      "_x_remediation": "Require 802.11w PMF (mandatory under WPA3-SAE).",
+      "_x_references": [
+        "https://cwe.mitre.org/data/definitions/940.html"
+      ]
+    },
+    {
+      "id": "GB-WIFI-009",
+      "title": "WPA3 Transition Mode Downgrade",
+      "aliases": [
+        "WPA3 Mixed-Mode Fallback",
+        "Dragonblood Transition Downgrade"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-757",
+        "CWE-326"
+      ],
+      "cve_examples": [
+        "CVE-2019-9494",
+        "CVE-2019-9496"
+      ],
+      "cvss_v3_base": 5.9,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-02",
+        "PR.AA-05"
+      ],
+      "nist_800_53": [
+        "SC-13",
+        "AC-18",
+        "SC-8"
+      ],
+      "nist_800_171": [
+        "3.13.11",
+        "3.1.16"
+      ],
+      "pci_dss_4": [
+        "2.2.7",
+        "4.2.1"
+      ],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.24"
+      ],
+      "soc2": [
+        "CC6.7"
+      ],
+      "hitrust": [],
+      "gdpr": [
+        "Art.32"
+      ],
+      "mitre_attack": [
+        {
+          "technique": "T1557",
+          "tactic": "Credential Access",
+          "name": "Adversary-in-the-Middle"
+        }
+      ],
+      "searchsploit_terms": [
+        "dragonblood",
+        "wpa3 transition downgrade"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Move to WPA3-only (SAE) mode with PMF required once all clients support it; disable the WPA2 transition fallback for sensitive networks so a downgraded handshake cannot be solicited.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "iw",
+        "hcxdumptool",
+        "Wireshark"
+      ],
+      "description": "The AP advertises WPA3 in transition (mixed) mode, offering both SAE (WPA3) and PSK (WPA2) AKM suites on the same SSID.",
+      "impact": "A rogue AP advertising only WPA2-PSK forces a supplicant to fall back to the crackable WPA2 4-way handshake (Dragonblood transition-mode downgrade); the SAE upgrade provides no protection while WPA2 fallback is accepted.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Wi-Fi Cryptography",
+      "_x_remediation": "Move to WPA3-only SAE with PMF; disable WPA2 fallback.",
+      "_x_references": [
+        "https://wpa3.mathyvanhoef.com/"
+      ]
+    },
+    {
+      "id": "GB-WIFI-010",
+      "title": "Rogue Access Point / Evil Twin Feasible",
+      "aliases": [
+        "Evil Twin Attack",
+        "Rogue AP Association",
+        "Karma Attack"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-290",
+        "CWE-291",
+        "CWE-350"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 8.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-05",
+        "DE.CM-01"
+      ],
+      "nist_800_53": [
+        "AC-18",
+        "IA-3",
+        "SC-8"
+      ],
+      "nist_800_171": [
+        "3.1.16",
+        "3.5.2"
+      ],
+      "pci_dss_4": [
+        "11.2.1",
+        "2.2.7"
+      ],
+      "iso_27001": [
+        "A.8.20",
+        "A.5.17"
+      ],
+      "iso_27002": [
+        "8.20",
+        "5.17"
+      ],
+      "soc2": [
+        "CC6.6"
+      ],
+      "hitrust": [],
+      "gdpr": [
+        "Art.32"
+      ],
+      "mitre_attack": [
+        {
+          "technique": "T1557",
+          "tactic": "Credential Access",
+          "name": "Adversary-in-the-Middle"
+        }
+      ],
+      "searchsploit_terms": [
+        "evil twin",
+        "eaphammer",
+        "hostapd-wpe"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Require WPA3-SAE with PMF (mutual authentication), or for Enterprise validate the RADIUS server certificate and pin the CA on the client so a rogue AP cannot complete association.",
+      "remediation_component": "Network",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "bettercap",
+        "hostapd",
+        "airbase-ng",
+        "eaphammer"
+      ],
+      "description": "The device under test associated with a rogue access point cloning the target SSID (optionally PMF-less / WPA2-only) instead of authenticating the genuine AP.",
+      "impact": "Without server-certificate validation, PMF, or mutually-authenticated association, an evil twin in range captures the device onto an attacker-controlled network to intercept and modify its traffic and harvest credentials (captive-portal or EAP relay).",
+      "_x_severity": "HIGH",
+      "_x_category": "Wi-Fi Authentication",
+      "_x_remediation": "Require WPA3-SAE+PMF or validate/pin the EAP server certificate.",
+      "_x_references": [
+        "https://cwe.mitre.org/data/definitions/290.html"
+      ]
+    },
+    {
+      "id": "GB-WIFI-011",
+      "title": "Wi-Fi Deauthentication Denial of Service",
+      "aliases": [
+        "Deauth Flood",
+        "Disassociation DoS",
+        "802.11 Deauth Attack"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-400",
+        "CWE-940"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 6.5,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.IR-04",
+        "DE.CM-01"
+      ],
+      "nist_800_53": [
+        "SC-5",
+        "AC-18"
+      ],
+      "nist_800_171": [
+        "3.13.1",
+        "3.1.16"
+      ],
+      "pci_dss_4": [
+        "2.2.7"
+      ],
+      "iso_27001": [
+        "A.8.6",
+        "A.8.20"
+      ],
+      "iso_27002": [
+        "8.6",
+        "8.20"
+      ],
+      "soc2": [
+        "A1.2"
+      ],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1498",
+          "tactic": "Impact",
+          "name": "Network Denial of Service"
+        }
+      ],
+      "searchsploit_terms": [
+        "mdk4 deauth",
+        "aireplay deauth flood"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Enable 802.11w Protected Management Frames as REQUIRED (mandatory under WPA3-SAE) so forged deauth/disassoc frames are rejected; add wired or failover connectivity for safety-critical functions.",
+      "remediation_component": "Network",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "aireplay-ng",
+        "mdk4"
+      ],
+      "description": "A bounded burst of forged deauthentication/disassociation frames disconnected the device under test from its network, confirming that unauthenticated management frames are honoured (no 802.11w PMF required).",
+      "impact": "Any in-range attacker can persistently deny the wireless-dependent device network connectivity by spoofing management frames — a serious availability risk for a medical or clinical device that relies on wireless data or control.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Wi-Fi Availability",
+      "_x_remediation": "Require 802.11w PMF; provide wired/failover connectivity for critical functions.",
+      "_x_references": [
+        "https://cwe.mitre.org/data/definitions/400.html"
+      ]
+    },
+    {
+      "id": "GB-WIFI-012",
+      "title": "Wi-Fi Testing SKIPPED — No Wireless Adapter or Toolkit Available",
+      "aliases": [
+        "802.11 Assessment Skipped",
+        "No Monitor-Mode Adapter"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "ID.AM-01"
+      ],
+      "nist_800_53": [
+        "CA-8"
+      ],
+      "nist_800_171": [
+        "3.12.1"
+      ],
+      "pci_dss_4": [
+        "11.2.1"
+      ],
+      "iso_27001": [
+        "A.5.36"
+      ],
+      "iso_27002": [
+        "5.36"
+      ],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Attach an Alfa AWUS036ACM/NEH/H (or drive the WiFi Pineapple Mark VII) and install the aircrack-ng suite (plus hcxdumptool/hcxtools, reaver, iw), then re-run the WiFi module to complete 802.11 coverage.",
+      "remediation_component": "Network",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "airmon-ng",
+        "airodump-ng"
+      ],
+      "description": "802.11 testing was not performed for this instance because no monitor-mode adapter was selected, a non-capture device (e.g. WiFi Duck) was selected, or the aircrack-ng suite was not installed.",
+      "impact": "The device's wireless attack surface was not assessed; open/WEP encryption, WPS/pixie-dust, capturable handshakes/PMKID, missing PMF, and evil-twin exposure remain unverified until the module is re-run with proper hardware and tooling.",
+      "_x_severity": "INFO",
+      "_x_category": "Wi-Fi Coverage",
+      "_x_remediation": "Attach a monitor-mode adapter and install aircrack-ng, then re-run.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-RF-001",
+      "title": "Sub-GHz Signal Detected",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [
+        "CWE-200"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T0887",
+          "tactic": "Collection",
+          "name": "Wireless Sniffing"
+        }
+      ],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Inventory the emitter, band, and modulation; determine whether the transmission is in scope and whether it carries device data or control.",
+      "remediation_component": "Network",
+      "remediation_category": "Reconnaissance",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "rtl_433",
+        "hackrf_sweep",
+        "urh_cli"
+      ],
+      "description": "An active sub-GHz (300-928 MHz) transmission from the device under test was detected and/or decoded during a zero-knowledge spectrum survey.",
+      "impact": "The presence of a sub-GHz radio link expands the device's remotely-reachable attack surface; a listener in RF range can begin characterising and targeting the channel.",
+      "_x_severity": "INFO",
+      "_x_category": "Sub-GHz Discovery",
+      "_x_remediation": "Inventory the emitter, band, and modulation; determine whether the transmission is in scope and whether it carries device data or control.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-RF-002",
+      "title": "Unencrypted Sub-GHz Telemetry Decoded",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-319"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.9,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T0887",
+          "tactic": "Collection",
+          "name": "Wireless Sniffing"
+        }
+      ],
+      "searchsploit_terms": [
+        "rtl_433"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Encrypt the RF payload with an authenticated cipher, or carry sensitive telemetry over an authenticated encrypted channel; never transmit patient or asset data as cleartext RF.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli"
+      ],
+      "description": "rtl_433 decoded the device's sub-GHz sensor/telemetry frames in the clear, recovering payload fields with no key, which proves the link carries device data with no transport encryption.",
+      "impact": "Any passive attacker in radio range can read, log, and correlate the device's telemetry over time, disclosing operational state and potentially sensitive (PHI/asset) data without ever touching the device.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Cleartext RF Telemetry",
+      "_x_remediation": "Encrypt the RF payload with an authenticated cipher, or carry sensitive telemetry over an authenticated encrypted channel; never transmit patient or asset data as cleartext RF.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-RF-003",
+      "title": "Fixed-Code Sub-GHz Remote — Replayable",
+      "aliases": [
+        "Static-Code Sub-GHz Remote",
+        "Fixed OOK Remote Replay"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-294",
+        "CWE-798"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.4,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T0831",
+          "tactic": "Impair Process Control",
+          "name": "Manipulation of Control"
+        }
+      ],
+      "searchsploit_terms": [
+        "rtl_433 pt2262",
+        "ev1527 remote"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Replace fixed-code remotes with a rolling-code scheme or, preferably, an authenticated challenge-response link with anti-replay counters; treat the transmitted code as a credential, not an identifier.",
+      "remediation_component": "Network",
+      "remediation_category": "Authentication",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "rfcat",
+        "rtl_433",
+        "hackrf_transfer"
+      ],
+      "description": "A fixed-code (static OOK/ASK) sub-GHz remote or command protocol was decoded, meaning the device transmits the identical code on every actuation with no changing element.",
+      "impact": "A single captured frame can be re-transmitted verbatim to reproduce the command (garage/gate/relay/keyfob class); the captured static code IS the credential, so anyone who records one press controls the device.",
+      "_x_severity": "HIGH",
+      "_x_category": "Fixed-Code Replay",
+      "_x_remediation": "Replace fixed-code remotes with a rolling-code scheme or, preferably, an authenticated challenge-response link with anti-replay counters; treat the transmitted code as a credential, not an identifier.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-RF-004",
+      "title": "Rolling-Code Sub-GHz Remote Detected",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "LOW",
+      "cwe": [
+        "CWE-294"
+      ],
+      "cve_examples": [
+        "CVE-2022-27254"
+      ],
+      "cvss_v3_base": 3.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:R/S:U/C:N/I:L/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T0831",
+          "tactic": "Impair Process Control",
+          "name": "Manipulation of Control"
+        }
+      ],
+      "searchsploit_terms": [
+        "keeloq",
+        "rolljam"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Keep firmware current, enforce a tight rolling-counter resync window, prefer AES-based rolling schemes over legacy KeeLoq, and consider bidirectional authenticated pairing.",
+      "remediation_component": "Network",
+      "remediation_category": "Authentication",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "rfcat",
+        "rtl_433"
+      ],
+      "description": "A rolling-code (KeeLoq/HCS/Security+ class) sub-GHz remote was detected — a positive control that defeats naive single-frame replay.",
+      "impact": "Rolling codes still fall to jam-and-capture ('RollJam') and, for some legacy KeeLoq/fixed-seed variants, to key/seed-recovery attacks, so the control is not absolute and should be validated for counter-window and cipher strength.",
+      "_x_severity": "LOW",
+      "_x_category": "Rolling-Code Presence",
+      "_x_remediation": "Keep firmware current, enforce a tight rolling-counter resync window, prefer AES-based rolling schemes over legacy KeeLoq, and consider bidirectional authenticated pairing.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-RF-005",
+      "title": "Sub-GHz Replay Attack Feasible",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-294"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 8.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T0831",
+          "tactic": "Impair Process Control",
+          "name": "Manipulation of Control"
+        }
+      ],
+      "searchsploit_terms": [
+        "rfcat replay",
+        "hackrf replay"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Adopt authenticated, anti-replay commanding (rolling counter plus MAC, or challenge-response); reject any frame whose counter or nonce has already been observed.",
+      "remediation_component": "Network",
+      "remediation_category": "Authentication",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "rfcat",
+        "hackrf_transfer",
+        "rtl_433"
+      ],
+      "description": "A captured sub-GHz command was re-transmitted (operator-confirmed, benign) and the device under test acted on it, confirming a working replay attack with no rolling counter, nonce, or authentication preventing frame reuse.",
+      "impact": "An attacker who records one legitimate transmission can reproduce the command at will — unlocking, actuating, or otherwise controlling the device remotely without any credential.",
+      "_x_severity": "HIGH",
+      "_x_category": "Replay Feasibility",
+      "_x_remediation": "Adopt authenticated, anti-replay commanding (rolling counter plus MAC, or challenge-response); reject any frame whose counter or nonce has already been observed.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-RF-006",
+      "title": "Unauthenticated Sub-GHz Command Channel (OOK/FSK)",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-306",
+        "CWE-940"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.4,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T0860",
+          "tactic": "Initial Access",
+          "name": "Wireless Compromise"
+        }
+      ],
+      "searchsploit_terms": [
+        "rfcat",
+        "urh command"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Require signed/authenticated commands (HMAC or public-key) with a monotonic counter or nonce, and reject any unauthenticated or malformed frame at the receiver.",
+      "remediation_component": "Network",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "rfcat",
+        "urh_cli",
+        "hackrf_transfer"
+      ],
+      "description": "The device's sub-GHz control channel accepts commands with no authentication of the sender — the demodulated OOK/FSK frame is a bare command carrying no signature or nonce.",
+      "impact": "Any attacker able to transmit on the band can craft and inject commands the device will act on, achieving unauthenticated remote control of the device's functions.",
+      "_x_severity": "HIGH",
+      "_x_category": "Unauthenticated Command Channel",
+      "_x_remediation": "Require signed/authenticated commands (HMAC or public-key) with a monotonic counter or nonce, and reject any unauthenticated or malformed frame at the receiver.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-RF-007",
+      "title": "Missing Message Authentication on Sub-GHz Link",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-345",
+        "CWE-347"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.3,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T0860",
+          "tactic": "Initial Access",
+          "name": "Wireless Compromise"
+        }
+      ],
+      "searchsploit_terms": [
+        "urh_cli"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Add per-message authentication (an AEAD tag or digital signature) and reject frames that fail integrity verification.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli"
+      ],
+      "description": "No message-integrity or authentication field (MAC/signature) was observed on the device's sub-GHz frames, so their contents cannot be verified as genuine or unmodified.",
+      "impact": "Frame contents can be forged, altered, or replayed and the device cannot tell the difference, undermining the trustworthiness of every command and telemetry value on the link.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "No Message Authentication",
+      "_x_remediation": "Add per-message authentication (an AEAD tag or digital signature) and reject frames that fail integrity verification.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-RF-008",
+      "title": "Sub-GHz Jamming Susceptibility",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-400",
+        "CWE-1188"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.3,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T0814",
+          "tactic": "Inhibit Response Function",
+          "name": "Denial of Service"
+        }
+      ],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Add loss-of-link / jamming detection with a defined fail-safe state, use frequency agility or a diverse secondary channel for safety-critical control, and alert on sustained RF interference.",
+      "remediation_component": "Network",
+      "remediation_category": "Availability",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "hackrf_transfer",
+        "rfcat"
+      ],
+      "description": "Under a controlled, operator-observed bench test the device's sub-GHz link was disrupted by narrowband jamming, denying legitimate commands and telemetry.",
+      "impact": "Low-power ISM control channels have no inherent jamming resistance, so an attacker can deny the device's RF link (and, via jam-and-capture, harvest rolling codes); if the channel is safety-critical the availability loss may have physical consequences.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Jamming / RF DoS",
+      "_x_remediation": "Add loss-of-link / jamming detection with a defined fail-safe state, use frequency agility or a diverse secondary channel for safety-critical control, and alert on sustained RF interference.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-RF-009",
+      "title": "Sub-GHz Testing SKIPPED — No SDR/Radio Hardware Available",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [
+        "CWE-1120"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Attach an RTL-SDR or HackRF for spectrum survey and rtl_433 decode, or a YARD Stick One / CatSniffer / Flipper Zero for capture-and-replay, then re-run the SubGHz module.",
+      "remediation_component": "Network",
+      "remediation_category": "Coverage Gap",
+      "remediation_effort": "Easy",
+      "validation_tools": [],
+      "description": "No sub-GHz radio or host CLI toolchain was available for this instance, so 300-928 MHz RF testing was not performed and this interface was not assessed.",
+      "impact": "The device's sub-GHz attack surface remains unassessed; fixed-code, replay, cleartext-telemetry, and jamming weaknesses cannot be ruled out until a radio is attached and the module re-run.",
+      "_x_severity": "INFO",
+      "_x_category": "Coverage Gap / Skipped",
+      "_x_remediation": "Attach an RTL-SDR or HackRF for spectrum survey and rtl_433 decode, or a YARD Stick One / CatSniffer / Flipper Zero for capture-and-replay, then re-run the SubGHz module.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-001",
+      "title": "UWB Device Detected",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "ID.AM-01"
+      ],
+      "nist_800_53": [
+        "CM-8"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Reconcile every discovered UWB anchor/tag against the authorised asset inventory; disable or shield UWB interfaces that are not required.",
+      "remediation_component": "Network",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "Heltec UWB dongle",
+        "Wireshark (802.15.4)"
+      ],
+      "description": "A UWB (IEEE 802.15.4z / 802.15.4a) device was detected during passive capture, along with the frame types observed (blink, poll/response/final ranging) and its transmitted address.",
+      "impact": "Confirms a live UWB ranging/RTLS attack surface (asset-tracking tag/anchor or secure-access ranging peer) and provides the address and frame context needed to target subsequent ranging-security tests.",
+      "_x_severity": "INFO",
+      "_x_category": "UWB",
+      "_x_remediation": "Reconcile every discovered UWB anchor/tag against the authorised asset inventory; disable or shield UWB interfaces that are not required.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-002",
+      "title": "UWB Testing SKIPPED — No Sniffer or UWB Hardware Available",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Flash a UWB sniffer via Quiver or import a DW3000/UCI capture, then re-run the UWB module to complete the assessment.",
+      "remediation_component": "Network",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "Heltec UWB dongle"
+      ],
+      "description": "Gearbox attempted UWB assessment but no UWB sniffer board was selected and no sniffer binary or capture file was available, so UWB testing was NOT performed.",
+      "impact": "No assurance can be given about the UWB ranging/RTLS interface — its secure-ranging posture is unknown until a sniffer is flashed (Heltec / DWM3001CDK / DWM3000EVB) or a DW3000/UCI capture is imported and the module is re-run.",
+      "_x_severity": "INFO",
+      "_x_category": "UWB",
+      "_x_remediation": "Flash a UWB sniffer via Quiver or import a DW3000/UCI capture, then re-run the UWB module to complete the assessment.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-003",
+      "title": "UWB Ranging Without Scrambled Timestamp Sequence (STS)",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-347",
+        "CWE-294",
+        "CWE-345"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.4,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-02",
+        "PR.AA-03"
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "SC-13",
+        "IA-9"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [
+        "ghost peak uwb",
+        "uwb sts"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Enable IEEE 802.15.4z HRP secure ranging with STS (FiRa OWR/PDoA or DS-TWR with STS) provisioned via a per-session key; disable legacy 802.15.4a ranging.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "Wireshark (802.15.4)"
+      ],
+      "description": "The UWB ranging exchange does not carry a Scrambled Timestamp Sequence (STS mode 0 / disabled, or a legacy 802.15.4a device). STS is the IEEE 802.15.4z cryptographic PHY field that binds the ranging timestamp to a secret.",
+      "impact": "Without STS the time-of-flight measurement is unauthenticated and can be forged, so relay, replay and distance-reduction attacks against proximity-based access control or RTLS are not cryptographically prevented.",
+      "_x_severity": "HIGH",
+      "_x_category": "UWB",
+      "_x_remediation": "Enable IEEE 802.15.4z HRP secure ranging with STS (FiRa OWR/PDoA or DS-TWR with STS) provisioned via a per-session key; disable legacy 802.15.4a ranging.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-004",
+      "title": "Unauthenticated UWB Ranging Exchange",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-306",
+        "CWE-294"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.4,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-03"
+      ],
+      "nist_800_53": [
+        "IA-3",
+        "IA-9"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.5"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Require STS-authenticated secure ranging and reject ranging rounds that omit or fail STS verification; bind the ranging result to an authenticated session.",
+      "remediation_component": "Authentication",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "Wireshark (802.15.4)"
+      ],
+      "description": "Ranging frames are exchanged without cryptographic authentication of the timestamp, so a receiver cannot verify that a poll/response/final frame actually originated from the claimed peer at the measured distance.",
+      "impact": "Unauthenticated ranging is the root enabler of relay and distance-reduction attacks: any device can participate in or forge a ranging round, spoofing presence and distance for access control or asset tracking.",
+      "_x_severity": "HIGH",
+      "_x_category": "UWB",
+      "_x_remediation": "Require STS-authenticated secure ranging and reject ranging rounds that omit or fail STS verification; bind the ranging result to an authenticated session.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-005",
+      "title": "UWB Ranging Susceptible to Distance-Reduction (Ghost Peak) Attack",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-294",
+        "CWE-300"
+      ],
+      "cve_examples": [
+        "CVE-2022-0000"
+      ],
+      "cvss_v3_base": 8.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-03",
+        "PR.DS-02"
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "IA-9"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [
+        "ghost peak",
+        "uwb distance reduction"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Enforce STS with a minimum acceptable STS quality/figure-of-merit, reject ranging with low STS confidence, and add an application-layer distance bound and multi-anchor cross-check.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "SDR injector"
+      ],
+      "description": "Without enforced STS integrity, an over-the-air adversary can inject an early cipher-guessed STS/preamble to make the ranging peer measure a shorter-than-actual distance (the 'Ghost Peak' attack, USENIX Security 2022, demonstrated on Apple U1, NXP SR040/SR150 and Qorvo DW3000).",
+      "impact": "Where UWB gates physical access or presence (secure entry, unlock-on-approach, RTLS geofencing), an attacker can appear 'in range' from outside the intended zone and defeat proximity-based security.",
+      "_x_severity": "HIGH",
+      "_x_category": "UWB",
+      "_x_remediation": "Enforce STS with a minimum acceptable STS quality/figure-of-merit, reject ranging with low STS confidence, and add an application-layer distance bound and multi-anchor cross-check.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-006",
+      "title": "UWB Ranging Susceptible to Relay Attack",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-300",
+        "CWE-294"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.4,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-03"
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "IA-9"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [
+        "uwb relay attack"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Enable STS secure ranging and bind the ranging result to an authenticated session; never treat a UWB distance as trustworthy without STS verification.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "Wireshark (802.15.4)"
+      ],
+      "description": "An attacker relaying UWB ranging frames between a genuine tag and anchor can make a far peer appear in proximity. STS-based secure ranging binds the timing to a secret and is the defined mitigation; its absence leaves proximity guarantees unenforced.",
+      "impact": "Relay of the ranging exchange spoofs proximity for access control and RTLS, letting an attacker unlock/authorise or misplace a tracked asset from outside the intended range.",
+      "_x_severity": "HIGH",
+      "_x_category": "UWB",
+      "_x_remediation": "Enable STS secure ranging and bind the ranging result to an authenticated session; never treat a UWB distance as trustworthy without STS verification.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-007",
+      "title": "Replay of UWB Ranging Frames Accepted",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-294"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.4,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-03"
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "IA-9"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [
+        "uwb replay"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Derive a fresh STS per ranging session from a monotonic counter/nonce and reject frames whose STS does not match the current session.",
+      "remediation_component": "Cryptography",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "Wireshark (802.15.4)"
+      ],
+      "description": "Previously-captured UWB ranging frames (poll/response/final or blink) were replayed and accepted by the ranging peer, showing the exchange lacks a per-session freshness guarantee (fresh STS / nonce / counter).",
+      "impact": "Replayable ranging enables spoofed presence and distance in RTLS and access-control use — a recorded exchange can be reused to re-assert proximity at will.",
+      "_x_severity": "HIGH",
+      "_x_category": "UWB",
+      "_x_remediation": "Derive a fresh STS per ranging session from a monotonic counter/nonce and reject frames whose STS does not match the current session.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-008",
+      "title": "Cleartext UWB Positioning or Payload Data",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-319",
+        "CWE-359"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.3,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-02"
+      ],
+      "nist_800_53": [
+        "SC-8"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [
+        "4.2.1"
+      ],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Encrypt and authenticate the ranging-result and any MAC payload at the application layer; do not broadcast resolved positions or asset identifiers in cleartext.",
+      "remediation_component": "Application",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "Wireshark (802.15.4)"
+      ],
+      "description": "Positioning data (measured distance/coordinates) or a MAC-layer payload was observed in the clear in the UWB capture, with no application-layer encryption of the ranging result or asset identifier.",
+      "impact": "Cleartext RTLS position data discloses the location of tracked assets (and, in a clinical setting, potentially staff or patients) to any passive UWB listener, defeating location privacy.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "UWB",
+      "_x_remediation": "Encrypt and authenticate the ranging-result and any MAC payload at the application layer; do not broadcast resolved positions or asset identifiers in cleartext.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-009",
+      "title": "UWB Static or Non-Rotating Ranging Key (STS Reuse)",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-323",
+        "CWE-330"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.9,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-01"
+      ],
+      "nist_800_53": [
+        "SC-12",
+        "IA-5"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Provision a per-session STS from a rotating key (FiRa dynamic STS / per-session key derivation); never ship a fixed STS_KEY/STS_IV in firmware.",
+      "remediation_component": "Cryptography",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "Wireshark (802.15.4)"
+      ],
+      "description": "STS is present but appears to be derived from a static or reused seed/key rather than rotated per ranging session (observable as a repeating STS pattern), or a fixed STS_KEY/STS_IV is shipped in firmware.",
+      "impact": "A predictable or repeating STS erodes the integrity guarantee it is meant to provide, moving the system back toward replay and distance-manipulation exposure.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "UWB",
+      "_x_remediation": "Provision a per-session STS from a rotating key (FiRa dynamic STS / per-session key derivation); never ship a fixed STS_KEY/STS_IV in firmware.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-010",
+      "title": "UWB Ranging Susceptible to Jamming / Denial of Service",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-400",
+        "CWE-1188"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.3,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.IR-04",
+        "DE.CM-01"
+      ],
+      "nist_800_53": [
+        "SC-5",
+        "SI-4"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [
+        "uwbad jamming"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Define a safe fail state on ranging loss, add jam/interference detection and alerting, and avoid using UWB ranging as the sole gate for safety-critical access.",
+      "remediation_component": "Network",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "Wireshark (802.15.4)"
+      ],
+      "description": "Under a co-channel UWB jammer (UWBAD-class attack with COTS chips) the DUT's ranging was denied, confirming a denial-of-service exposure of the ranging link.",
+      "impact": "Loss of ranging can drop safety/asset-tracking (RTLS goes blind) or push a UWB access-control system into an unsafe fail state (fail-open or fail-closed).",
+      "_x_severity": "MEDIUM",
+      "_x_category": "UWB",
+      "_x_remediation": "Define a safe fail state on ranging loss, add jam/interference detection and alerting, and avoid using UWB ranging as the sole gate for safety-critical access.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-011",
+      "title": "UWB Legacy (Pre-802.15.4z) Ranging — No Secure Ranging Support",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-326",
+        "CWE-757"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.PS-02"
+      ],
+      "nist_800_53": [
+        "SA-4",
+        "SC-13"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Replace legacy 802.15.4a-only UWB parts with 802.15.4z STS-capable silicon (e.g. DW3000-class) for access control or safety-critical asset tracking.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "Wireshark (802.15.4)"
+      ],
+      "description": "The device supports only pre-802.15.4z (802.15.4a HRP) ranging, which has no secure-ranging (STS) capability at all and cannot be made secure by configuration.",
+      "impact": "A legacy-only UWB part offers no cryptographic protection for ranging, so any security-relevant proximity/distance use is inherently spoofable and the part must be replaced rather than reconfigured.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "UWB",
+      "_x_remediation": "Replace legacy 802.15.4a-only UWB parts with 802.15.4z STS-capable silicon (e.g. DW3000-class) for access control or safety-critical asset tracking.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-UWB-012",
+      "title": "UWB Device Trackable via Static Address in Blink Frames",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-359",
+        "CWE-200"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 4.3,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-02"
+      ],
+      "nist_800_53": [
+        "SC-8"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Rotate the tag's transmitted address/identifier (privacy-preserving randomised addressing) and expose the stable identity only under an authenticated session.",
+      "remediation_component": "Network",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "Qorvo DWM3001CDK",
+        "DW3000 API sniffer",
+        "Wireshark (802.15.4)"
+      ],
+      "description": "UWB blink/ranging frames broadcast a stable device address (EUI-64 or fixed 16-bit short address) in every transmission, with no privacy-preserving address rotation.",
+      "impact": "A tag that emits a fixed address in every blink can be tracked and correlated to the asset (or person) it is attached to by any passive UWB receiver, defeating location privacy for the RTLS deployment.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "UWB",
+      "_x_remediation": "Rotate the tag's transmitted address/identifier (privacy-preserving randomised addressing) and expose the stable identity only under an authenticated session.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-001",
+      "title": "Smart Card Detected",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Reconcile every detected card against the authorised asset inventory; disable unused card-based authentication paths.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "A smart card was detected in a PC/SC reader during zero-knowledge scanning, along with its Answer-To-Reset (ATR).",
+      "impact": "Confirms a live smart-card authentication surface and provides the ATR/reader context needed to target every subsequent fingerprint, APDU, and key test.",
+      "_x_severity": "INFO",
+      "_x_category": "Smart Card Discovery",
+      "_x_remediation": "Reconcile every detected card against the authorised asset inventory; disable unused card-based authentication paths.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-002",
+      "title": "Smart Card Reader Detected",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "No action required for the reader itself; ensure reader firmware is current and only authorised readers are attached to production hosts.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "A PC/SC (CCID) smart-card reader was enumerated on the test host, providing the contact/contactless channel used for card assessment.",
+      "impact": "Establishes the reader interface used to reach the card; benign on its own but scopes the physical attack surface.",
+      "_x_severity": "INFO",
+      "_x_category": "Smart Card Discovery",
+      "_x_remediation": "No action required for the reader itself; ensure reader firmware is current and only authorised readers are attached to production hosts.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-003",
+      "title": "Smart Card ATR Fingerprinted",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [
+        "CWE-200"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "ATR disclosure is inherent to ISO-7816 and cannot be suppressed; compensate by ensuring the identified platform is fully patched and its default keys/PINs are rotated.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "The card's Answer-To-Reset (ATR) was captured and analysed, disclosing the card platform, chip, and card operating system.",
+      "impact": "The ATR reveals the exact card OS/chip, letting an attacker select platform-specific attacks (known default keys, applet exploits, CVM weaknesses) and defines the surface tested in later phases.",
+      "_x_severity": "INFO",
+      "_x_category": "Smart Card Fingerprint",
+      "_x_remediation": "ATR disclosure is inherent to ISO-7816 and cannot be suppressed; compensate by ensuring the identified platform is fully patched and its default keys/PINs are rotated.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-004",
+      "title": "Predictable Smart Card Serial Number",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "LOW",
+      "cwe": [
+        "CWE-330",
+        "CWE-340"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AC-01"
+      ],
+      "nist_800_53": [
+        "IA-4"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.5.16"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Issue cards with cryptographically-random, high-entropy serial/UID values; never derive the identifier from a sequential batch counter.",
+      "remediation_component": "Authentication",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "The card serial/UID returned by the card is low-entropy, sequential, or otherwise predictable rather than cryptographically random.",
+      "impact": "A guessable or sequential serial lets an attacker enumerate valid card identities, forge enrolment records, or correlate a card to a holder, undermining any control that trusts the serial as an identifier.",
+      "_x_severity": "LOW",
+      "_x_category": "Smart Card Identity",
+      "_x_remediation": "Issue cards with cryptographically-random, high-entropy serial/UID values; never derive the identifier from a sequential batch counter.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-005",
+      "title": "Weak or Absent Cardholder Verification Method",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-287",
+        "CWE-306"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 8.1,
+      "cvss_vector": "CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-01",
+        "PR.AA-03"
+      ],
+      "nist_800_53": [
+        "IA-2",
+        "AC-3"
+      ],
+      "nist_800_171": [
+        "3.5.1",
+        "3.5.2"
+      ],
+      "pci_dss_4": [
+        "8.3.1"
+      ],
+      "iso_27001": [
+        "A.5.17",
+        "A.8.5"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Define and enforce a CVM (PIN, PACE, or on-card biometric) access condition on every protected file and command; verify the card returns 0x6982 for unauthenticated access.",
+      "remediation_component": "Authentication",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "The card served sensitive file content in response to raw READ BINARY APDUs with no Cardholder Verification Method enforced (no PIN required; the card did not answer 0x6982 'security status not satisfied').",
+      "impact": "With no CVM, mere possession of the card is sufficient to access protected data and operations — there is effectively no authentication, so a lost or briefly-borrowed card yields full access.",
+      "_x_severity": "HIGH",
+      "_x_category": "Smart Card Authentication",
+      "_x_remediation": "Define and enforce a CVM (PIN, PACE, or on-card biometric) access condition on every protected file and command; verify the card returns 0x6982 for unauthenticated access.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-006",
+      "title": "Unauthenticated APDU Access to Sensitive File",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-284",
+        "CWE-306"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 6.8,
+      "cvss_vector": "CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-05",
+        "PR.DS-01"
+      ],
+      "nist_800_53": [
+        "AC-3",
+        "AC-6"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.3",
+        "A.8.5"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1052",
+          "tactic": "Exfiltration",
+          "name": "Exfiltration Over Physical Medium"
+        }
+      ],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Protect sensitive elementary files with a CVM access condition and enforce it in the card OS access rules; require secure messaging for READ BINARY on protected files.",
+      "remediation_component": "Authentication",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "An elementary file was read via a raw READ BINARY APDU that returned 0x9000 with data without any prior VERIFY/cardholder verification being presented.",
+      "impact": "Any party with brief physical access to the card and a low-cost reader can extract the file's contents (asset data, credentials, holder identifiers) directly, with no PIN or key.",
+      "_x_severity": "HIGH",
+      "_x_category": "Smart Card Access Control",
+      "_x_remediation": "Protect sensitive elementary files with a CVM access condition and enforce it in the card OS access rules; require secure messaging for READ BINARY on protected files.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-007",
+      "title": "Default GlobalPlatform Card Manager Keys",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "CRITICAL",
+      "cwe": [
+        "CWE-798",
+        "CWE-321",
+        "CWE-1392"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 9.1,
+      "cvss_vector": "CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-01",
+        "PR.DS-02"
+      ],
+      "nist_800_53": [
+        "IA-5",
+        "SC-12",
+        "CM-6"
+      ],
+      "nist_800_171": [
+        "3.5.7"
+      ],
+      "pci_dss_4": [
+        "2.2.1",
+        "8.3.1"
+      ],
+      "iso_27001": [
+        "A.5.17",
+        "A.8.24"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [
+        "globalplatform default key"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Rotate the ISD keys (ENC/MAC/KEK) to unique, per-card random values before deployment via GlobalPlatform PUT KEY; never ship cards on the 40..4F default key set.",
+      "remediation_component": "Authentication",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "The card's GlobalPlatform Issuer Security Domain authenticated an SCP secure channel using the default test key set (40..4F / 404142434445464748494A4B4C4D4E4F).",
+      "impact": "An attacker with the card can open the same authenticated channel to install, delete, or replace applets and read/rotate keys — a full compromise of the card manager and everything the card protects.",
+      "_x_severity": "CRITICAL",
+      "_x_category": "Smart Card Key Management",
+      "_x_remediation": "Rotate the ISD keys (ENC/MAC/KEK) to unique, per-card random values before deployment via GlobalPlatform PUT KEY; never ship cards on the 40..4F default key set.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-008",
+      "title": "Cleartext Data Object Readable on Smart Card",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-312",
+        "CWE-311"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.3,
+      "cvss_vector": "CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-01"
+      ],
+      "nist_800_53": [
+        "SC-28",
+        "MP-4"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Store sensitive data objects encrypted or behind a CVM; do not return holder/asset identifiers from unauthenticated files.",
+      "remediation_component": "Application",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "Data read from the card without authentication contains cleartext printable strings (asset, holder, or configuration information stored and returned in the clear).",
+      "impact": "Sensitive data objects returned in the clear disclose asset/holder/configuration information to anyone who can read the card, aiding cloning, social engineering, or privacy compromise.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Smart Card Data Protection",
+      "_x_remediation": "Store sensitive data objects encrypted or behind a CVM; do not return holder/asset identifiers from unauthenticated files.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-009",
+      "title": "Default or Known Smart Card PIN Accepted",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-1393",
+        "CWE-521",
+        "CWE-798"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.6,
+      "cvss_vector": "CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:L",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-01"
+      ],
+      "nist_800_53": [
+        "IA-5"
+      ],
+      "nist_800_171": [
+        "3.5.7"
+      ],
+      "pci_dss_4": [
+        "8.3.5",
+        "8.3.9"
+      ],
+      "iso_27001": [
+        "A.5.17"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Force a PIN change away from all factory defaults at first use; enforce PIN complexity and a low retry counter with a secure unblock (PUK) procedure.",
+      "remediation_component": "Authentication",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "The card accepted a well-known factory default PIN via an ISO-7816 VERIFY command (SW 0x9000) during an operator-confirmed, single-attempt test.",
+      "impact": "Anyone in possession of the card can satisfy cardholder verification with a published default PIN and unlock CVM-protected files and operations, defeating the PIN control entirely.",
+      "_x_severity": "HIGH",
+      "_x_category": "Smart Card Authentication",
+      "_x_remediation": "Force a PIN change away from all factory defaults at first use; enforce PIN complexity and a low retry counter with a secure unblock (PUK) procedure.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-010",
+      "title": "Insecure GlobalPlatform Card Lifecycle State",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-1188",
+        "CWE-16"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.9,
+      "cvss_vector": "CVSS:3.1/AV:P/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.PS-01"
+      ],
+      "nist_800_53": [
+        "CM-6",
+        "CM-7"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.9"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Transition the card to the SECURED lifecycle state (and lock the card manager) as part of issuance so pre-personalisation management commands are no longer accepted.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "The GlobalPlatform card lifecycle state is OP_READY or INITIALIZED rather than SECURED, meaning the card manager was never transitioned to its locked production state.",
+      "impact": "A card left in a pre-issuance lifecycle state permits card-content management and key-setup operations that should be closed off once the card is issued, widening the window for applet/key tampering.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Smart Card Lifecycle",
+      "_x_remediation": "Transition the card to the SECURED lifecycle state (and lock the card manager) as part of issuance so pre-personalisation management commands are no longer accepted.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-011",
+      "title": "No Secure Messaging — Cleartext APDU Channel",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-319",
+        "CWE-311"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 4.6,
+      "cvss_vector": "CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-02"
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "SC-13"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1557",
+          "tactic": "Collection",
+          "name": "Adversary-in-the-Middle"
+        }
+      ],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Mandate GlobalPlatform / ISO-7816 secure messaging (C-MAC + C-ENC) for all commands that carry or return sensitive data.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "The card returned sensitive file data over a cleartext (plain) APDU channel with no secure messaging (C-MAC/C-ENC) applied.",
+      "impact": "A passive USB-CCID or contactless interceptor can capture the command/response exchange verbatim, recovering sensitive data and enabling replay of the observed commands.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Smart Card Transport Security",
+      "_x_remediation": "Mandate GlobalPlatform / ISO-7816 secure messaging (C-MAC + C-ENC) for all commands that carry or return sensitive data.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-SC-012",
+      "title": "SmartCard Testing SKIPPED — No PC/SC Reader or Tools Available",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Connect an Identiv SCR3310 (or any PC/SC) reader, install pcsc-tools, opensc, and GlobalPlatformPro (gp), start pcscd, and re-run the SmartCard module.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "pcsc_scan",
+        "opensc-tool",
+        "gp",
+        "ATR_analysis",
+        "Wireshark (usbccid)"
+      ],
+      "description": "Smart-card testing was not performed because the required PC/SC toolchain (pcsc_scan / opensc-tool) or reader was unavailable; the module honestly recorded that no card test ran.",
+      "impact": "No assurance can be drawn about the device's smart-card authentication posture — the interface remains untested until a reader and the PC/SC tools are present.",
+      "_x_severity": "INFO",
+      "_x_category": "Smart Card Coverage",
+      "_x_remediation": "Connect an Identiv SCR3310 (or any PC/SC) reader, install pcsc-tools, opensc, and GlobalPlatformPro (gp), start pcscd, and re-run the SmartCard module.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-ZW-001",
+      "title": "Z-Wave Device Detected",
+      "aliases": [
+        "Z-Wave Network Discovered",
+        "Z-Wave HomeID Observed"
+      ],
+      "source_tools": [
+        "gearbox",
+        "ezwave"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "ID.AM-1",
+        "ID.AM-3"
+      ],
+      "nist_800_53": [
+        "CM-8",
+        "PM-5"
+      ],
+      "nist_800_171": [
+        "3.4.1"
+      ],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.1"
+      ],
+      "iso_27002": [
+        "8.1"
+      ],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1200",
+          "tactic": "Initial Access",
+          "name": "Hardware Additions"
+        }
+      ],
+      "searchsploit_terms": [
+        "z-wave"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Reconcile every discovered Z-Wave HomeID/NodeID against the authorised asset inventory; disable or shield Z-Wave interfaces that are not required.",
+      "remediation_component": "Network",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "ezstumbler",
+        "waving-z",
+        "rtl_433",
+        "Wireshark (Z-Wave)"
+      ],
+      "description": "A Z-Wave network was detected during passive sub-GHz (868/908 MHz) capture, along with its cleartext frame header data (HomeID and one or more NodeIDs).",
+      "impact": "Confirms a live Z-Wave mesh within RF range and provides the HomeID/NodeID needed to target every subsequent enumeration and security test.",
+      "_x_severity": "INFO",
+      "_x_category": "Z-Wave Discovery",
+      "_x_remediation": "Reconcile every discovered Z-Wave HomeID/NodeID against the authorised asset inventory; disable or shield Z-Wave interfaces that are not required.",
+      "_x_references": [
+        "https://github.com/cureHsu/EZ-Wave"
+      ]
+    },
+    {
+      "id": "GB-ZW-002",
+      "title": "Z-Wave Network Enumerated",
+      "aliases": [
+        "Z-Wave Mesh Topology Disclosed",
+        "Z-Wave NodeID Enumeration"
+      ],
+      "source_tools": [
+        "gearbox",
+        "ezwave"
+      ],
+      "risk": "INFO",
+      "cwe": [
+        "CWE-200"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "ID.AM-3"
+      ],
+      "nist_800_53": [
+        "CM-8"
+      ],
+      "nist_800_171": [
+        "3.4.1"
+      ],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.1"
+      ],
+      "iso_27002": [
+        "8.1"
+      ],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1592",
+          "tactic": "Reconnaissance",
+          "name": "Gather Victim Host Information"
+        }
+      ],
+      "searchsploit_terms": [
+        "z-wave"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Z-Wave frame headers are inherently cleartext; minimise information leakage by enforcing S2 on all traffic and physically limiting RF exposure of the mesh.",
+      "remediation_component": "Network",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "ezstumbler",
+        "ezrecon",
+        "waving-z"
+      ],
+      "description": "The Z-Wave mesh was enumerated passively from cleartext frame headers, disclosing the HomeID, the set of NodeIDs, and the command-class traffic exchanged between the controller and its slaves.",
+      "impact": "Maps the controller/slave topology and per-node command-class usage, letting an attacker identify locks, switches, and sensors and plan targeted forge/replay attacks against specific nodes.",
+      "_x_severity": "INFO",
+      "_x_category": "Z-Wave Enumeration",
+      "_x_remediation": "Z-Wave frame headers are inherently cleartext; minimise information leakage by enforcing S2 on all traffic and physically limiting RF exposure of the mesh.",
+      "_x_references": [
+        "https://github.com/cureHsu/EZ-Wave/blob/master/tools/ezrecon.py"
+      ]
+    },
+    {
+      "id": "GB-ZW-003",
+      "title": "Unencrypted Z-Wave Control Frames",
+      "aliases": [
+        "Z-Wave No Security (S0/S2 Absent)",
+        "Cleartext Z-Wave Commands"
+      ],
+      "source_tools": [
+        "gearbox",
+        "ezwave"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-311",
+        "CWE-319"
+      ],
+      "cve_examples": [
+        "CVE-2013-20003"
+      ],
+      "cvss_v3_base": 8.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-2",
+        "PR.DS-5"
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "SC-13"
+      ],
+      "nist_800_171": [
+        "3.13.8",
+        "3.13.11"
+      ],
+      "pci_dss_4": [
+        "4.2.1"
+      ],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.24"
+      ],
+      "soc2": [
+        "CC6.7"
+      ],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Credential Access",
+          "name": "Network Sniffing"
+        }
+      ],
+      "searchsploit_terms": [
+        "z-wave"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Enforce S2 (Security_2) on every node, remove nodes that cannot be securely included, and never operate actuators or locks over unencrypted command classes.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "ezstumbler",
+        "waving-z",
+        "Wireshark (Z-Wave)"
+      ],
+      "description": "Actionable Z-Wave control traffic (e.g. Binary Switch, Multilevel Switch, Door Lock, Alarm) was observed in the clear, with no S0 (CC 0x98) or S2 (CC 0x9F) encapsulation.",
+      "impact": "Any passive listener can read device state, and any attacker with a TX-capable radio can forge or replay commands — unlocking doors, toggling actuators, or suppressing alarms — with no key required.",
+      "_x_severity": "HIGH",
+      "_x_category": "Z-Wave Cryptography",
+      "_x_remediation": "Enforce S2 (Security_2) on every node, remove nodes that cannot be securely included, and never operate actuators or locks over unencrypted command classes.",
+      "_x_references": [
+        "https://sensepost.com/cms/resources/conferences/2013/bh_zwave/Security%20Evaluation%20of%20Z-Wave_WP.pdf"
+      ]
+    },
+    {
+      "id": "GB-ZW-004",
+      "title": "Z-Wave S0 Legacy Security Class in Use",
+      "aliases": [
+        "Z-Wave S0 Security",
+        "Weak Z-Wave Encryption (S0)"
+      ],
+      "source_tools": [
+        "gearbox",
+        "ezwave"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-327",
+        "CWE-294"
+      ],
+      "cve_examples": [
+        "CVE-2013-20003"
+      ],
+      "cvss_v3_base": 5.9,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:L/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-2"
+      ],
+      "nist_800_53": [
+        "SC-13",
+        "SC-12"
+      ],
+      "nist_800_171": [
+        "3.13.11"
+      ],
+      "pci_dss_4": [
+        "4.2.1"
+      ],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.24"
+      ],
+      "soc2": [
+        "CC6.7"
+      ],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1600",
+          "tactic": "Defense Evasion",
+          "name": "Weaken Encryption"
+        }
+      ],
+      "searchsploit_terms": [
+        "z-wave s0"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Migrate all nodes to S2; retire S0-only devices. If S0 is unavoidable, perform inclusion inside a shielded enclosure so the key exchange cannot be sniffed.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "ezstumbler",
+        "waving-z",
+        "Wireshark (Z-Wave)"
+      ],
+      "description": "The network uses the legacy S0 Security command class (CC 0x98), which relies on AES-OFB/CBC-MAC with a network key exchanged at inclusion under a hardcoded all-zero temporary key and lacks S2's anti-replay and forward-secrecy protections.",
+      "impact": "An attacker who captures a device inclusion recovers the S0 network key and can decrypt and forge all S0 traffic; S0 also permits replay that S2 would reject.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Z-Wave Cryptography",
+      "_x_remediation": "Migrate all nodes to S2; retire S0-only devices. If S0 is unavoidable, perform inclusion inside a shielded enclosure so the key exchange cannot be sniffed.",
+      "_x_references": [
+        "https://www.silabs.com/documents/public/white-papers/INS13474-Z-Wave-Security-Whitepaper.pdf"
+      ]
+    },
+    {
+      "id": "GB-ZW-005",
+      "title": "Z-Wave S0 Network Key Extractable on Inclusion",
+      "aliases": [
+        "Z-Wave S0 Hardcoded Temporary Key",
+        "Z-Wave Inclusion Key Sniffing"
+      ],
+      "source_tools": [
+        "gearbox",
+        "ezwave"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-321",
+        "CWE-798"
+      ],
+      "cve_examples": [
+        "CVE-2013-20003"
+      ],
+      "cvss_v3_base": 8.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AC-1",
+        "PR.DS-2"
+      ],
+      "nist_800_53": [
+        "SC-12",
+        "IA-5"
+      ],
+      "nist_800_171": [
+        "3.13.10"
+      ],
+      "pci_dss_4": [
+        "3.6.1"
+      ],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.24"
+      ],
+      "soc2": [
+        "CC6.1"
+      ],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1557",
+          "tactic": "Credential Access",
+          "name": "Adversary-in-the-Middle"
+        }
+      ],
+      "searchsploit_terms": [
+        "z-wave key",
+        "z-wave s0 inclusion"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Use S2 (ECDH-authenticated key exchange with out-of-band DSK) so the network key is never sent under a hardcoded key; shield any required S0 inclusion.",
+      "remediation_component": "Authentication",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "ezstumbler",
+        "waving-z",
+        "scapy-radio",
+        "Wireshark (Z-Wave)"
+      ],
+      "description": "Because the network uses S0, its network key is derivable by any attacker who captures a device inclusion: the Network Key Set frame is encrypted only under the well-known temporary key 0x00000000000000000000000000000000, so the S0 network key can be extracted offline.",
+      "impact": "Recovering the S0 network key lets an attacker decrypt every past and future S0 frame and forge authenticated commands (unlock doors, actuate devices); a node re-included after a power loss re-exposes the key.",
+      "_x_severity": "HIGH",
+      "_x_category": "Z-Wave Cryptography",
+      "_x_remediation": "Use S2 (ECDH-authenticated key exchange with out-of-band DSK) so the network key is never sent under a hardcoded key; shield any required S0 inclusion.",
+      "_x_references": [
+        "https://sensepost.com/cms/resources/conferences/2013/bh_zwave/Security%20Evaluation%20of%20Z-Wave_WP.pdf"
+      ]
+    },
+    {
+      "id": "GB-ZW-006",
+      "title": "Z-Wave S2 Security Downgrade to S0 Accepted",
+      "aliases": [
+        "Z-Shave",
+        "Z-Wave S2 to S0 Downgrade",
+        "Z-Wave KEX_REPORT Downgrade"
+      ],
+      "source_tools": [
+        "gearbox",
+        "ezwave"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-757"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 8.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-2",
+        "PR.AC-1"
+      ],
+      "nist_800_53": [
+        "SC-13",
+        "SC-12"
+      ],
+      "nist_800_171": [
+        "3.13.11"
+      ],
+      "pci_dss_4": [
+        "4.2.1"
+      ],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.24"
+      ],
+      "soc2": [
+        "CC6.7"
+      ],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1600.001",
+          "tactic": "Defense Evasion",
+          "name": "Reduce Key Space"
+        }
+      ],
+      "searchsploit_terms": [
+        "z-shave",
+        "z-wave downgrade"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Enforce S2-only inclusion with no S0 fallback; reject any KEX_REPORT that requests a lower security class; require out-of-band DSK verification at inclusion.",
+      "remediation_component": "Authentication",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "ezwave",
+        "scapy-radio",
+        "HackRF"
+      ],
+      "description": "During inclusion the controller accepted a downgrade of the negotiated security class from S2 to the legacy S0 command class (the 'Z-Shave' attack), because S2-only inclusion is not enforced.",
+      "impact": "An attacker in RF range at inclusion time can force S0, recover the network key via the hardcoded all-zero temporary key, and take control of the device despite S2 support being present.",
+      "_x_severity": "HIGH",
+      "_x_category": "Z-Wave Cryptography",
+      "_x_remediation": "Enforce S2-only inclusion with no S0 fallback; reject any KEX_REPORT that requests a lower security class; require out-of-band DSK verification at inclusion.",
+      "_x_references": [
+        "https://www.pentestpartners.com/security-blog/z-shave-exploiting-z-wave-downgrade-attacks/"
+      ]
+    },
+    {
+      "id": "GB-ZW-007",
+      "title": "Z-Wave Command Replay Accepted",
+      "aliases": [
+        "Z-Wave Replay Attack",
+        "Z-Wave Frame Retransmission Accepted"
+      ],
+      "source_tools": [
+        "gearbox",
+        "ezwave"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-294"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 8.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:L/I:H/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-2",
+        "PR.AC-7"
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "SC-23"
+      ],
+      "nist_800_171": [
+        "3.13.15"
+      ],
+      "pci_dss_4": [
+        "4.2.1"
+      ],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.24"
+      ],
+      "soc2": [
+        "CC6.7"
+      ],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1557",
+          "tactic": "Credential Access",
+          "name": "Adversary-in-the-Middle"
+        }
+      ],
+      "searchsploit_terms": [
+        "z-wave replay"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Enforce S2, whose Singlecast nonce/SPAN sequencing rejects replayed frames; never operate actuators over unencrypted or S0 command classes.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "ezwave",
+        "scapy-radio",
+        "waving-z (wave-out)",
+        "HackRF"
+      ],
+      "description": "A previously captured unencrypted (or S0) Z-Wave command frame was retransmitted and the device acted on it, confirming no effective anti-replay protection.",
+      "impact": "An attacker can record a legitimate command (lock/unlock, on/off) and replay it later to actuate the device without ever possessing the network key.",
+      "_x_severity": "HIGH",
+      "_x_category": "Z-Wave Cryptography",
+      "_x_remediation": "Enforce S2, whose Singlecast nonce/SPAN sequencing rejects replayed frames; never operate actuators over unencrypted or S0 command classes.",
+      "_x_references": [
+        "https://www.pentestpartners.com/security-blog/z-shave-exploiting-z-wave-downgrade-attacks/"
+      ]
+    },
+    {
+      "id": "GB-ZW-008",
+      "title": "Z-Wave S2 Secure Class Confirmed",
+      "aliases": [
+        "Z-Wave S2 In Use",
+        "Z-Wave Security_2 Confirmed"
+      ],
+      "source_tools": [
+        "gearbox",
+        "ezwave"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-2"
+      ],
+      "nist_800_53": [
+        "SC-13"
+      ],
+      "nist_800_171": [
+        "3.13.11"
+      ],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.24"
+      ],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Confirm every node is S2 (no S0-only devices) and that the controller enforces S2-only inclusion with no S0 fallback; verify DSK out-of-band at inclusion.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "ezstumbler",
+        "waving-z",
+        "Wireshark (Z-Wave)"
+      ],
+      "description": "The network was observed using the S2 Security_2 command class (CC 0x9F), which performs an ECDH (Curve25519) authenticated key exchange with an out-of-band DSK and provides per-frame nonce-based anti-replay.",
+      "impact": "S2 traffic is not passively decryptable or trivially replayable; this is the desired posture, though it must be confirmed for ALL nodes with no S0 fallback permitted.",
+      "_x_severity": "INFO",
+      "_x_category": "Z-Wave Cryptography",
+      "_x_remediation": "Confirm every node is S2 (no S0-only devices) and that the controller enforces S2-only inclusion with no S0 fallback; verify DSK out-of-band at inclusion.",
+      "_x_references": [
+        "https://www.silabs.com/whitepapers/z-wave-security"
+      ]
+    },
+    {
+      "id": "GB-ZW-009",
+      "title": "Z-Wave S0 NonceGet Denial-of-Service Exposure",
+      "aliases": [
+        "S0-No-More",
+        "Z-Wave NonceGet Flood",
+        "Z-Wave Nonce Exhaustion DoS"
+      ],
+      "source_tools": [
+        "gearbox",
+        "ezwave"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-400",
+        "CWE-770"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 6.5,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-4"
+      ],
+      "nist_800_53": [
+        "SC-5"
+      ],
+      "nist_800_171": [
+        "3.13.1"
+      ],
+      "pci_dss_4": [],
+      "iso_27001": [
+        "A.8.6"
+      ],
+      "iso_27002": [
+        "8.6"
+      ],
+      "soc2": [
+        "A1.2"
+      ],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1498",
+          "tactic": "Impact",
+          "name": "Network Denial of Service"
+        }
+      ],
+      "searchsploit_terms": [
+        "z-wave nonceget",
+        "s0-no-more"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Migrate off S0 to S2; rate-limit NonceGet handling; drop NonceGet requests from NodeIDs that are not actively transacting.",
+      "remediation_component": "Network",
+      "remediation_category": "Availability",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "ezwave",
+        "scapy-radio",
+        "HackRF"
+      ],
+      "description": "The Z-Wave gateway accepts unauthenticated S0 NonceGet requests, allowing an attacker to flood NonceGet frames (the 'S0-No-More' attack) and exhaust the gateway's nonce state so legitimate S0 encryption is blocked.",
+      "impact": "A denial-of-service that halts the whole S0 mesh — including safety-relevant devices such as locks and sensors — requiring only RF range and a valid included NodeID.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "Z-Wave Availability",
+      "_x_remediation": "Migrate off S0 to S2; rate-limit NonceGet handling; drop NonceGet requests from NodeIDs that are not actively transacting.",
+      "_x_references": [
+        "https://arxiv.org/pdf/2205.00781"
+      ]
+    },
+    {
+      "id": "GB-ZW-010",
+      "title": "Z-Wave Testing SKIPPED — No SDR or Sniffer Available",
+      "aliases": [
+        "Z-Wave Not Tested",
+        "Z-Wave Assessment Skipped"
+      ],
+      "source_tools": [
+        "gearbox",
+        "ezwave"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Attach a HackRF One (EZ-Wave / scapy-radio), a CatSniffer with Sub-GHz firmware, or an RTL-SDR (waving-z / rtl_433), install the Z-Wave capture tooling, and re-run the module to actually assess the interface.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [],
+      "description": "Z-Wave testing was not performed because no SDR/sniffer was selected, no capture CLI was installed, or no Z-Wave traffic was observed on the selected frequency. This is an honesty marker so the operator is not misled into thinking the interface was assessed.",
+      "impact": "The Z-Wave attack surface remains unassessed; any unencrypted control, S0 key-exchange, downgrade, or replay weakness would go undetected until the module is re-run with working capture hardware.",
+      "_x_severity": "INFO",
+      "_x_category": "Z-Wave Coverage",
+      "_x_remediation": "Attach a HackRF One (EZ-Wave / scapy-radio), a CatSniffer with Sub-GHz firmware, or an RTL-SDR (waving-z / rtl_433), install the Z-Wave capture tooling, and re-run the module to actually assess the interface.",
+      "_x_references": [
+        "https://github.com/cureHsu/EZ-Wave"
+      ]
+    },
+    {
+      "id": "GB-LORA-001",
+      "title": "LoRa Transmission Detected",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Discovery",
+          "name": "Network Sniffing"
+        }
+      ],
+      "searchsploit_terms": [
+        "lora",
+        "lorawan"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Reconcile the transmitting radio against the authorised asset inventory; disable or shield LoRa interfaces that are not required and document expected channels/spreading factors.",
+      "remediation_component": "Network",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli",
+        "single-channel LoRa sniffer",
+        "chirpstack-cli"
+      ],
+      "description": "LoRa radio transmissions were captured on the device's regional ISM band (433/868/915 MHz) during passive scanning, including frame count and observed MHDR MType(s).",
+      "impact": "Confirms a live LoRa wireless attack surface and provides the frames needed to target the subsequent LoRaWAN activation, key, replay, and payload tests.",
+      "_x_severity": "INFO",
+      "_x_category": "LoRa Discovery",
+      "_x_remediation": "Reconcile the transmitting radio against the authorised asset inventory; disable or shield LoRa interfaces that are not required and document expected channels/spreading factors.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-LORA-002",
+      "title": "LoRaWAN Network Traffic Detected",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Discovery",
+          "name": "Network Sniffing"
+        }
+      ],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Confirm the LoRaWAN deployment is authorised and inventoried; ensure the network server enforces monotonic frame counters and secure join handling.",
+      "remediation_component": "Network",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli",
+        "single-channel LoRa sniffer",
+        "chirpstack-cli"
+      ],
+      "description": "LoRaWAN protocol traffic (Join and/or MAC data frames identifiable by their MHDR/FHDR structure and DevAddr) was identified in the passive capture.",
+      "impact": "Confirms a LoRaWAN network is in range and reachable to a passive listener, exposing DevAddr and frame-counter metadata used to assess replay and key-management weaknesses.",
+      "_x_severity": "INFO",
+      "_x_category": "LoRa Discovery",
+      "_x_remediation": "Confirm the LoRaWAN deployment is authorised and inventoried; ensure the network server enforces monotonic frame counters and secure join handling.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-LORA-003",
+      "title": "Raw LoRa Payload Transmitted Without Encryption",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-311",
+        "CWE-319",
+        "CWE-327"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-02"
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "SC-13"
+      ],
+      "nist_800_171": [
+        "3.13.8",
+        "3.13.11"
+      ],
+      "pci_dss_4": [
+        "4.2.1"
+      ],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.24"
+      ],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Discovery",
+          "name": "Network Sniffing"
+        }
+      ],
+      "searchsploit_terms": [
+        "lora unencrypted",
+        "lora sniff"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Encrypt and authenticate the application payload (AES-CTR/GCM with a per-device key and a monotonic counter/nonce), or adopt LoRaWAN and rely on its MIC and FRMPayload encryption.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli",
+        "single-channel LoRa sniffer",
+        "chirpstack-cli"
+      ],
+      "description": "A proprietary (non-LoRaWAN) LoRa frame carried an application payload that decodes to printable/structured cleartext, indicating the payload is transmitted with no encryption or message integrity check.",
+      "impact": "Any passive listener in radio range reads sensor/telemetry data directly, and — absent a MIC — can forge or replay commands to the device, undermining confidentiality and integrity of the RF link.",
+      "_x_severity": "HIGH",
+      "_x_category": "LoRa / LoRaWAN",
+      "_x_remediation": "Encrypt and authenticate the application payload (AES-CTR/GCM with a per-device key and a monotonic counter/nonce), or adopt LoRaWAN and rely on its MIC and FRMPayload encryption.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-LORA-004",
+      "title": "LoRaWAN ABP Activation — Static Session Keys",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-323",
+        "CWE-330"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.4,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-01",
+        "PR.DS-02"
+      ],
+      "nist_800_53": [
+        "SC-12",
+        "IA-5"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [
+        "3.6.1"
+      ],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.24"
+      ],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Discovery",
+          "name": "Network Sniffing"
+        },
+        {
+          "technique": "T1557",
+          "tactic": "Credential Access",
+          "name": "Adversary-in-the-Middle"
+        }
+      ],
+      "searchsploit_terms": [
+        "lorawan abp",
+        "lorawan crib drag"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Prefer OTAA so fresh session keys are derived per join; where ABP is mandatory, persist frame counters across reboots (never reset them) and rotate the ABP session keys on a defined schedule.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli",
+        "single-channel LoRa sniffer",
+        "chirpstack-cli"
+      ],
+      "description": "The device is activated by ABP (Activation By Personalization), so the NwkSKey and AppSKey are provisioned as static, long-lived key material instead of being derived per session by an OTAA join.",
+      "impact": "On a device reset the frame counter returns to zero while the keys are unchanged, so the AES-CTR keystream/IV is reused across sessions — enabling known-plaintext / crib-dragging recovery of payloads and replay of previously captured uplinks.",
+      "_x_severity": "HIGH",
+      "_x_category": "LoRa / LoRaWAN",
+      "_x_remediation": "Prefer OTAA so fresh session keys are derived per join; where ABP is mandatory, persist frame counters across reboots (never reset them) and rotate the ABP session keys on a defined schedule.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-LORA-005",
+      "title": "LoRaWAN OTAA Join Replay — Missing DevNonce Tracking",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-294",
+        "CWE-330"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:L",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-01"
+      ],
+      "nist_800_53": [
+        "SC-23",
+        "IA-2"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [
+        "8.3.1"
+      ],
+      "iso_27001": [
+        "A.8.5"
+      ],
+      "iso_27002": [
+        "8.5"
+      ],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Discovery",
+          "name": "Network Sniffing"
+        },
+        {
+          "technique": "T1557",
+          "tactic": "Credential Access",
+          "name": "Adversary-in-the-Middle"
+        }
+      ],
+      "searchsploit_terms": [
+        "lorawan join replay",
+        "devnonce replay"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Upgrade to LoRaWAN 1.1, which enforces a monotonic DevNonce counter and join-server nonce tracking; where 1.0.x is required, persist the full DevNonce history per device and reject any repeat.",
+      "remediation_component": "Network",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli",
+        "single-channel LoRa sniffer",
+        "chirpstack-cli"
+      ],
+      "description": "The device uses OTAA under LoRaWAN 1.0.x, where the end device cannot detect a repeated Join-Accept and the network server only remembers a bounded number of recent DevNonce values, so a captured Join-Request can be replayed after that window rolls over.",
+      "impact": "An attacker replays a captured Join-Request to force a re-join and session-key reset, enabling denial-of-service against the node or pinning it to attacker-observable key material derived from replayed nonces.",
+      "_x_severity": "HIGH",
+      "_x_category": "LoRa / LoRaWAN",
+      "_x_remediation": "Upgrade to LoRaWAN 1.1, which enforces a monotonic DevNonce counter and join-server nonce tracking; where 1.0.x is required, persist the full DevNonce history per device and reject any repeat.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-LORA-006",
+      "title": "LoRaWAN Default or Weak AppKey",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "CRITICAL",
+      "cwe": [
+        "CWE-798",
+        "CWE-321"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 9.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-01",
+        "PR.DS-02"
+      ],
+      "nist_800_53": [
+        "IA-5",
+        "SC-12"
+      ],
+      "nist_800_171": [
+        "3.5.2",
+        "3.13.10"
+      ],
+      "pci_dss_4": [
+        "3.6.1",
+        "8.3.1"
+      ],
+      "iso_27001": [
+        "A.5.17",
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "5.17",
+        "8.24"
+      ],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Discovery",
+          "name": "Network Sniffing"
+        },
+        {
+          "technique": "T1557",
+          "tactic": "Credential Access",
+          "name": "Adversary-in-the-Middle"
+        }
+      ],
+      "searchsploit_terms": [
+        "lorawan default appkey",
+        "lorawan key extraction"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Provision a unique, random, secret AppKey per device at manufacture; never print, log, share, or derive it from public identifiers; store it in a secure element and rotate immediately on suspected compromise.",
+      "remediation_component": "Authentication",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli",
+        "single-channel LoRa sniffer",
+        "chirpstack-cli"
+      ],
+      "description": "The device's LoRaWAN root AppKey (OTAA) or session keys (ABP) are default, all-zero, sequential, vendor-shared, or derivable from the public DevEUI — i.e. a hard-coded or guessable credential.",
+      "impact": "Recovering the AppKey lets an attacker derive the session keys, decrypt every FRMPayload, forge a valid MIC, and fully impersonate the device — collapsing the entire LoRaWAN security model for that node and any others sharing the key.",
+      "_x_severity": "CRITICAL",
+      "_x_category": "LoRa / LoRaWAN",
+      "_x_remediation": "Provision a unique, random, secret AppKey per device at manufacture; never print, log, share, or derive it from public identifiers; store it in a secure element and rotate immediately on suspected compromise.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-LORA-007",
+      "title": "LoRaWAN Missing Frame-Counter Validation",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "HIGH",
+      "cwe": [
+        "CWE-294"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 7.1,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:L",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-02",
+        "DE.CM-01"
+      ],
+      "nist_800_53": [
+        "SC-23",
+        "SI-10"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [
+        "6.2.4"
+      ],
+      "iso_27001": [
+        "A.8.5"
+      ],
+      "iso_27002": [
+        "8.5"
+      ],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Discovery",
+          "name": "Network Sniffing"
+        },
+        {
+          "technique": "T1557",
+          "tactic": "Credential Access",
+          "name": "Adversary-in-the-Middle"
+        }
+      ],
+      "searchsploit_terms": [
+        "lorawan replay",
+        "lorawan fcnt replay"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Enforce strict monotonic frame-counter validation at the network server (reject any FCnt <= last seen), enable 32-bit frame counters, and alert on counter resets or rollovers.",
+      "remediation_component": "Network",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli",
+        "single-channel LoRa sniffer",
+        "chirpstack-cli"
+      ],
+      "description": "The network accepted a LoRaWAN uplink whose frame counter (FCnt) was equal to or lower than a previously-seen value — observed as a repeated FCnt in the capture, or confirmed by an authorized replay — indicating frame-counter validation is not strictly enforced.",
+      "impact": "Without strict monotonic frame-counter checks an attacker replays captured uplinks to re-trigger device actions or mask live telemetry with stale readings, defeating the protocol's core replay protection.",
+      "_x_severity": "HIGH",
+      "_x_category": "LoRa / LoRaWAN",
+      "_x_remediation": "Enforce strict monotonic frame-counter validation at the network server (reject any FCnt <= last seen), enable 32-bit frame counters, and alert on counter resets or rollovers.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-LORA-008",
+      "title": "LoRaWAN Cleartext Application Payload",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-311",
+        "CWE-319"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.3,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.DS-02"
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "SC-13"
+      ],
+      "nist_800_171": [
+        "3.13.8"
+      ],
+      "pci_dss_4": [
+        "4.2.1"
+      ],
+      "iso_27001": [
+        "A.8.24"
+      ],
+      "iso_27002": [
+        "8.24"
+      ],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Discovery",
+          "name": "Network Sniffing"
+        }
+      ],
+      "searchsploit_terms": [
+        "lorawan cleartext payload"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Add end-to-end application-layer encryption/authentication (e.g. AES-GCM with a key held only by the device and the application server) so LoRaWAN network operators cannot read or forge sensitive payloads.",
+      "remediation_component": "Network",
+      "remediation_category": "Cryptography",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli",
+        "single-channel LoRa sniffer",
+        "chirpstack-cli"
+      ],
+      "description": "The captured FRMPayload decodes to printable/structured data and the application relies solely on LoRaWAN's session-key FRMPayload encryption, with no independent end-to-end application-layer encryption.",
+      "impact": "Any holder of the session keys — the network server, a compromised join server, or an attacker who recovered a weak/default key — reads the plaintext, and for raw or misconfigured payloads a passive listener may read it directly.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "LoRa / LoRaWAN",
+      "_x_remediation": "Add end-to-end application-layer encryption/authentication (e.g. AES-GCM with a key held only by the device and the application server) so LoRaWAN network operators cannot read or forge sensitive payloads.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-LORA-009",
+      "title": "LoRaWAN 1.0.x — No Join-Request Replay Protection",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-294",
+        "CWE-330"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.3,
+      "cvss_vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:L",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AA-01"
+      ],
+      "nist_800_53": [
+        "SC-23"
+      ],
+      "nist_800_171": [],
+      "pci_dss_4": [
+        "6.2.4"
+      ],
+      "iso_27001": [
+        "A.8.5"
+      ],
+      "iso_27002": [
+        "8.5"
+      ],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1040",
+          "tactic": "Discovery",
+          "name": "Network Sniffing"
+        },
+        {
+          "technique": "T1557",
+          "tactic": "Credential Access",
+          "name": "Adversary-in-the-Middle"
+        }
+      ],
+      "searchsploit_terms": [
+        "lorawan 1.0 join replay"
+      ],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Migrate the network server and end devices to LoRaWAN 1.1, which adds monotonic DevNonce handling and join-server nonce tracking; until then, maximise the DevNonce cache and monitor for repeated joins.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Access Control",
+      "remediation_effort": "Significant",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli",
+        "single-channel LoRa sniffer",
+        "chirpstack-cli"
+      ],
+      "description": "The network operates LoRaWAN 1.0.x, in which Join-Request messages carry no replay protection prior to the 1.1 monotonic DevNonce counter — a protocol-version exposure applying to every OTAA device on the network.",
+      "impact": "The version gap leaves all OTAA joins susceptible to nonce reuse and Join-Request replay, providing a standing foothold for denial-of-service and session-reset attacks independent of any single observed replay.",
+      "_x_severity": "MEDIUM",
+      "_x_category": "LoRa / LoRaWAN",
+      "_x_remediation": "Migrate the network server and end devices to LoRaWAN 1.1, which adds monotonic DevNonce handling and join-server nonce tracking; until then, maximise the DevNonce cache and monitor for repeated joins.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-LORA-010",
+      "title": "LoRa Testing SKIPPED — No SDR or LoRa Radio Available",
+      "aliases": [],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "INFO",
+      "cwe": [],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [],
+      "nist_800_53": [],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Flash a Heltec LoRa32 v3 or LilyGo LoRa32 with single-channel-sniffer firmware via Quiver, or attach an RTL-SDR / HackRF with rtl-433 and universal-radio-hacker installed, then re-run the module.",
+      "remediation_component": "Configuration",
+      "remediation_category": "Configuration",
+      "remediation_effort": "Easy",
+      "validation_tools": [
+        "rtl_433",
+        "urh_cli",
+        "single-channel LoRa sniffer"
+      ],
+      "description": "Gearbox attempted LoRa / LoRaWAN assessment but no usable radio was available: either no hardware was selected, the LoRa32 sniffer board exposed no serial port, or neither rtl_433 nor urh_cli was on PATH.",
+      "impact": "LoRa / LoRaWAN was NOT tested for this interface, so any radio-layer, key-management, or replay weakness remains unverified and unreported until a capture-capable radio is provided.",
+      "_x_severity": "INFO",
+      "_x_category": "LoRa Coverage",
+      "_x_remediation": "Flash a Heltec LoRa32 v3 or LilyGo LoRa32 with single-channel-sniffer firmware via Quiver, or attach an RTL-SDR / HackRF with rtl-433 and universal-radio-hacker installed, then re-run the module.",
+      "_x_references": []
+    },
+    {
+      "id": "GB-BT-030",
+      "title": "BLE LESC Passkey Recovered from Passive Capture",
+      "aliases": ["LESC Passkey Entry Passkey Recovery", "f4 passkey brute"],
+      "source_tools": ["gearbox"],
+      "risk": "HIGH",
+      "cwe": ["CWE-294", "CWE-522", "CWE-327"],
+      "cve_examples": [],
+      "cvss_v3_base": null,
+      "cvss_vector": "",
+      "nessus_plugin_ids": [],
+      "qualys_qids": [],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": ["PR.AA-01"],
+      "nist_800_53": ["IA-5", "SC-8", "SC-13"],
+      "nist_800_171": [],
+      "pci_dss_4": [],
+      "iso_27001": [],
+      "iso_27002": [],
+      "soc2": [],
+      "hitrust": [],
+      "gdpr": [],
+      "mitre_attack": [],
+      "searchsploit_terms": [],
+      "metasploit_modules": [],
+      "kev": false,
+      "remediation_brief": "Use a fresh, random, single-use passkey per pairing that is never printed, hard-coded, or reused; a passkey a single sniffed pairing reveals provides no MITM protection under LESC.",
+      "remediation_component": "Authentication",
+      "remediation_category": "Authentication",
+      "remediation_effort": "Moderate",
+      "validation_tools": ["Sniffle", "tshark", "ble_passkey_recover (f4/AES-CMAC brute)"],
+      "description": "The 6-digit LE Secure Connections Passkey Entry passkey was recovered offline from a passively-captured pairing. In LESC Passkey Entry each of the 20 passkey bits is committed with f4 (AES-CMAC over the cleartext ECDH public keys, the revealed per-round nonce, and one passkey bit); once the nonce is revealed the single bit is brute-forced by matching the captured Pairing Confirm, and the recovery is confirmed independently from the initiator and responder halves.",
+      "impact": "An attacker who passively sniffs ONE pairing recovers the passkey with no active MITM and no physical access to the printed value. If the passkey is static or reused it authenticates every future session and every unit that shares it, collapsing LESC Passkey Entry to Just Works — full man-in-the-middle and session compromise.",
+      "_x_severity": "HIGH",
+      "_x_category": "Bluetooth Pairing",
+      "_x_remediation": "Fresh, random, single-use per-pairing passkey; never printed or reused.",
+      "_x_references": ["Bluetooth Core Spec Vol 3 Part H 2.3.5.6.3", "f4 crypto toolbox 2.2.6"]
     }
   ]
 }

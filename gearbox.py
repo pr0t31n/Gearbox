@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.18.0"
+VERSION = "1.18.1"
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export

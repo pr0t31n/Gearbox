@@ -458,6 +458,9 @@ def phase_go(os_id: str, dry_run: bool) -> None:
     info(f"Tools will be installed to: {go_install_bin}")
 
     for tool in GO_TOOLS:
+        if shutil.which(tool["label"]):
+            info(f"{tool['label']} already installed — skipping")
+            continue
         info(f"Installing {tool['label']} ({tool['pkg']})…")
         rc = run(["go", "install", tool["pkg"]], dry_run=dry_run)
         if rc == 0:

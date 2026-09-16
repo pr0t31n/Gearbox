@@ -1,0 +1,1422 @@
+{
+  "schema_version": "1.1",
+  "description": "Closed-box hardware/embedded device test case catalogue. Interface-organized test cases covering physical, network, USB, serial, display, RFID, CAN bus, Zigbee, Bluetooth, Wi-Fi, UWB, JTAG/debug, memory, OS/application, PCAP analysis, and cloud/vendor assessment of embedded devices.",
+  "categories": [
+    {
+      "name": "Physical Boot Controls",
+      "test_cases": [
+        {
+          "title": "Boot to Live OS",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect tester-controlled bootable removable media to each exposed USB interface.",
+            "Attempt startup using the device's documented or standard boot-selection controls.",
+            "Determine whether removable media can load an alternate operating system or otherwise bypass normal device startup controls."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Boot Menu / Firmware Access",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Initiate device startup and use standard firmware-entry and boot-selection key sequences.",
+            "Determine whether firmware setup, boot-order, and alternate-boot controls are accessible.",
+            "Assess whether access to administrative firmware settings requires authorization."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Boot Recovery Behavior",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Exercise approved failed-start and recovery-key sequences without intentionally damaging device state.",
+            "Allow the device to complete normal recovery or startup behavior after each attempt.",
+            "Confirm whether the system returns to the intended operating and application state."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Offline System Tampering",
+      "test_cases": [
+        {
+          "title": "Offline Disk Access",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Use an approved alternate-boot path to access attached storage outside normal operating-system controls.",
+            "Determine whether the internal disk can be mounted, read, or copied without valid operating-system authentication.",
+            "Do not open the enclosure or remove storage unless physical tampering is explicitly in scope."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Offline Registry / Credential Access",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Use approved offline operating-system access to inspect protected registry hives and credential stores.",
+            "Determine whether account hashes, secrets, or configuration data can be accessed without valid credentials.",
+            "Avoid changes to source media or credentials unless explicitly authorized."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Offline Account Modification",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Use approved offline access to evaluate whether local account data may be altered.",
+            "Perform only reversible test changes under written authorization.",
+            "Confirm whether normal startup authentication controls can be bypassed or modified."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Controlled Persistence / Remote Access",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Use an approved controlled-host path to evaluate whether a temporary remote-access mechanism can be installed.",
+            "Limit testing to reversible, documented artifacts and customer-approved callback infrastructure.",
+            "Confirm whether the artifact persists or enables remote device control across normal restart conditions."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Network Attack Surface and Vulnerability Review",
+      "test_cases": [
+        {
+          "title": "Service Discovery",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Identify TCP and UDP services reachable through exposed Ethernet interfaces from authorized test positions.",
+            "Record reachable ports, service fingerprints, and protocol metadata.",
+            "Compare observed exposure to expected network-segmentation and device-function requirements."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Vulnerability Scan",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Perform authorized vulnerability and configuration scans against exposed device interfaces.",
+            "Correlate scanner output with targeted service verification to distinguish actionable weaknesses from informational results.",
+            "Record confirmed exposures and evidence for reporting."
+          ],
+          "result": ""
+        },
+        {
+          "title": "VNC Exposure",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Identify VNC/RFB listener exposure and supported protocol and security options.",
+            "Test authentication negotiation and unauthenticated connection behavior without accessing an unauthorized session.",
+            "Determine whether remote-display exposure aligns with intended device administration."
+          ],
+          "result": ""
+        },
+        {
+          "title": "VNC Session Confidentiality",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Capture and inspect VNC connection traffic during approved connection attempts.",
+            "Evaluate protection of authentication exchange, screen content, keyboard input, clipboard data, and session traffic.",
+            "Record whether the protocol provides encryption appropriate to the intended use."
+          ],
+          "result": ""
+        },
+        {
+          "title": "SMB Exposure",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Identify SMB service exposure and supported protocol dialects.",
+            "Assess signing, guest or null-session behavior, authentication requirements, and information available through unauthenticated negotiation.",
+            "Determine whether SMB exposure aligns with expected management requirements."
+          ],
+          "result": ""
+        },
+        {
+          "title": "WinRM/RPC Exposure",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Identify Windows RPC, endpoint-mapper, dynamic RPC, and WinRM or WS-Management services exposed through Ethernet.",
+            "Assess unauthenticated reachability and service metadata.",
+            "Determine whether management-service exposure provides a reportable security condition."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Legacy Web/VNC Viewer Exposure",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Review web-accessible remote-viewer components and associated downloadable client artifacts.",
+            "Inspect server responses, page metadata, and client-side resources for legacy technology, unsupported dependencies, and exposed service information.",
+            "Determine whether the viewer interface introduces a reportable exposure."
+          ],
+          "result": ""
+        },
+        {
+          "title": "VNC Credential Testing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Conduct authorized, rate-controlled password validation against exposed VNC services using approved account and password candidates.",
+            "Monitor authentication behavior and agreed stop conditions throughout testing.",
+            "Record successful authentication only when it results from an authorized test credential attempt."
+          ],
+          "result": ""
+        },
+        {
+          "title": "SMB Credential Testing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Conduct authorized, rate-controlled SMB authentication validation using approved account and password candidates.",
+            "Apply agreed attempt limits and stop conditions consistent with observed or documented lockout controls.",
+            "Record successful authentication and affected account context."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Local Session / Kiosk Escape Behavior",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Observe startup and intended application behavior after local physical access is obtained.",
+            "Use approved keyboard, mouse, and HID interactions to test application boundaries, accessibility surfaces, and standard operating-system escape sequences.",
+            "Determine whether a physically present user can reach an unauthorized operating-system or command-execution context."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Network Pivot Potential",
+      "test_cases": [
+        {
+          "title": "Ethernet Drop Abuse",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Disconnect and reconnect the exposed Ethernet link, or insert approved passive or intermediate network equipment.",
+            "Observe device, application, and network behavior for operational or security alerts.",
+            "Determine whether physical Ethernet access creates an independent attacker foothold or data-collection opportunity."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Pivot After Device Control",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "If authorized device control is established, assess network reachability from the controlled device to adjacent in-scope systems.",
+            "Limit discovery and validation to approved target ranges and protocols.",
+            "Determine whether the device can be used to access otherwise segmented network resources."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Egress / Call-Home Simulation",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "If an approved controlled-host path is established, initiate a benign outbound callback to tester-controlled infrastructure.",
+            "Observe egress controls, network monitoring, and device behavior.",
+            "Confirm whether the device can establish outbound communications outside expected operational channels."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Traffic Confidentiality",
+      "test_cases": [
+        {
+          "title": "Passive Boot/Idle Capture",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Capture network traffic during device startup, normal operation, and idle periods from an authorized observation point.",
+            "Inspect traffic for cleartext credentials, commands, tokens, hostnames, service metadata, and unencrypted application communication.",
+            "Correlate relevant observations with exposed services and intended network behavior."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "USB Interface Exposure",
+      "test_cases": [
+        {
+          "title": "O.MG/HID Injection While Logged Out",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect an approved HID-emulation device while the system is at the lock screen, user chooser, or accessibility interface.",
+            "Deliver benign, documented input sequences to assess focus behavior, accessibility interactions, and navigation controls.",
+            "Determine whether accepted HID input permits passwordless access, unauthorized action, or security-boundary bypass."
+          ],
+          "result": ""
+        },
+        {
+          "title": "O.MG/HID Injection During Active Session",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect an approved HID-emulation device during an active application session.",
+            "Deliver benign, documented input sequences to assess whether the application or operating-system boundary can be exited.",
+            "Determine whether accepted HID input reaches a shell, administrative interface, or other unauthorized execution context."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Boot-Time USB Interaction",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect approved keyboard or HID-emulation devices during startup.",
+            "Use benign input sequences to assist standard boot-key interaction.",
+            "Determine whether boot-time HID acceptance changes firmware, recovery, or alternate-boot access."
+          ],
+          "result": ""
+        },
+        {
+          "title": "USB Network Interface / Traffic Exposure",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect an approved USB network-interface device to each exposed USB port.",
+            "Establish an isolated, tester-controlled network path and observe interface enumeration, address assignment, and device behavior.",
+            "Validate whether the interface enables traffic observation, network access, or remote-management reachability without device authorization."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Cloud / Vendor Communications",
+      "test_cases": [
+        {
+          "title": "Azure IoT Call-Home",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Capture network traffic during startup and idle operation to identify device-initiated cloud or management communications.",
+            "Inspect transport security, endpoint metadata, certificate behavior, payload handling, and sensitive-data exposure.",
+            "Determine whether outbound communications disclose information or provide an unauthorized control path."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Local Name / Service Disclosure",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Passively capture local network traffic from an authorized network observation point.",
+            "Identify local discovery, name-resolution, SMB or browser-service, and host-identification traffic.",
+            "Determine whether unauthenticated observers can derive device identity, role, or service information."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Reconnaissance and Baseline",
+      "test_cases": [
+        {
+          "title": "Physical Interface Inventory and Port Mapping",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Visually inspect all exposed physical interfaces on the device.",
+            "Document interface types, connectors, physical controls, indicators, and labels.",
+            "Compare observed interfaces against vendor-supplied documentation and specifications.",
+            "Note any undocumented or unexpected interfaces for further investigation."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Passive Traffic Baseline and Active-Interface Discovery",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Mirror all Ethernet interfaces using a port-mirroring switch or passive tap.",
+            "Capture traffic with Wireshark or tcpdump during startup, idle, normal operation, and shutdown phases.",
+            "Review captures for active IP addresses, MAC addresses, protocols, services, and peer endpoints.",
+            "Compare observed traffic against vendor documentation and expected network behavior.",
+            "Perform limited active discovery to confirm interface configurations and reachability."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Audio Port Exposure",
+      "test_cases": [
+        {
+          "title": "Audio Injection",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect a 3.5mm-to-RCA cable from a tester-controlled laptop to the device line-in or audio input.",
+            "Play audio tones and recordings at varying volumes through the connected input.",
+            "Observe whether injected audio is captured, recorded, replayed, or disrupts normal device operation.",
+            "Document any change in device behavior resulting from external audio input."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Serial Port Exposure",
+      "test_cases": [
+        {
+          "title": "Interactive Serial Session Attempt",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect a USB-to-serial adapter to exposed serial interfaces.",
+            "Configure the terminal emulator for common baud rates (115200, 57600, 19200, 9600) and bit parameters (8-N-1, 7-E-1).",
+            "Attempt to affect device startup by sending character sequences, toggling DTR, and sending Break signals.",
+            "Determine whether serial input permits interactive access to a shell, bootloader, or diagnostic interface."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Serial Port Snooping",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect a USB-to-serial adapter or passive serial splitter to the exposed serial port.",
+            "Configure the terminal emulator for expected baud rates and parameters.",
+            "Monitor for serial traffic during power-on, normal operation, and shutdown.",
+            "Try alternate baud rates if captured data appears corrupted or unintelligible.",
+            "Record all observed traffic for analysis."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Serial Traffic Sensitive-Content Analysis",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Decode framed messages from serial captures using protocol-appropriate tools.",
+            "Search decoded data for device identifiers, credentials, patient data, configuration secrets, and authentication tokens.",
+            "Document any sensitive content transmitted over the serial interface."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Ethernet Port Exposure",
+      "test_cases": [
+        {
+          "title": "Unauthenticated Vulnerability Scanning",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect to the device network segment from the authorized test position.",
+            "Determine the device IP address through passive observation or approved active discovery.",
+            "Scan the device with automated vulnerability scanners without providing any credentials.",
+            "Review and document scan results for confirmed vulnerabilities."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Authenticated Vulnerability Scanning",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Obtain valid device credentials through approved channels.",
+            "Configure vulnerability scanners for authenticated scanning using the provided credentials.",
+            "Execute authenticated scans against device interfaces.",
+            "Review and document scan results, noting additional findings compared to unauthenticated scans."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Vulnerability Validation",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Review vulnerability scan results from both authenticated and unauthenticated scans.",
+            "Confirm true positive findings through manual validation and evidence collection.",
+            "Perform targeted manual testing for indeterminate or ambiguous scanner findings.",
+            "Document validated vulnerabilities with supporting evidence."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Network Protocol Cryptographic Analysis",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Identify encrypted protocols in use from captured network traffic.",
+            "Run sslscan or equivalent tools against all TLS-enabled endpoints on the device.",
+            "Filter captured traffic for TLS ClientHello and Certificate messages to supplement active scanning.",
+            "Extract SNI, ALPN, supported TLS versions, and offered cipher suites from both active scans and passive captures.",
+            "Flag legacy CBC cipher suites, weak TLS versions, expired certificates, and identity leakage.",
+            "Confirm that strong TLS with AEAD-only cipher suites is enforced.",
+            "Evaluate cryptographic implementations against current best practices and standards.",
+            "Document the overall cryptographic posture of device network communications."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Verify Ethernet Security Controls Cannot be Downgraded",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Attempt to bypass or downgrade network security controls through protocol manipulation.",
+            "Evaluate whether physical access enables circumvention of network-level protections.",
+            "Confirm the presence and effectiveness of compensating controls.",
+            "Document any successful downgrade paths or bypass methods."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Display Port Exposure",
+      "test_cases": [
+        {
+          "title": "Sensitive Data Leaked Over Display",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect an external monitor via HDMI, DVI, SDI, or DisplayPort to exposed display outputs.",
+            "Observe display output during device boot, normal operation, and shutdown phases.",
+            "Identify any sensitive data, diagnostic information, or internal system details visible on the external display.",
+            "Document all observed data leakage through the display interface."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Device Display Disruption via External Input",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect a tester-controlled laptop to the device display port.",
+            "Configure the laptop to duplicate or extend the display.",
+            "Observe the device primary and secondary displays for disruption, artifacts, or unexpected behavior.",
+            "Document any operational impact from external display input."
+          ],
+          "result": ""
+        },
+        {
+          "title": "CEC Protocol Detection",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect a USB-CEC adapter with appropriate cables to the device HDMI interface.",
+            "Scan for CEC-enabled devices on the HDMI bus.",
+            "Determine whether the device responds to CEC commands or exposes CEC control surfaces.",
+            "Document any CEC-enabled functionality and potential attack vectors."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "RFID Interface Exposure",
+      "test_cases": [
+        {
+          "title": "Read RFID Tag",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Install RFID interaction tools (Proxmark3, Chameleon, or equivalent).",
+            "Perform tag identification using low-frequency and high-frequency searches (lf search, hf search, GETUID).",
+            "Attempt to read, extract, and clone tag data from identified RFID tags.",
+            "Document tag type, data contents, and security protections observed."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Snoop RFID Pairing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Position the RFID sniffing device near the target reader during normal tag interaction.",
+            "Perform passive sniffing of RFID communication (iso14443a_sniff, iso14443b_sniff, or equivalent).",
+            "Analyze captured data for credentials, authentication keys, and replay opportunities.",
+            "Document the security of the RFID pairing and authentication process."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "CAN Bus Interface Exposure",
+      "test_cases": [
+        {
+          "title": "CAN Bus Traffic Capture",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Add a CAN USB adapter to the bus via a passive splitter or unused connector.",
+            "Use an oscilloscope to determine the CAN bus bitrate if unknown.",
+            "Configure the CAN adapter with the determined baud rate.",
+            "Capture CAN traffic during device initialization, idle, and normal operation.",
+            "Try different baud rates if no valid traffic is observed.",
+            "Document all captured CAN frames and message identifiers."
+          ],
+          "result": ""
+        },
+        {
+          "title": "CAN Bus Traffic Replay / Injection / Fuzzing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect a CAN adapter at the determined baud rate.",
+            "Send well-known CAN messages, previously captured frames, or fuzzed data onto the bus.",
+            "Observe device behavior for faults, disruptions, state changes, or safety-relevant responses.",
+            "Document any anomalous device behavior resulting from injected traffic."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Zigbee Interface Exposure",
+      "test_cases": [
+        {
+          "title": "Zigbee Packet Sniffing and Interception",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Install Zigbee sniffing software on the tester workstation.",
+            "Connect a compatible Zigbee sniffer dongle (CatSniffer, SONOFF, CC2531, or equivalent).",
+            "Intercept Zigbee traffic on identified channels.",
+            "Determine the encryption status of captured Zigbee communications.",
+            "Document observed network topology, device roles, and data exposure."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Bluetooth BLE Security",
+      "test_cases": [
+        {
+          "title": "Passive Pairing Interception and PIN Recovery",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Flash sniffer firmware to a compatible radio dongle.",
+            "Follow the target device by BD_ADDR to capture active advertising and connection traffic.",
+            "Force a re-pair event to capture the full pairing exchange.",
+            "Run crackle or equivalent tools to attempt link-key or LTK recovery from the captured exchange.",
+            "Assess whether the device uses LE Legacy Pairing or LE Secure Connections."
+          ],
+          "result": ""
+        },
+        {
+          "title": "LE Secure Connections and Association-Model Verification",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Isolate the SMP pairing exchange from captured BLE traffic.",
+            "Inspect the AuthReq field for SC (Secure Connections) and MITM protection flags.",
+            "Confirm the presence of ECDH handshake via Public Key and DHKey Check PDUs.",
+            "Derive the expected association model from the IO capabilities of both endpoints.",
+            "Document the pairing security level and any deviations from expected behavior."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Persistent Bonding \u2014 Reconnection Without Re-Pairing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Capture the initial pairing and bonding exchange between the device and its companion.",
+            "Disconnect without forgetting the bond on either side.",
+            "Reconnect and capture the reconnection exchange.",
+            "Inspect whether the reconnection performs SMP re-pairing or uses direct link-layer encryption with stored keys.",
+            "Document the bonding persistence behavior and key management approach."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Active Man-in-the-Middle Relay",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Stand up a dual-role BLE relay with a central role paired to the real device and a peripheral role impersonating the device to the companion.",
+            "Bridge GATT operations between the companion and the real device through the relay.",
+            "Observe whether relayed commands produce physical effects on the target device.",
+            "Assess the impact of static passkeys on relay feasibility.",
+            "Document any successful interception or manipulation of BLE communications."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Wireless Network Wi-Fi Security",
+      "test_cases": [
+        {
+          "title": "Rogue AP / Evil Twin with Captive Portal",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Bring up an access point broadcasting the target SSID configured as OPEN.",
+            "Run a DHCP server to assign addresses to connecting clients.",
+            "Periodically deauthenticate clients from the legitimate access point.",
+            "Serve a captive portal page and log any submitted credentials.",
+            "Document client behavior and credential capture results."
+          ],
+          "result": ""
+        },
+        {
+          "title": "KARMA / MANA Probe-Response Attack",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Configure a MANA-patched hostapd instance on the tester wireless interface.",
+            "Enable probe-response to all client probe requests regardless of ESSID.",
+            "Allow association to any probed ESSID.",
+            "Log credentials and connection attempts from associating clients.",
+            "Document which devices are susceptible to probe-response attacks."
+          ],
+          "result": ""
+        },
+        {
+          "title": "BSS Transition Management Hijacking (802.11v)",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Identify clients associated with the target access point.",
+            "Craft an 802.11v BSS Transition Management Request frame pointing to the attacker BSSID.",
+            "Transmit the crafted frame and observe whether the target client roams to the attacker AP.",
+            "Document client roaming behavior and susceptibility to transition management attacks."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Client Probe-Request Harvest",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Perform a passive airodump-ng scan on all channels.",
+            "Extract probe-request frames with associated MAC addresses and probed ESSIDs.",
+            "Report remembered SSIDs broadcast by the target device.",
+            "Note whether the device uses MAC address randomization for probe requests.",
+            "Document the privacy implications of observed probe behavior."
+          ],
+          "result": ""
+        },
+        {
+          "title": "WPA3 SAE Transition-Mode Downgrade",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Configure a rogue access point as WPA2-only broadcasting the target SSID.",
+            "Deauthenticate target clients from the legitimate WPA3 access point.",
+            "Capture EAPOL handshakes from clients connecting to the WPA2 rogue AP.",
+            "Attempt offline passphrase cracking against captured handshakes.",
+            "Document whether the device is susceptible to WPA3 transition-mode downgrade."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Wi-Fi Direct / P2P WPS Scanning",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Run wash or equivalent tools to enumerate WPS-enabled and P2P devices in range.",
+            "Identify the target device among discovered WPS/P2P endpoints.",
+            "Attempt a reaver PIN attack if WPS is found enabled on the target.",
+            "Document WPS configuration status and attack feasibility."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "JTAG / Debug Interface Exposure",
+      "test_cases": [
+        {
+          "title": "Active Debug Interface Detection",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Inspect integrated circuits for MCU type and debug interface indicators.",
+            "Locate JTAG or debug connector footprints on the circuit board.",
+            "Research the expected pinout for the identified MCU.",
+            "Use a multimeter to map suspected debug pins to the connector.",
+            "Connect a debug probe and scan with OpenOCD for active JTAG TAPs.",
+            "Document all detected debug interfaces and access status."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Firmware Exfiltration via Debug Interface",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Use OpenOCD to display available memory banks and regions.",
+            "Attempt read_memory and dump_image operations to extract firmware contents.",
+            "Use GDB attached via the debug interface to dump firmware from memory.",
+            "Review extracted firmware for sensitive data, credentials, and configuration information.",
+            "Document the feasibility and results of firmware extraction."
+          ],
+          "result": ""
+        },
+        {
+          "title": "SWD Debug Port Probing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Identify SWD (Serial Wire Debug) footprint or test pads on the circuit board.",
+            "Probe suspected pads with a multimeter for the idle SWD clock and data signature.",
+            "Connect a debug probe wired for SWD (SWCLK, SWDIO, GND).",
+            "Run OpenOCD configured with a Cortex-M target definition.",
+            "Attempt to read the DPIDR register to confirm debug port presence.",
+            "Determine whether the debug interface is active, disabled, or protected."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "UWB Protocol Security",
+      "test_cases": [
+        {
+          "title": "UWB Channel Identification and Traffic Interception",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect a UWB sniffer to the tester workstation.",
+            "Perform a quick scan to identify the active UWB channel configuration.",
+            "Track and collect UWB packets on the identified channel.",
+            "Review captured packets for unencrypted data, device identifiers, and ranging information."
+          ],
+          "result": ""
+        },
+        {
+          "title": "UWB Packet Injection",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Prepare a transmit script with the identified UWB channel parameters.",
+            "Transmit extraneous UWB data packets on the active channel.",
+            "Monitor the target system for any changes in behavior, state, or reported measurements.",
+            "Document the system response to injected packets."
+          ],
+          "result": ""
+        },
+        {
+          "title": "UWB Replay Attack",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Sniff and select a representative UWB packet from captured traffic.",
+            "Configure the replay with matching channel and timing parameters.",
+            "Replay the captured packet and monitor for a system response.",
+            "Document whether the system accepts replayed packets and any resulting state changes."
+          ],
+          "result": ""
+        },
+        {
+          "title": "UWB Service Disruption",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Transmit UWB packets at a high rate on the active channel.",
+            "Monitor the target system for degradation in performance, accuracy, or availability.",
+            "Document any denial-of-service conditions or operational impact.",
+            "Assess the system recovery behavior after disruption ceases."
+          ],
+          "result": ""
+        },
+        {
+          "title": "UWB Practical Distance Reduction Attack",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Configure a UWB injection triggered on the synchronization field of legitimate transmissions.",
+            "Run the injection over an extended observation period.",
+            "Monitor the target system for changes in reported distance or positioning data.",
+            "Document any successful distance-reduction effects and their magnitude."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Internal Memory / Storage Security",
+      "test_cases": [
+        {
+          "title": "Data at Rest Analysis",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Remove or interface with internal storage media (SD card, eMMC, flash chip) following approved disassembly procedures.",
+            "Mount the storage on a forensic workstation in read-only mode.",
+            "Review the filesystem for sensitive data, credentials, configuration files, and patient information.",
+            "Evaluate whether data-at-rest encryption is implemented and its effectiveness.",
+            "Document all findings related to stored data security."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Physical Authentication Controls",
+      "test_cases": [
+        {
+          "title": "Brute-Force Authentication",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Identify all authentication entry points on the device (login screens, PINs, biometric readers).",
+            "Enumerate user accounts through approved discovery methods.",
+            "Attempt systematic password and PIN guessing within approved attempt limits.",
+            "Document account lockout mechanisms, timing delays, and threshold behavior.",
+            "Estimate the practical feasibility of brute-force attacks against observed controls."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Privilege Escalation / Unauthorized Access",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Log in as an unprivileged or limited-access user with approved credentials.",
+            "Attempt to access restricted functions, menus, or data beyond the user role.",
+            "Attempt to modify account roles or permissions from the unprivileged context.",
+            "Attempt to trick the device into granting elevated access through input manipulation or workflow bypass.",
+            "Document any successful privilege escalation paths."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "USB Port Exposure \u2014 Granular",
+      "test_cases": [
+        {
+          "title": "USB Bus-Power Verification",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Insert a USB power meter into each exposed USB port.",
+            "Read and record voltage and current values under load.",
+            "Confirm readings are within USB specification (approximately 5V +/-5%).",
+            "Note any anomalous power draw or voltage levels."
+          ],
+          "result": ""
+        },
+        {
+          "title": "USB HID Mouse Acceptance",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Insert a standard USB mouse into each exposed USB port.",
+            "Observe the device display for cursor or pointer appearance.",
+            "Document which ports accept HID mouse input and any resulting interaction capability."
+          ],
+          "result": ""
+        },
+        {
+          "title": "USB HID Key-Combination Probe",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect a USB keyboard to each exposed USB port.",
+            "Attempt standard key combinations: Ctrl+Alt+Del, Ctrl+Alt+F1/F2, Ctrl+Alt+T, Alt+Tab, Super.",
+            "Observe for shell access, TTY switching, task manager, terminal launch, or kiosk escape.",
+            "Document which key combinations produce a response and the resulting access level."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Rogue USB Credential/SSH Dump",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Configure an approved HID-attack device with an SSH credential dump payload.",
+            "Connect the device to each exposed USB port and observe execution indicators.",
+            "Review the device loot directory for captured credentials, SSH keys, or system information.",
+            "Document any successful credential extraction."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Rogue USB Reverse Shell",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Configure an approved HID-attack device with a reverse shell payload.",
+            "Set up a listener on the tester workstation at the designated callback address.",
+            "Connect the HID-attack device to each exposed USB port and monitor for an inbound connection.",
+            "Document any successful reverse shell establishment and the resulting access level."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Rogue USB Network Device",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect an approved HID-attack device configured as a network interface or a USB-to-Ethernet adapter.",
+            "Check whether the device operating system enumerates the network interface.",
+            "Assess whether USB device-class policy enforcement prevents network interface registration.",
+            "Document the system response to rogue network device insertion."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Concurrent / Multiple USB Device Handling",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect multiple USB devices simultaneously via hubs to exposed USB ports.",
+            "Observe whether the device enforces count or type restrictions on connected devices.",
+            "Document device behavior with multiple concurrent USB peripherals.",
+            "Note any enumeration limits or device-class filtering."
+          ],
+          "result": ""
+        },
+        {
+          "title": "External Removable Media Read/Write",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect an approved USB storage device to each exposed USB port.",
+            "Test read, write, and execute operations on the removable media.",
+            "Review group policy or equivalent restrictions on removable media access.",
+            "Document which operations are permitted and any enforced restrictions."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Data Encryption on USB Storage",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Perform the manufacturer-documented data export workflow to USB storage.",
+            "Examine the exported data for entropy characteristics indicative of encryption.",
+            "Evaluate the encryption implementation, key management, and algorithm selection.",
+            "Document whether exported data is encrypted and the strength of the implementation."
+          ],
+          "result": ""
+        },
+        {
+          "title": "USB-to-Ethernet Adapter Behavior",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Insert a USB-to-Ethernet adapter into each exposed USB port.",
+            "Connect the adapter to a tester-controlled bench network.",
+            "Observe link negotiation, IP stack behavior, and interface enumeration.",
+            "Attempt DHCP and static IP assignment through the adapter.",
+            "Document whether the adapter creates a usable network path."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Verify USB Security Controls Cannot be Downgraded",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Identify and document all USB security controls in place on the device.",
+            "Attempt to bypass USB security controls through device class or ID filtering circumvention.",
+            "Test whether USB restrictions can be modified, disabled, or subverted through available interfaces.",
+            "Document any successful bypass methods and residual risk."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "OS / Application Security",
+      "test_cases": [
+        {
+          "title": "Default Configuration Testing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Examine the out-of-box device configuration before any customization.",
+            "Confirm that default settings follow secure-by-default principles.",
+            "Confirm that no default credentials are present or that defaults have been changed.",
+            "Document any insecure default configuration settings."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Authentication Testing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Review configured user accounts and authentication mechanisms.",
+            "Attempt password guessing with common and default credential lists.",
+            "Confirm the presence and effectiveness of account lockout mechanisms.",
+            "Determine password complexity requirements and enforcement.",
+            "Document authentication weaknesses."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Session Management Testing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Determine how the device handles user sessions and session tokens.",
+            "Attempt session switching between user contexts.",
+            "Attempt to create privileged sessions through manipulation.",
+            "Confirm proper logout behavior and session timeout enforcement.",
+            "Document session management weaknesses."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Authorization Testing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Identify authorization handling mechanisms and role-based access controls.",
+            "Attempt unauthorized access to restricted features and data.",
+            "Attempt authorization bypass through direct object references or parameter manipulation.",
+            "Attempt privilege elevation through available interfaces.",
+            "Document authorization weaknesses."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Business Logic Testing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Map key device workflows and operational sequences.",
+            "Confirm that control requirements are enforced at each workflow step.",
+            "Attempt to skip steps, reorder operations, or provide invalid values in workflows.",
+            "Document any logic flaws that permit unintended actions."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Denial of Service Testing",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Identify potential denial-of-service vectors including account lockouts, resource exhaustion, network flooding, application crashes, and data corruption.",
+            "Attempt each identified vector within approved test boundaries.",
+            "Document device behavior during and after each denial-of-service attempt.",
+            "Record recovery time and any manual intervention required."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Ensure Software is Supported by Vendor",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Review all off-the-shelf software components and their versions.",
+            "Confirm that each component is under active vendor support.",
+            "Flag any end-of-life or end-of-support components.",
+            "Document the support status of all identified software."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Review Automated OS Patch Management",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Document the device operating system patching process and update mechanisms.",
+            "Review currently installed patches and update history.",
+            "Confirm that patching procedures are documented in the cybersecurity management plan.",
+            "Document any patching gaps or missing updates."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Review Automated Third-Party Patch Management",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Document the third-party software patching process and update mechanisms.",
+            "Review currently installed third-party patches and update history.",
+            "Confirm that third-party patching is documented in the cybersecurity management plan.",
+            "Document any third-party patching gaps."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Code Injection / Application Whitelisting Review",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Review application whitelisting configuration (AppLocker, WDAC, or equivalent).",
+            "Try running executables from unauthorized directories and locations.",
+            "Try adding items to startup or scheduled task locations.",
+            "Check for unified write filter or equivalent integrity controls.",
+            "Document whitelisting effectiveness and any bypass paths."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Privilege Escalation",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Attempt to access higher-privilege accounts through available interfaces.",
+            "Attempt to access privileged functions from an unprivileged context.",
+            "Attempt to modify account roles or permissions.",
+            "Check for known operating system privilege escalation vulnerabilities applicable to the installed version.",
+            "Document any successful escalation paths."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Encryption of Data at Rest",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Confirm whether whole-disk encryption is enabled and the algorithm in use.",
+            "Confirm that configuration files containing sensitive data are encrypted.",
+            "Confirm that stored passwords are hashed using strong algorithms.",
+            "Review removable media encryption policies and enforcement.",
+            "Document the overall data-at-rest encryption posture."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Information Disclosure",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Examine the filesystem and databases for development artifacts, debug logs, and temporary files.",
+            "Search for exposed cryptographic keys, certificates, and credentials.",
+            "Search for patient data, identifiers, or other sensitive information in accessible storage.",
+            "Document all instances of information disclosure."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Operating System Anti-Exploitation Features",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Verify that ASLR is enabled for application processes.",
+            "Confirm that Data Execution Prevention (DEP) settings are enforced.",
+            "Verify memory integrity and Hypervisor-Enforced Code Integrity (HVCI) status where applicable.",
+            "Document the status of all anti-exploitation features."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Anti-Malware Scanning of Removable Devices",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Test removable media scanning by introducing an EICAR test file on USB storage.",
+            "Check for the presence and status of anti-virus or anti-malware software.",
+            "Document whether malicious content on removable media is detected and blocked."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Auto-run Content",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Connect removable storage containing autorun configuration files to exposed USB ports.",
+            "Observe whether autorun or autoplay content executes automatically.",
+            "Check group policy or equivalent settings for autorun and autoplay configuration.",
+            "Document whether autorun is disabled and enforced."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Code Integrity Controls",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Check Secure Boot status in the BIOS/UEFI configuration.",
+            "Check Device Guard or equivalent code integrity settings.",
+            "Confirm that a code-signing scheme is implemented and enforced.",
+            "Document the overall code integrity posture."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Host-Based Firewall and Port Filtering",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Run firewall status commands appropriate to the operating system.",
+            "Confirm that the host-based firewall is enabled and actively filtering.",
+            "Review firewall rules for appropriate restrictiveness.",
+            "Document the firewall configuration and any overly permissive rules."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Hardened OS Configuration Review",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Perform a manual review against applicable CIS benchmarks or STIG checklists.",
+            "Confirm that unnecessary services, devices, and accounts are disabled.",
+            "Review group policy or equivalent configuration for security hardening.",
+            "Optionally run an authenticated configuration scanner for comprehensive coverage.",
+            "Document deviations from hardening baselines."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Verify Application Security Controls Cannot be Downgraded",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Review all application-level security controls in place.",
+            "Attempt to subvert, modify, or disable each identified security control.",
+            "Look for further attack opportunities exposed by any successful downgrade.",
+            "Document any successful control subversion and residual risk."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Network Traffic Analysis (PCAP)",
+      "test_cases": [
+        {
+          "title": "DHCP Option Analysis",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Filter captured traffic for DHCP frames (DISCOVER, OFFER, REQUEST, ACK).",
+            "Extract DHCP options 12 (Hostname), 55 (Parameter Request List), and 60 (Vendor Class Identifier).",
+            "Flag any asset identifiers, hostnames, or vendor strings broadcast on the network wire.",
+            "Document information disclosure through DHCP options."
+          ],
+          "result": ""
+        },
+        {
+          "title": "DNS Behaviour Analysis",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Walk all DNS queries and responses in captured traffic.",
+            "Classify DNS resolvers used by the device (local, external, custom).",
+            "Enumerate all queried hostnames and domains.",
+            "Check for search-suffix anomalies or domain leakage.",
+            "Confirm whether DNS traffic uses cleartext or encrypted transport.",
+            "Document DNS behavior and any security concerns."
+          ],
+          "result": ""
+        },
+        {
+          "title": "External-Peer / SNI Map",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Enumerate all external destination IP addresses with associated ports, SNI values, and byte counts.",
+            "Annotate each destination with its observed or inferred purpose.",
+            "Flag unexpected or undocumented external destinations.",
+            "Document the complete external communication map."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Network Service Security",
+      "test_cases": [
+        {
+          "title": "Network Traffic Capture / Man-in-the-Middle",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Set up a man-in-the-middle position using port mirroring, a passive tap, or ARP-based redirection.",
+            "Capture traffic during file transfers, management sessions, and data exports.",
+            "Analyze captured traffic for encryption status and cleartext content.",
+            "Document any unencrypted sensitive communications."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Packet-Capture Analysis for Sensitive Data",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Generate representative data through the device during active network capture.",
+            "Analyze captures with Wireshark, Scapy, tcpdump, or equivalent tools.",
+            "Search for cleartext identifiers, credentials, session tokens, and sensitive payloads.",
+            "Document all instances of sensitive data in network traffic."
+          ],
+          "result": ""
+        },
+        {
+          "title": "SSH Service Configuration and Cryptographic Posture",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Run ssh2-enum-algos and ssh-audit against exposed SSH services.",
+            "Enumerate supported key exchange, cipher, MAC, and host-key algorithms.",
+            "Test for Terrapin vulnerability and strict key exchange support.",
+            "Assess rate-limiting and brute-force protections on the SSH service.",
+            "Flag weak or deprecated algorithms.",
+            "Document the SSH cryptographic posture."
+          ],
+          "result": ""
+        },
+        {
+          "title": "SFTP Transmission Security",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Capture network traffic during an SFTP file transfer operation.",
+            "Confirm that the entire transfer is encrypted end-to-end.",
+            "Verify that no plaintext payload is visible in the captured traffic.",
+            "Document SFTP transmission security status."
+          ],
+          "result": ""
+        },
+        {
+          "title": "SMB Transmission Security",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Capture network traffic during SMB file access or share operations.",
+            "Confirm that SMB encryption is active for the captured sessions.",
+            "Run netexec or equivalent tools for SMB configuration review (signing, dialect, guest access).",
+            "Document SMB transmission security status and configuration."
+          ],
+          "result": ""
+        },
+        {
+          "title": "ARP / Traffic Poisoning and MITM Resilience",
+          "testing_tools": [],
+          "finding_mapping": [],
+          "methodology": [
+            "Conduct ARP spoofing and traffic redirection on internal network segments.",
+            "Attempt to interpose between the device and its network peers.",
+            "Observe for cleartext data capture, credential interception, or traffic injection opportunities.",
+            "Document the device resilience to ARP poisoning and MITM attacks."
+          ],
+          "result": ""
+        }
+      ]
+    }
+  ]
+}

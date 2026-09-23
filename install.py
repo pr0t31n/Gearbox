@@ -15,6 +15,18 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # ANSI colour helpers
 # ---------------------------------------------------------------------------
+def _pip_installed(pkg_spec):
+    """Return True if a pip package is already importable."""
+    import importlib.util
+    name = pkg_spec.split(">=")[0].split("==")[0].split("[")[0].split("<")[0].strip()
+    _IMPORT_MAP = {
+        "pyyaml": "yaml", "Pillow": "PIL", "qrcode": "qrcode",
+        "paho-mqtt": "paho", "pyOpenSSL": "OpenSSL", "pybluez2": "bluetooth",
+    }
+    mod = _IMPORT_MAP.get(name, name.replace("-", "_"))
+    return importlib.util.find_spec(mod) is not None
+
+
 RESET   = "\033[0m"
 BOLD    = "\033[1m"
 RED     = "\033[91m"
@@ -396,8 +408,21 @@ def phase_brew(dry_run: bool) -> None:
     else:
         base_cmd = [brew_bin]
 
-    info(f"Installing brew packages: {' '.join(BREW_PACKAGES)}")
-    run(base_cmd + ["install"] + BREW_PACKAGES, dry_run=dry_run)
+    try:
+        _installed = set(subprocess.run(
+            base_cmd + ["list", "--formula", "-1"],
+            capture_output=True, text=True, check=True).stdout.strip().splitlines())
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        _installed = set()
+    _missing = [p for p in BREW_PACKAGES if p not in _installed]
+    for p in BREW_PACKAGES:
+        if p in _installed:
+            info(f"✓ {p} already installed")
+    if _missing:
+        info(f"Installing brew packages: {' '.join(_missing)}")
+        run(base_cmd + ["install"] + _missing, dry_run=dry_run)
+    else:
+        info("All brew packages already installed.")
     warn("Some Linux-specific tools (can-utils, cec-utils, ddcutil, ethtool) are not "
          "available on macOS.")
 
@@ -419,10 +444,19 @@ def find_pip() -> list:
 def phase_pip(dry_run: bool) -> None:
     phase_header("PHASE 2 — Python Packages (pip)")
     base_cmd = find_pip()
+    _to_install = []
     for pkg in PIP_PACKAGES:
-        info(f"Installing: {pkg}")
-        run(base_cmd + ["install", "--break-system-packages", pkg],
-            check=True, dry_run=dry_run)
+        if _pip_installed(pkg):
+            info(f"✓ {pkg} already installed")
+        else:
+            _to_install.append(pkg)
+    if _to_install:
+        for pkg in _to_install:
+            info(f"Installing: {pkg}")
+            run(base_cmd + ["install", "--break-system-packages", pkg],
+                check=True, dry_run=dry_run)
+    else:
+        info("All pip packages already installed.")
     success("Pip phase complete.")
 
 
@@ -685,6 +719,9 @@ def phase_bluetooth(os_id: str, dry_run: bool) -> None:
     info("Installing Python BLE libraries (bleak, btlejack, pygatt, pybluez2)…")
     pip_cmd = find_pip()
     for pkg in BT_PIP_PACKAGES:
+        if _pip_installed(pkg):
+            success(f"  ✓ {pkg} already installed")
+            continue
         rc = run(pip_cmd + ["install", "--break-system-packages", pkg], dry_run=dry_run)
         if rc == 0:
             success(f"  {pkg} installed")
@@ -736,6 +773,9 @@ def phase_wireless(os_id: str, dry_run: bool) -> None:
     info("Installing wireless Python libraries (urh, pyusb, numpy, pyserial)…")
     pip_cmd = find_pip()
     for pkg in WIRELESS_PIP_PACKAGES:
+        if _pip_installed(pkg):
+            success(f"  ✓ {pkg} already installed")
+            continue
         rc = run(pip_cmd + ["install", "--break-system-packages", pkg], dry_run=dry_run)
         if rc == 0:
             success(f"  {pkg} installed")

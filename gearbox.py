@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-VERSION = "1.18.2"
+VERSION = Path(__file__).resolve().parent.joinpath("VERSION").read_text().strip()
 
 import argparse         # stdlib — CLI argument parsing
 import csv              # stdlib — risk-map CSV parsing and findings export

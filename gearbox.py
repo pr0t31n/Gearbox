@@ -982,6 +982,68 @@ _PHASE_SEMAPHORE_COUNT = 8   # max concurrent phase-2 module threads per instanc
 _MAX_SUBPROCS = 15
 _subproc_sem  = threading.Semaphore(_MAX_SUBPROCS)
 
+# ── Per-subprocess memory limit ──────────────────────────────────────────────
+_SUBPROCESS_MEM_LIMIT_BYTES = int(2 * 1024 ** 3)  # 2 GB per child process
+
+def _mem_limit_preexec():
+    """preexec_fn: cap each child's virtual address space to prevent OOM."""
+    if sys.platform == "win32":
+        return
+    try:
+        import resource as _rlim
+        _rlim.setrlimit(_rlim.RLIMIT_AS,
+                        (_SUBPROCESS_MEM_LIMIT_BYTES, _SUBPROCESS_MEM_LIMIT_BYTES))
+    except (AttributeError, ValueError, OSError):
+        pass
+
+# ── OOM watchdog ─────────────────────────────────────────────────────────────
+_tracked_procs: list = []
+_tracked_procs_lock = threading.Lock()
+
+def _track_proc(proc):
+    with _tracked_procs_lock:
+        _tracked_procs.append(proc)
+
+def _start_oom_watchdog(threshold_pct=90, interval=15):
+    """Kill the largest tracked subprocess when system memory exceeds threshold."""
+    try:
+        import psutil as _psw
+    except ImportError:
+        return None
+
+    def _watchdog():
+        while True:
+            try:
+                time.sleep(interval)
+                mem = _psw.virtual_memory()
+                if mem.percent < threshold_pct:
+                    continue
+                with _tracked_procs_lock:
+                    _tracked_procs[:] = [p for p in _tracked_procs if p.poll() is None]
+                    live = list(_tracked_procs)
+                if not live:
+                    continue
+                biggest, biggest_rss = None, 0
+                for p in live:
+                    try:
+                        pi = _psw.Process(p.pid)
+                        rss = pi.memory_info().rss
+                        if rss > biggest_rss:
+                            biggest, biggest_rss = p, rss
+                    except (_psw.NoSuchProcess, _psw.AccessDenied, OSError):
+                        pass
+                if biggest and biggest_rss > 100 * 1024 * 1024:
+                    try:
+                        biggest.kill()
+                    except OSError:
+                        pass
+            except Exception:
+                pass
+
+    _t = threading.Thread(target=_watchdog, daemon=True, name="gb-oom-watchdog")
+    _t.start()
+    return _t
+
 # Per-subsystem concurrency caps (RPi 5, 4 cores, 16 GB RAM)
 # Adjust these if running on more capable hardware.
 _MAX_NMAP_PORT_WORKERS     = 3    # parallel nmap port scans  (I/O + CPU heavy)
@@ -4148,6 +4210,7 @@ def run_tool(
             text=True,
             timeout=timeout,
             env=proc_env,
+            preexec_fn=_mem_limit_preexec if sys.platform != "win32" else None,
         )
         stdout  = result.stdout or ""
         stderr  = result.stderr or ""
@@ -5598,7 +5661,9 @@ class DhcpServerModule(BaseModule):
                 ["dnsmasq", "--no-daemon", f"--conf-file={conf_file}"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                preexec_fn=_mem_limit_preexec if sys.platform != "win32" else None,
             )
+            _track_proc(proc)
             self.ctx.config["_dhcp_proc_pid"] = proc.pid
 
             self.ctx.logger.info(
@@ -6701,7 +6766,9 @@ class ResponderModule(BaseModule):
                     stderr=subprocess.STDOUT,
                     text=True,
                     bufsize=1,
+                    preexec_fn=_mem_limit_preexec if sys.platform != "win32" else None,
                 )
+                _track_proc(proc)
                 # keep filehandle so we can close it on exit
                 self.ctx._responder_log_fh = log_fh
             except Exception as e:
@@ -19881,6 +19948,7 @@ def main() -> None:
     _update_tools()
 
     check_environment(skip_nessus=args.skip_nessus)
+    _start_oom_watchdog()
 
     # ----- Risk map --------------------------------------------------------
     risk_map     = load_risk_map(args.risk_map)

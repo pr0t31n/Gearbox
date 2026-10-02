@@ -19685,6 +19685,21 @@ def _update_tools() -> None:
         except Exception as e:
             console.log(f"  testssl.sh update skipped: {e}", "WARNING")
 
+    # bettercap — update caplets
+    bettercap_bin = shutil.which("bettercap")
+    if bettercap_bin:
+        console.log("  Updating bettercap caplets…", "INFO")
+        try:
+            subprocess.run(
+                [bettercap_bin, "-eval", "caplets.update; quit"],
+                capture_output=True, text=True, timeout=120)
+            console.log("  bettercap caplets updated.", "INFO")
+        except subprocess.TimeoutExpired:
+            console.log("  bettercap caplets update timed out (120s) — continuing.",
+                        "WARNING")
+        except Exception as e:
+            console.log(f"  bettercap caplets update skipped: {e}", "WARNING")
+
     console.log("Tool update complete.", "INFO")
 
 

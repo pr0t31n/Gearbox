@@ -138,6 +138,7 @@ APT_PACKAGES = [
     "curl", "openssl", "sslscan", "tshark", "can-utils", "minicom",
     "usbutils", "cec-utils", "ddcutil", "read-edid", "edid-decode",
     "dnsmasq", "isc-dhcp-client", "iputils-ping",
+    "ssh-audit", "smbmap", "ubertooth", "dhcpcd5",
     # Build
     "python3-pip", "python3-dev", "git", "build-essential", "cmake", "automake",
 ]
@@ -146,6 +147,7 @@ DNF_PACKAGES = [
     "nmap", "tcpdump",
     "curl", "openssl", "sslscan", "wireshark-cli", "can-utils", "minicom",
     "usbutils", "dnsmasq", "dhclient", "iputils",
+    "ssh-audit", "smbmap", "ubertooth", "dhcpcd",
     # Build
     "python3-pip", "python3-devel", "git", "gcc", "cmake", "automake",
 ]
@@ -154,6 +156,7 @@ ZYPPER_PACKAGES = [
     "nmap", "tcpdump",
     "curl", "openssl", "sslscan", "wireshark", "can-utils", "minicom",
     "usbutils", "dnsmasq", "dhcp-client", "iputils",
+    "ssh-audit", "smbmap", "dhcpcd",
     # Build
     "python3-pip", "python3-devel", "git", "gcc", "cmake", "automake",
 ]

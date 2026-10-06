@@ -3144,8 +3144,8 @@ _NESSUS_TITLE_NORM: dict[str, str] = {
     "Default Credentials":                   "Weak or Default Credentials Accepted",
     "SNMP Default Community String":         "SNMP Default Community String Accepted",
     "SNMP Agent Default Community Name (public)": "SNMP Default Community String Accepted",
-    "Web Server Version Disclosure":         "Header Data Leakage: Server",
-    "Web — Server Version Disclosure":       "Header Data Leakage: Server",
+    "Web Server Version Disclosure":         "Information Disclosure: Server Header",
+    "Web — Server Version Disclosure":       "Information Disclosure: Server Header",
     "Web — Directory Listing Enabled":       "Directory Listing Enabled",
     "Open TCP/UDP Port Identified":          "Open Port Discovered",
     "Live Host Discovered":                  "Live Host Discovered",
@@ -7768,7 +7768,7 @@ class WebModule(BaseModule):
                     if sw_ver:
                         self.ctx.findings.create(
                             ctx=self.ctx,
-                            title="Header Data Leakage: Server",
+                            title="Information Disclosure: Server Header",
                             description="The HTTP Server response header reveals the web server software name and version, reducing the attacker's reconnaissance effort needed to identify version-specific vulnerabilities.",
                             remediation="Remove or genericise the Server response header in the web server configuration (e.g., ServerTokens Prod in Apache; server_tokens off in nginx).",
                             tool="curl",
@@ -9749,7 +9749,7 @@ class SSLModule(BaseModule):
             (r'MD5',                             "MD5 Signature Algorithm",                         ""),
             (r'SHA-?1\s+sign',                   "SHA-1 Signature Algorithm",                       ""),
             (r'weak.*DH|DH\s+\d{1,3}\s*bit',    "Weak DH Parameter",                              ""),
-            (r'forward.secrecy|PFS',             "No Forward Secrecy",                              ""),
+            (r'forward.secrecy|PFS',             "SSL/TLS Forward Secrecy: Not Supported",           ""),
             # Certificate issues
             (r'self.sign',                       "SSL/TLS Certificate: Self-Signed",                ""),
             (r'expir',                           "SSL/TLS Certificate: Expired",                    ""),

@@ -1750,7 +1750,7 @@
     },
     {
       "id": "GB-WEB-004",
-      "title": "Header Data Leakage: Server",
+      "title": "Information Disclosure: Server Header",
       "aliases": [],
       "source_tools": [
         "gearbox"
@@ -12435,10 +12435,19 @@
     {
       "id": "GB-BT-030",
       "title": "BLE LESC Passkey Recovered from Passive Capture",
-      "aliases": ["LESC Passkey Entry Passkey Recovery", "f4 passkey brute"],
-      "source_tools": ["gearbox"],
+      "aliases": [
+        "LESC Passkey Entry Passkey Recovery",
+        "f4 passkey brute"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
       "risk": "HIGH",
-      "cwe": ["CWE-294", "CWE-522", "CWE-327"],
+      "cwe": [
+        "CWE-294",
+        "CWE-522",
+        "CWE-327"
+      ],
       "cve_examples": [],
       "cvss_v3_base": null,
       "cvss_vector": "",
@@ -12446,8 +12455,14 @@
       "qualys_qids": [],
       "owasp_web": "",
       "owasp_api": "",
-      "nist_csf2": ["PR.AA-01"],
-      "nist_800_53": ["IA-5", "SC-8", "SC-13"],
+      "nist_csf2": [
+        "PR.AA-01"
+      ],
+      "nist_800_53": [
+        "IA-5",
+        "SC-8",
+        "SC-13"
+      ],
       "nist_800_171": [],
       "pci_dss_4": [],
       "iso_27001": [],
@@ -12463,13 +12478,20 @@
       "remediation_component": "Authentication",
       "remediation_category": "Authentication",
       "remediation_effort": "Moderate",
-      "validation_tools": ["Sniffle", "tshark", "ble_passkey_recover (f4/AES-CMAC brute)"],
+      "validation_tools": [
+        "Sniffle",
+        "tshark",
+        "ble_passkey_recover (f4/AES-CMAC brute)"
+      ],
       "description": "The 6-digit LE Secure Connections Passkey Entry passkey was recovered offline from a passively-captured pairing. In LESC Passkey Entry each of the 20 passkey bits is committed with f4 (AES-CMAC over the cleartext ECDH public keys, the revealed per-round nonce, and one passkey bit); once the nonce is revealed the single bit is brute-forced by matching the captured Pairing Confirm, and the recovery is confirmed independently from the initiator and responder halves.",
       "impact": "An attacker who passively sniffs ONE pairing recovers the passkey with no active MITM and no physical access to the printed value. If the passkey is static or reused it authenticates every future session and every unit that shares it, collapsing LESC Passkey Entry to Just Works — full man-in-the-middle and session compromise.",
       "_x_severity": "HIGH",
       "_x_category": "Bluetooth Pairing",
       "_x_remediation": "Fresh, random, single-use per-pairing passkey; never printed or reused.",
-      "_x_references": ["Bluetooth Core Spec Vol 3 Part H 2.3.5.6.3", "f4 crypto toolbox 2.2.6"]
+      "_x_references": [
+        "Bluetooth Core Spec Vol 3 Part H 2.3.5.6.3",
+        "f4 crypto toolbox 2.2.6"
+      ]
     }
   ]
 }

@@ -8529,20 +8529,43 @@ class SSHModule(BaseModule):
                 output_text=content[:1500],
                 risk="Informational",
             )
-            if "password" in content.lower() and "ssh-auth-methods" in content.lower():
-                self.ctx.findings.create(
-                    ctx=self.ctx,
-                    title="SSH Weak Configuration (Ciphers / Legacy Protocol / Credential Auth)",
-                    description="The SSH service is configured with one or more weaknesses including weak ciphers/MACs, SSHv1 support, permitted root login, or password-based authentication, increasing exposure to brute-force and protocol-level attacks.",
-                    remediation="Harden sshd_config to disable SSHv1, restrict ciphers and MACs to strong algorithms, disable root login, disable password authentication, and require public-key authentication only.",
-                    tool="nmap-ssh",
-                    raw_output=content[:500],
-                    source_type="primary",
-                    force_risk="Medium",
-                    ip=ip,
-                    port=str(port),
-                    output_file=str(nmap_out),
-                )
+            if "ssh-auth-methods" in content.lower():
+                _gb_has_pw = ("password" in content.lower()
+                              or "keyboard-interactive" in content.lower())
+                _gb_has_pk = "publickey" in content.lower()
+                if _gb_has_pw:
+                    _gb_pw_only = not _gb_has_pk
+                    _gb_pw_risk = "Medium" if _gb_pw_only else "Low"
+                    _gb_pw_title = ("SSH Password-Only Authentication (No Public Key)"
+                                    if _gb_pw_only
+                                    else "SSH Password Authentication Enabled")
+                    _gb_pw_desc = (
+                        "The SSH server accepts password-based authentication"
+                        + (" with no public key method available"
+                           if _gb_pw_only else " alongside public key")
+                        + ". Password authentication is susceptible to brute-force "
+                        "attacks and does not enforce multi-factor authentication. "
+                        "CIS Benchmark and DISA STIG mandate disabling password-based "
+                        "SSH login in favor of public key authentication exclusively."
+                    )
+                    self.ctx.findings.create(
+                        ctx=self.ctx,
+                        title=_gb_pw_title,
+                        description=_gb_pw_desc,
+                        remediation=(
+                            "Disable PasswordAuthentication and "
+                            "ChallengeResponseAuthentication in sshd_config. "
+                            "Require public key authentication exclusively. "
+                            "Deploy fail2ban or equivalent as a defense-in-depth measure."
+                        ),
+                        tool="nmap-ssh",
+                        raw_output=content[:500],
+                        source_type="primary",
+                        force_risk=_gb_pw_risk,
+                        ip=ip,
+                        port=str(port),
+                        output_file=str(nmap_out),
+                    )
             # ── Parse ssh2-enum-algos for weak algorithm findings ─────────
             self._parse_ssh_algos(ip, port, content, nmap_out)
 

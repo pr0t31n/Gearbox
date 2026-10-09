@@ -12494,6 +12494,175 @@
         "Bluetooth Core Spec Vol 3 Part H 2.3.5.6.3",
         "f4 crypto toolbox 2.2.6"
       ]
+    },
+    {
+      "id": "GB-SSH-006",
+      "title": "SSH Password Authentication Enabled",
+      "aliases": [
+        "SSH Password Auth Enabled",
+        "SSH Credential Authentication"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "LOW",
+      "cwe": [
+        "CWE-307",
+        "CWE-521"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 3.7,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N",
+      "nessus_plugin_ids": [
+        10267
+      ],
+      "qualys_qids": [
+        38304
+      ],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AC-01",
+        "PR.AC-07"
+      ],
+      "nist_800_53": [
+        "IA-2",
+        "IA-5",
+        "CM-6"
+      ],
+      "nist_800_171": [
+        "3.5.3",
+        "3.5.4"
+      ],
+      "pci_dss_4": [
+        "8.3.1",
+        "2.2.4"
+      ],
+      "iso_27001": [
+        "A.9.4.2"
+      ],
+      "iso_27002": [
+        "9.4.2"
+      ],
+      "soc2": [
+        "CC6.1"
+      ],
+      "hitrust": [
+        "01.d"
+      ],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1110",
+          "tactic": "Credential Access",
+          "name": "Brute Force"
+        },
+        {
+          "technique": "T1078",
+          "tactic": "Initial Access",
+          "name": "Valid Accounts"
+        }
+      ],
+      "searchsploit_terms": [],
+      "metasploit_modules": [
+        "auxiliary/scanner/ssh/ssh_login"
+      ],
+      "kev": false,
+      "remediation_brief": "Disable PasswordAuthentication and ChallengeResponseAuthentication in /etc/ssh/sshd_config. Require public key authentication exclusively. CIS Benchmark and DISA STIG both mandate disabling password-based SSH login.",
+      "remediation_component": "Server",
+      "remediation_category": "Hardening",
+      "remediation_effort": "Low",
+      "validation_tools": [
+        "nmap --script ssh-auth-methods",
+        "ssh-audit"
+      ],
+      "description": "The SSH server accepts password-based authentication methods (password and/or keyboard-interactive) alongside public key authentication. Password authentication is susceptible to brute-force attacks and does not enforce multi-factor authentication.",
+      "impact": "An attacker can attempt password brute-force attacks against the SSH service. Even with strong passwords, password authentication lacks the cryptographic assurance of key-based authentication and is incompatible with most MFA implementations. Compliance frameworks including CIS Benchmarks and DISA STIGs mandate public-key-only SSH authentication."
+    },
+    {
+      "id": "GB-SSH-007",
+      "title": "SSH Password-Only Authentication (No Public Key)",
+      "aliases": [
+        "SSH No Public Key Authentication",
+        "SSH Password Only"
+      ],
+      "source_tools": [
+        "gearbox"
+      ],
+      "risk": "MEDIUM",
+      "cwe": [
+        "CWE-307",
+        "CWE-521",
+        "CWE-287"
+      ],
+      "cve_examples": [],
+      "cvss_v3_base": 5.3,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+      "nessus_plugin_ids": [
+        10267
+      ],
+      "qualys_qids": [
+        38304
+      ],
+      "owasp_web": "",
+      "owasp_api": "",
+      "nist_csf2": [
+        "PR.AC-01",
+        "PR.AC-07"
+      ],
+      "nist_800_53": [
+        "IA-2",
+        "IA-5",
+        "CM-6"
+      ],
+      "nist_800_171": [
+        "3.5.3",
+        "3.5.4"
+      ],
+      "pci_dss_4": [
+        "8.3.1",
+        "2.2.4"
+      ],
+      "iso_27001": [
+        "A.9.4.2"
+      ],
+      "iso_27002": [
+        "9.4.2"
+      ],
+      "soc2": [
+        "CC6.1"
+      ],
+      "hitrust": [
+        "01.d"
+      ],
+      "gdpr": [],
+      "mitre_attack": [
+        {
+          "technique": "T1110",
+          "tactic": "Credential Access",
+          "name": "Brute Force"
+        },
+        {
+          "technique": "T1078",
+          "tactic": "Initial Access",
+          "name": "Valid Accounts"
+        }
+      ],
+      "searchsploit_terms": [],
+      "metasploit_modules": [
+        "auxiliary/scanner/ssh/ssh_login"
+      ],
+      "kev": false,
+      "remediation_brief": "Enable public key authentication and disable PasswordAuthentication and ChallengeResponseAuthentication in /etc/ssh/sshd_config. Generate and deploy SSH key pairs for all authorized users.",
+      "remediation_component": "Server",
+      "remediation_category": "Hardening",
+      "remediation_effort": "Moderate",
+      "validation_tools": [
+        "nmap --script ssh-auth-methods",
+        "ssh-audit"
+      ],
+      "description": "The SSH server accepts only password-based authentication methods (password and/or keyboard-interactive) with no public key authentication available. This is a significant security weakness \u2014 the server cannot accept key-based authentication at all, making brute-force the only barrier to unauthorized access.",
+      "impact": "Without public key authentication, the SSH server relies entirely on password strength for security. An attacker can mount online brute-force or credential-stuffing attacks with no cryptographic barrier. This configuration violates CIS Benchmark and DISA STIG requirements for SSH hardening."
     }
   ]
 }

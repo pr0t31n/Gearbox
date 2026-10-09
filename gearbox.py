@@ -10149,7 +10149,7 @@ class NFSModule(BaseModule):
             return
         content = out_file.read_text(errors="replace")
         self._observe(
-            title=f"NFS Enumeration — {ip}",
+            title=f"Enumeration: NFS — {ip}",
             description=f"NFS/RPC nmap scripts for {ip}.",
             tool="nmap",
             output_file=str(out_file),
@@ -11757,7 +11757,7 @@ class HdmiCECModule(BaseModule):
                 dev_lines.append(line)
 
             self._observe(
-                title=f"CEC Devices Enumerated — {self.ctx.instance_key}",
+                title=f"Enumeration: CEC Devices — {self.ctx.instance_key}",
                 description=(
                     f"CEC bus scan on [{self.ctx.instance_loc}] discovered "
                     f"{len(devices)} device(s):\n" + "\n".join(dev_lines)),

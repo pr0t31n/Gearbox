@@ -50,6 +50,7 @@ def phase_header(title: str) -> None:
 def info(msg: str)    -> None: cprint(f"  [*] {msg}", BLUE)
 def success(msg: str) -> None: cprint(f"  [+] {msg}", GREEN)
 def warn(msg: str)    -> None: cprint(f"  [!] {msg}", YELLOW)
+def note(msg: str)    -> None: cprint(f"  [i] {msg}", YELLOW)
 def error(msg: str)   -> None: cprint(f"  [-] {msg}", RED)
 
 # ---------------------------------------------------------------------------
@@ -404,7 +405,7 @@ def phase_brew(dry_run: bool) -> None:
     if is_root():
         sudo_user = os.environ.get("SUDO_USER", "")
         if not sudo_user:
-            warn("Running as root but SUDO_USER is not set — skipping brew install "
+            note("Running as root but SUDO_USER is not set — skipping brew install "
                  "to avoid corrupting Homebrew. Re-run as your normal user.")
             return
         base_cmd = ["sudo", "-u", sudo_user, brew_bin]
@@ -484,8 +485,8 @@ def phase_go(os_id: str, dry_run: bool) -> None:
 
     go_bin = shutil.which("go")
     if not go_bin:
-        warn("Go not found in PATH. Skipping Go tool installation.")
-        warn("Install Go from https://go.dev/dl/ then re-run with --skip-apt --skip-pip.")
+        note("Go not found in PATH. Skipping Go tool installation.")
+        note("Install Go from https://go.dev/dl/ then re-run with --skip-apt --skip-pip.")
         return
 
     # Determine GOPATH / install destination
@@ -650,7 +651,7 @@ def clone_or_update(repo: dict, os_id: str, dry_run: bool) -> None:
         if post == "linux_build" and is_linux:
             _build_proxmark3(dry_run)
         elif post == "linux_build" and not is_linux:
-            warn(f"{label}: skipping Linux build on {os_id}.")
+            note(f"{label}: skipping Linux build on {os_id}.")
         elif post == "ethtool_build":
             _build_ethtool(dry_run)
         elif post == "crackle_build":
@@ -658,13 +659,13 @@ def clone_or_update(repo: dict, os_id: str, dry_run: bool) -> None:
         elif post == "cmake_build" and is_linux:
             _build_cmake(dest, label, dry_run)
         elif post == "cmake_build" and not is_linux:
-            warn(f"{label}: skipping cmake build on {os_id}.")
+            note(f"{label}: skipping cmake build on {os_id}.")
         elif post == "rfcat_pip_build":
             _build_rfcat_pip(dest, dry_run)
         elif post == "whsniff_build" and is_linux:
             _build_whsniff(dest, dry_run)
         elif post == "whsniff_build" and not is_linux:
-            warn(f"{label}: skipping whsniff build on {os_id}.")
+            note(f"{label}: skipping whsniff build on {os_id}.")
 
 
 def phase_git(os_id: str, dry_run: bool) -> None:
@@ -1034,7 +1035,7 @@ def main() -> None:
         elif os_id == "macos":
             phase_brew(dry_run)
         else:
-            warn(f"Unknown OS '{os_id}' — skipping system package phase.")
+            note(f"Unknown OS '{os_id}' — skipping system package phase.")
     else:
         info("Skipping system package phase (--skip-apt).")
 
@@ -1072,13 +1073,13 @@ def main() -> None:
     if is_root() or dry_run:
         phase_symlinks(dry_run)
     else:
-        warn("Not running as root — skipping symlink creation.")
+        note("Not running as root — skipping symlink creation.")
 
     # Phase 6 — Service
     if is_root() or dry_run:
         phase_service(os_id, dry_run)
     else:
-        warn("Not running as root — skipping service installation.")
+        note("Not running as root — skipping service installation.")
 
     # Verify
     phase_verify()

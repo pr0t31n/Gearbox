@@ -43,6 +43,22 @@ try:
 except Exception:
     _el = None
 
+try:
+    if "/opt/pr0t31n/shared" not in sys.path:
+        sys.path.insert(0, "/opt/pr0t31n/shared")
+    from pr0t31n_pause import PauseManager, EXIT_PAUSED
+except ImportError:
+    PauseManager = None
+    EXIT_PAUSED = 42
+
+_pause: "PauseManager | None" = None
+
+
+def _check_pause() -> None:
+    if _pause and _pause.check_and_pause():
+        console.log("Pause requested — saving checkpoint and exiting.", "INFO")
+        sys.exit(EXIT_PAUSED)
+
 
 def _clients_base() -> Path:
     """Return the OS-appropriate default parent directory for client project folders."""
@@ -4202,18 +4218,49 @@ def run_tool(
     # errors.log path: per-instance, so tool-output errors detected by the
     # shared runner land in the same errors.log the rest of Gearbox uses.
     _errors_log = (ctx.instance_dir / "errors.log") if hasattr(ctx, "instance_dir") else None
+    _check_pause()
     _subproc_sem.acquire()
     try:
-        result = subprocess.run(
+        proc = subprocess.Popen(
             cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=timeout,
             env=proc_env,
             preexec_fn=_mem_limit_preexec if sys.platform != "win32" else None,
         )
-        stdout  = result.stdout or ""
-        stderr  = result.stderr or ""
+        _pause_key = None
+        if _pause:
+            _pause_key = _pause.register(
+                proc, tool_name or cmd_str,
+                [str(output_file)] if output_file else [])
+        _track_proc(proc)
+        try:
+            stdout, stderr = proc.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            stdout, stderr = proc.communicate()
+            if _pause_key is not None:
+                _pause.unregister(_pause_key)
+            ctx.logger.warn(f"{tool_name} timed out after {timeout}s", tool=tool_name)
+            _u_write_tool_log(
+                cmd=cmd, started=_started, ended=_dt.now().astimezone(),
+                exit_code=None,
+                stdout=(stdout or ""), stderr=(stderr or ""),
+                tool_name=(tool_name or Path(_tool_path).name),
+                tool_path=_tool_path,
+                output_file=output_file if output_file else None,
+                extra_header={"Note": f"TIMEOUT after {timeout}s"},
+                errors_log=_errors_log,
+            )
+            _check_pause()
+            return -1, "", f"{tool_name} timed out"
+        finally:
+            if _pause_key is not None:
+                _pause.unregister(_pause_key)
+
+        stdout = stdout or ""
+        stderr = stderr or ""
 
         if output_file:
             output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -4225,28 +4272,15 @@ def run_tool(
 
         _u_write_tool_log(
             cmd=cmd, started=_started, ended=_dt.now().astimezone(),
-            exit_code=result.returncode, stdout=stdout, stderr=stderr,
+            exit_code=proc.returncode, stdout=stdout, stderr=stderr,
             tool_name=(tool_name or Path(_tool_path).name),
             tool_path=_tool_path,
             output_file=output_file if output_file else None,
             errors_log=_errors_log,
         )
-        return result.returncode, stdout, stderr
+        _check_pause()
+        return proc.returncode, stdout, stderr
 
-    except subprocess.TimeoutExpired as _te:
-        ctx.logger.warn(f"{tool_name} timed out after {timeout}s", tool=tool_name)
-        _u_write_tool_log(
-            cmd=cmd, started=_started, ended=_dt.now().astimezone(),
-            exit_code=None,
-            stdout=(_te.stdout.decode(errors="replace") if isinstance(_te.stdout, bytes) else (_te.stdout or "")),
-            stderr=(_te.stderr.decode(errors="replace") if isinstance(_te.stderr, bytes) else (_te.stderr or "")),
-            tool_name=(tool_name or Path(_tool_path).name),
-            tool_path=_tool_path,
-            output_file=output_file if output_file else None,
-            extra_header={"Note": f"TIMEOUT after {timeout}s"},
-            errors_log=_errors_log,
-        )
-        return -1, "", f"{tool_name} timed out"
     except FileNotFoundError:
         _u_write_tool_log(
             cmd=cmd, started=_started, ended=_dt.now().astimezone(),
@@ -5664,6 +5698,8 @@ class DhcpServerModule(BaseModule):
                 preexec_fn=_mem_limit_preexec if sys.platform != "win32" else None,
             )
             _track_proc(proc)
+            if _pause:
+                _pause.register(proc, "dnsmasq")
             self.ctx.config["_dhcp_proc_pid"] = proc.pid
 
             self.ctx.logger.info(
@@ -5674,6 +5710,7 @@ class DhcpServerModule(BaseModule):
             waited    = 0
             leased_ips: list = []
             while waited < self._LEASE_WAIT_S:
+                _check_pause()
                 time.sleep(self._POLL_INTERVAL)
                 waited += self._POLL_INTERVAL
                 if lease_file.exists():
@@ -6769,6 +6806,8 @@ class ResponderModule(BaseModule):
                     preexec_fn=_mem_limit_preexec if sys.platform != "win32" else None,
                 )
                 _track_proc(proc)
+                if _pause:
+                    _pause.register(proc, "responder")
                 # keep filehandle so we can close it on exit
                 self.ctx._responder_log_fh = log_fh
             except Exception as e:
@@ -9840,6 +9879,8 @@ class SMBModule(BaseModule):
                         )
                         responder_proc.stdin.write((pwd + "\n").encode())
                         responder_proc.stdin.flush()
+                        if _pause:
+                            _pause.register(responder_proc, "responder")
                         self.ctx.progress.set_module_status(
                             self.ctx.subdevice_key, self.ctx.interface,
                             self.ctx.instance_key, "_responder_pid",
@@ -9857,6 +9898,8 @@ class SMBModule(BaseModule):
             if not work:
                 self._mark_na_complete("SMB")
                 if responder_proc:
+                    if _pause:
+                        _pause.unregister(responder_proc.pid)
                     try:
                         responder_proc.terminate()
                         responder_proc.wait(timeout=5)
@@ -9879,6 +9922,8 @@ class SMBModule(BaseModule):
                                 f"SMB test failed {ip}:{port}: {e}")
 
             if responder_proc:
+                if _pause:
+                    _pause.unregister(responder_proc.pid)
                 try:
                     responder_proc.terminate()
                     responder_proc.wait(timeout=5)
@@ -11525,6 +11570,8 @@ class HdmiCECModule(BaseModule):
                 bufsize = 1,
                 text    = True,
             )
+            if _pause:
+                _pause.register(proc, "cec-client")
 
             def _reader() -> None:
                 try:
@@ -11569,12 +11616,17 @@ class HdmiCECModule(BaseModule):
                 self.ctx.logger.warn(
                     "cec-client did not exit cleanly — killing", tool="cec-client")
                 proc.kill()
+            finally:
+                if _pause:
+                    _pause.unregister(proc.pid)
 
             reader.join(timeout=5)
 
         except Exception as e:
             self.ctx.logger.warn(f"CEC session error: {e}", tool="cec-client")
             if proc:
+                if _pause:
+                    _pause.unregister(proc.pid)
                 try:
                     proc.kill()
                 except Exception:
@@ -12866,6 +12918,8 @@ class BluetoothModule(BaseModule):
                 btmon_fh = open(smp_txt, "w")
                 btmon_proc = subprocess.Popen(
                     ["btmon"], stdout=btmon_fh, stderr=subprocess.STDOUT)
+                if _pause:
+                    _pause.register(btmon_proc, "btmon")
                 time.sleep(0.5)
         except Exception:
             btmon_proc = None
@@ -12881,6 +12935,8 @@ class BluetoothModule(BaseModule):
             pass
         time.sleep(1.0)
         if btmon_proc:
+            if _pause:
+                _pause.unregister(btmon_proc.pid)
             try:
                 btmon_proc.terminate(); btmon_proc.wait(timeout=5)
             except Exception:
@@ -18672,6 +18728,7 @@ class InstanceOrchestrator:
     def _run_sequential(self, module_names: list[str],
                         registry: dict[str, type]) -> None:
         for mod_name in module_names:
+            _check_pause()
             if self.ctx.progress.is_module_complete(
                     self.ctx.subdevice_key, self.ctx.interface,
                     self.ctx.instance_key, mod_name):
@@ -18684,6 +18741,8 @@ class InstanceOrchestrator:
             try:
                 module = cls(self.ctx)
                 module.run()
+            except SystemExit:
+                raise
             except Exception as e:
                 console.log(
                     f"Module {mod_name} raised unhandled exception: {e}",
@@ -18806,6 +18865,7 @@ class InstanceOrchestrator:
             return
 
         # ── NmapLive (must complete before Nessus/Responder/NmapPort) ──────────
+        _check_pause()
         self._run_sequential(["NmapLive"], registry)
 
         # ── Check for live hosts — gate all remaining target-dependent modules ─
@@ -18841,6 +18901,8 @@ class InstanceOrchestrator:
                 self.ctx.subdevice_key, self.ctx.interface,
                 self.ctx.instance_key)
             return
+
+        _check_pause()
 
         # ── Launch Nessus in a background thread ─────────────────────────────
         # Nessus can take 30+ minutes; we must not block the rest of the pipeline.
@@ -18930,12 +18992,14 @@ class InstanceOrchestrator:
                 "INFO")
 
         # ── NmapPort ──────────────────────────────────────────────────────────
+        _check_pause()
         self._run_sequential(["NmapPort"], registry)
 
         # ── Phase 2: concurrent assessment modules ───────────────────────────
         # Runs after NmapPort is fully complete. Every module in phase2_concurrent
         # has a _source_module_done("NmapPort") loop — on entry here that returns
         # True immediately so they proceed to assess all discovered hosts/ports.
+        _check_pause()
         self._run_concurrent(phase2_concurrent, registry)
 
         # ── Wait for Nessus FIRST — Responder stays alive while Nessus runs ─
@@ -19015,9 +19079,12 @@ class InstanceOrchestrator:
                 else:
                     self._run_one(mod_name, registry)
             for fut in as_completed(futures):
+                _check_pause()
                 mod_name = futures[fut]
                 try:
                     fut.result()
+                except SystemExit:
+                    raise
                 except Exception as e:
                     console.log(
                         f"Concurrent module {mod_name} failed: {e}",
@@ -19260,6 +19327,7 @@ class ProjectOrchestrator:
 
         # Let user choose which instance to run next
         while remaining:
+            _check_pause()
             options = [
                 f"{r['sd_name']} / {r['interface']} / "
                 f"{r['inst_data'].get('name') or r['inst_data'].get('id') or r['inst_key']}"
@@ -20001,6 +20069,22 @@ def main() -> None:
     db       = DatabaseManager(db_path)
     progress = ProgressManager(progress_file)
 
+    # ----- Pause manager init -------------------------------------------------
+    global _pause
+    if PauseManager is not None:
+        _pause = PauseManager(project_dir, "gearbox")
+        _pause.start_watcher(
+            checkpoint_callback=progress._save,
+            grace_period=30,
+        )
+        prev_stop = _pause.read_stop_reason()
+        if prev_stop.get("action") in ("paused_user", "paused_engagement_hours",
+                                        "paused_scheduled", "paused_crucible"):
+            _pause.cleanup_incomplete()
+            console.log(f"Gearbox RESUMED from checkpoint (prev: {prev_stop.get('action')})", "INFO")
+        else:
+            console.log(f"Gearbox started (NEW RUN) — pause manager active", "INFO")
+
     # GearboxLogger needs a context — use a stub for the top-level logger
     _stub_ctx = type("_Stub", (), {
         "subdevice_key": "project",
@@ -20015,6 +20099,8 @@ def main() -> None:
     def _sighandler(sig, frame):
         console.log("\nInterrupted — stopping Responder/Nessus and exiting.", "INFO")
         _ethernet_shutdown_cleanup()
+        if _pause:
+            _pause.write_stop_reason("killed_user", detail="SIGINT/SIGTERM")
         sys.exit(0)
 
     signal.signal(signal.SIGINT,  _sighandler)
@@ -20033,6 +20119,9 @@ def main() -> None:
         risk_map     = risk_map,
     )
     orchestrator.run()
+
+    if _pause:
+        _pause.write_stop_reason("completed", "all_instances_done")
 
     # Synthesise universal findings.json + summary.json from findings.jsonl.
     _u_synthesize_outputs(project_dir, tool="gearbox", version=VERSION,

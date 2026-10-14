@@ -15,6 +15,26 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # ANSI colour helpers
 # ---------------------------------------------------------------------------
+
+def _dpkg_installed(pkg):
+    try:
+        r = subprocess.run(["dpkg", "-s", pkg],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return r.returncode == 0
+    except FileNotFoundError:
+        return False
+
+
+def _rpm_installed(pkg):
+    try:
+        return subprocess.run(
+            ["rpm", "-q", pkg],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        ).returncode == 0
+    except FileNotFoundError:
+        return False
+
+
 def _pip_installed(pkg_spec):
     """Return True if a pip package is already importable."""
     import importlib.util
@@ -371,7 +391,12 @@ def phase_apt(dry_run: bool) -> None:
     info("Upgrading installed packages…")
     run(["apt-get", "upgrade", "-y"], check=True, dry_run=dry_run)
     info(f"Installing packages…")
-    run(["apt-get", "install", "-y"] + APT_PACKAGES, check=True, dry_run=dry_run)
+    _needed = [p for p in APT_PACKAGES if not _dpkg_installed(p)]
+    _skip = len(APT_PACKAGES) - len(_needed)
+    if _skip:
+        info(f"  {_skip} APT package(s) already installed")
+    if _needed:
+        run(["apt-get", "install", "-y"] + _needed, check=True, dry_run=dry_run)
     info("Note: ethtool will be installed from git source if not available via apt.")
 
 
@@ -380,7 +405,12 @@ def phase_dnf(dry_run: bool) -> None:
     require_root()
     run(["dnf", "upgrade", "-y"], dry_run=dry_run)
     info(f"Installing packages…")
-    run(["dnf", "install", "-y"] + DNF_PACKAGES, check=True, dry_run=dry_run)
+    _needed = [p for p in DNF_PACKAGES if not _rpm_installed(p)]
+    _skip = len(DNF_PACKAGES) - len(_needed)
+    if _skip:
+        info(f"  {_skip} DNF package(s) already installed")
+    if _needed:
+        run(["dnf", "install", "-y"] + _needed, check=True, dry_run=dry_run)
     info("cec-utils, ddcutil, read-edid, edid-decode may not be "
          "available in standard RHEL repos — add EPEL if needed.")
 
@@ -391,7 +421,12 @@ def phase_zypper(dry_run: bool) -> None:
     run(["zypper", "refresh"], dry_run=dry_run)
     run(["zypper", "update", "-y"], dry_run=dry_run)
     info(f"Installing packages…")
-    run(["zypper", "install", "-y"] + ZYPPER_PACKAGES, check=True, dry_run=dry_run)
+    _needed = [p for p in ZYPPER_PACKAGES if not _rpm_installed(p)]
+    _skip = len(ZYPPER_PACKAGES) - len(_needed)
+    if _skip:
+        info(f"  {_skip} zypper package(s) already installed")
+    if _needed:
+        run(["zypper", "install", "-y"] + _needed, check=True, dry_run=dry_run)
 
 
 def phase_brew(dry_run: bool) -> None:
@@ -603,7 +638,8 @@ def _build_cmake(dest: str, label: str, dry_run: bool) -> None:
 def _build_whsniff(dest: str, dry_run: bool) -> None:
     """Build whsniff (needs libusb-1.0-dev) and symlink onto PATH."""
     info("Building whsniff (make)…")
-    _install_individually(["apt-get", "install", "-y"], ["libusb-1.0-0-dev"], dry_run)
+    if not _dpkg_installed("libusb-1.0-0-dev"):
+        _install_individually(["apt-get", "install", "-y"], ["libusb-1.0-0-dev"], dry_run)
     run(["make"], cwd=dest, dry_run=dry_run)
     src = Path(dest) / "whsniff"
     link = Path("/usr/local/bin/whsniff")
@@ -682,7 +718,15 @@ def phase_git(os_id: str, dry_run: bool) -> None:
 def _install_individually(base_cmd: list, pkgs: list, dry_run: bool) -> None:
     """Install packages one-by-one so a single unavailable package cannot abort
     the whole batch (extras differ across Kali / Ubuntu / RHEL)."""
+    _is_apt = "apt-get" in base_cmd
+    _is_rpm = "dnf" in base_cmd or "zypper" in base_cmd or "yum" in base_cmd
     for pkg in pkgs:
+        if _is_apt and _dpkg_installed(pkg):
+            info(f"  ✓ {pkg} already installed")
+            continue
+        if _is_rpm and _rpm_installed(pkg):
+            info(f"  ✓ {pkg} already installed")
+            continue
         rc = run(base_cmd + [pkg], dry_run=dry_run)
         if rc == 0:
             success(f"  {pkg} installed")
@@ -697,16 +741,31 @@ def phase_bluetooth(os_id: str, dry_run: bool) -> None:
     if os_id in ("kali", "ubuntu"):
         require_root()
         info("Installing core BlueZ stack (bluez, bluez-tools, hcidump, libbluetooth-dev)…")
-        run(["apt-get", "install", "-y"] + BT_APT_CORE, dry_run=dry_run)
+        _needed = [p for p in BT_APT_CORE if not _dpkg_installed(p)]
+        _skip = len(BT_APT_CORE) - len(_needed)
+        if _skip:
+            info(f"  {_skip} APT package(s) already installed")
+        if _needed:
+            run(["apt-get", "install", "-y"] + _needed, dry_run=dry_run)
         info("Installing best-effort BT extras (bettercap, spooftooph, bluelog, …)…")
         _install_individually(["apt-get", "install", "-y"], BT_APT_EXTRAS, dry_run)
     elif os_id == "rhel":
         require_root()
-        run(["dnf", "install", "-y"] + BT_DNF_CORE, dry_run=dry_run)
+        _needed = [p for p in BT_DNF_CORE if not _rpm_installed(p)]
+        _skip = len(BT_DNF_CORE) - len(_needed)
+        if _skip:
+            info(f"  {_skip} DNF package(s) already installed")
+        if _needed:
+            run(["dnf", "install", "-y"] + _needed, dry_run=dry_run)
         _install_individually(["dnf", "install", "-y"], ["bettercap"], dry_run)
     elif os_id == "suse":
         require_root()
-        run(["zypper", "install", "-y"] + BT_ZYPPER_CORE, dry_run=dry_run)
+        _needed = [p for p in BT_ZYPPER_CORE if not _rpm_installed(p)]
+        _skip = len(BT_ZYPPER_CORE) - len(_needed)
+        if _skip:
+            info(f"  {_skip} zypper package(s) already installed")
+        if _needed:
+            run(["zypper", "install", "-y"] + _needed, dry_run=dry_run)
     elif os_id == "macos":
         warn("macOS has no BlueZ stack — Bluetooth link-layer testing requires Linux.")
         warn("Only the Python BLE client (bleak) and blueutil will be usable here.")

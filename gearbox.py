@@ -20004,6 +20004,15 @@ def main() -> None:
                 ", ".join(sd.get("name", "?") if isinstance(sd, dict) else str(sd)
                           for sd in (config.get("subdevices") or []))[:200]),
     )
+    try:
+        import pr0t31n_dep_snapshot as _ds
+        _ds.write_snapshot(
+            project_dir, "gearbox", VERSION,
+            binaries=["nmap", "tcpdump", "curl", "openssl", "sslscan", "nuclei", "gowitness", "tshark", "aircrack-ng", "bettercap"],
+            pip_packages=["pyyaml", "requests", "qrcode", "Pillow", "pyserial", "cryptography"],
+        )
+    except Exception:
+        pass
     # §13b/§14j/§14k: bring up the on-disk audit log now that the run dir exists.
     console.attach_run_dir(project_dir)
     console.log(f"Project output directory: {project_dir}", "INFO")

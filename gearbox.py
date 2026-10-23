@@ -3568,14 +3568,9 @@ class FindingManager:
             t, re.I)
         if lfi_m and not t.lower().startswith("local file inclusion"):
             software = lfi_m.group(1).strip()
-            finding.title = f"Local File Inclusion - {software}"
+            finding.title = "Injection: Local File Inclusion"
         elif re.search(r'Local\s+File\s+Inclusion|LFI|Path\s+Traversal', t, re.I):
-            # Already starts with LFI — ensure standard prefix
-            body = re.sub(
-                r'^(?:Local\s+File\s+Inclusion|LFI|Path\s+Traversal)\s*[-—:]\s*',
-                '', t, flags=re.I).strip()
-            if body and not t.lower().startswith("local file inclusion - "):
-                finding.title = f"Local File Inclusion - {body}"
+            finding.title = "Injection: Local File Inclusion"
 
         # ── SMB Anonymous Access rename ───────────────────────────────────
         # (renamed in _run_smbmap; here we just ensure no bare "Anonymous Access")
@@ -6934,7 +6929,7 @@ class ResponderModule(BaseModule):
                     return
                 seen_hashes.add(dedup)
 
-                title       = f"Cleartext Credential Captured — {user}"
+                title       = "Credential Exposure: Cleartext Credential Captured"
                 description = (f"Responder captured plaintext credentials for "
                                 f"user {user} via protocol poisoning.")
                 risk        = "Critical"
@@ -7408,7 +7403,7 @@ class NmapPortModule(BaseModule):
                             else:
                                 self.ctx.findings.create(
                                     ctx=self.ctx,
-                                    title=f"Unencrypted Protocol Detected: {_proto_name} — {_hip}:{_portid}",
+                                    title=f"Unencrypted Protocol Detected: {_proto_name}",
                                     description=(
                                         f"The {_proto_name} service on {_hip}:{_portid} transmits "
                                         f"data in cleartext. Credentials, session data, and "
@@ -8304,7 +8299,7 @@ class WebModule(BaseModule):
                 else:
                     self.ctx.findings.create(
                         ctx=self.ctx,
-                        title=f"Default/Test Page Exposed — {label} at {url}",
+                        title="Discovery: Default/Test Page Exposed",
                         description=(
                             f"The web server at {url} is serving a default or test page "
                             f"({label}), indicating it may not be properly configured "
@@ -8318,7 +8313,7 @@ class WebModule(BaseModule):
                         output_file=str(html_file),
                     )
                 self._observe(
-                    title=f"Default Page Detected — {label} ({url})",
+                    title="Discovery: Default Page Detected",
                     description=f"Pattern matched: {label}",
                     tool="curl",
                     output_file=str(html_file),
@@ -8440,7 +8435,7 @@ class WebModule(BaseModule):
                             "Medium", html_file, label)
                     else:
                         _finding(
-                            f"Default/Test Page Exposed — {label}",
+                            "Discovery: Default/Test Page Exposed",
                             (f"The web service at {url} serves a default or test "
                              f"page ({label}). This may indicate the application "
                              f"is unconfigured or a placeholder was not removed."),
@@ -8995,7 +8990,7 @@ class NucleiModule(BaseModule):
                 proto, proto_risk = proto_hit
                 self.ctx.findings.create(
                     ctx=self.ctx,
-                    title=f"SSL/TLS - {proto} Enabled",
+                    title=f"Insecure Protocol Detected: {proto} Enabled",
                     description=f"nuclei: {line[:300]}",
                     tool="nuclei", raw_output=line[:500],
                     source_type="primary",
@@ -9594,7 +9589,7 @@ class SSLModule(BaseModule):
             if _hb_vuln:
                 self.ctx.findings.create(
                     ctx=self.ctx,
-                    title='Heartbleed (CVE-2014-0160) Vulnerability Detected',
+                    title='SSL/TLS Vulnerability: Heartbleed (CVE-2014-0160)',
                     description=('sslscan confirmed Heartbleed vulnerability at ' + url
                                  + '. Affected: '
                                  + '; '.join(ln.strip() for ln in _hb_vuln)),
@@ -9788,7 +9783,7 @@ class SSLModule(BaseModule):
             (r'TLS\s*1\.0',                      "Deprecated Protocol Enabled: TLSv1.0",            ""),
             (r'TLS\s*1\.1',                      "Deprecated Protocol Enabled: TLSv1.1",            ""),
             # Known attacks — precise names aligned with Scattershot3/Fracture
-            (r'Heartbleed',                      "Heartbleed (CVE-2014-0160) Vulnerability Detected", ""),
+            (r'Heartbleed',                      "SSL/TLS Vulnerability: Heartbleed (CVE-2014-0160)", ""),
             (r'POODLE',                          "SSL/TLS Vulnerability: POODLE",                   ""),
             (r'BEAST',                           "SSL/TLS Vulnerability: BEAST",                    ""),
             (r'BREACH',                          "BREACH Attack (CVE-2013-3587)",                   ""),
@@ -10086,7 +10081,7 @@ class SMBModule(BaseModule):
                     _resp_ip = _ip_in_line.group(1)
                 self.ctx.findings.create(
                     ctx=self.ctx,
-                    title=f"Cleartext Credentials Captured — {user}",
+                    title="Credential Exposure: Cleartext Credentials Captured",
                     description=(
                         f"Responder captured cleartext credentials for user '{user}' "
                         f"via network authentication poisoning."
@@ -10194,7 +10189,7 @@ class NFSModule(BaseModule):
             return
         content = out_file.read_text(errors="replace")
         self._observe(
-            title=f"Enumeration: NFS — {ip}",
+            title="Enumeration: NFS Export Enumerated",
             description=f"NFS/RPC nmap scripts for {ip}.",
             tool="nmap",
             output_file=str(out_file),
@@ -10204,7 +10199,7 @@ class NFSModule(BaseModule):
         if "nfs-showmount" in content.lower() or "nfs-ls" in content.lower():
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=f"NFS Share Exposed — {ip}",
+                title="Sensitive File Exposed: NFS Share Exposed",
                 description=f"NFS exports are visible on {ip}. "
                             f"Verify access controls and authentication.",
                 tool="nmap", raw_output=content[:500],
@@ -10217,7 +10212,7 @@ class NFSModule(BaseModule):
         if re.search(r'no_root_squash|nobody|everyone', content, re.I):
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=f"NFS Insecure Export Options — {ip}",
+                title="Web Misconfiguration: NFS Insecure Export Options",
                 description=f"NFS export on {ip} uses insecure options "
                             f"(no_root_squash or open access).",
                 tool="nmap", raw_output=content[:500],
@@ -10315,7 +10310,7 @@ class FTPModule(BaseModule):
         if re.search(r"ftp-bounce.*?bounce.*?working", content, re.I):
             self.ctx.findings.create(
                 ctx=self.ctx,
-                title=f"FTP Bounce Attack Possible — {ip}:{port}",
+                title="FTP Vulnerability: FTP Bounce Attack",
                 description=(
                     f"The FTP server on {ip}:{port} allows PORT commands that "
                     f"direct connections to arbitrary hosts. This enables internal "
@@ -12617,12 +12612,12 @@ class BluetoothModule(BaseModule):
     T_METHOD_CONF  = "Bluetooth Pairing Method Confusion"
     T_DOWNGRADE    = "Bluetooth Pairing Security Downgrade Accepted"
     T_SHORT_KEY    = "Short Bluetooth Encryption Key Negotiated"
-    T_INVALID_CURVE= "Bluetooth ECDH Public Key Not Validated (CVE-2018-5383)"
-    T_KNOB         = "KNOB — Bluetooth Encryption Key Entropy Downgrade (CVE-2019-9506)"
-    T_BLUFFS       = "BLUFFS — Bluetooth Forward/Future Secrecy Weakness (CVE-2023-24023)"
-    T_BIAS         = "BIAS — Bluetooth Impersonation (CVE-2020-10135)"
-    T_BLUR         = "BLURtooth — Cross-Transport Key Overwrite (CVE-2020-15802)"
-    T_BLESA        = "BLESA — BLE Reconnection Spoofing (CVE-2020-9770)"
+    T_INVALID_CURVE= "Bluetooth Vulnerability: ECDH Public Key Not Validated (CVE-2018-5383)"
+    T_KNOB         = "Bluetooth Vulnerability: KNOB — Encryption Key Entropy Downgrade (CVE-2019-9506)"
+    T_BLUFFS       = "Bluetooth Vulnerability: BLUFFS — Forward/Future Secrecy Weakness (CVE-2023-24023)"
+    T_BIAS         = "Bluetooth Vulnerability: BIAS — Impersonation (CVE-2020-10135)"
+    T_BLUR         = "Bluetooth Vulnerability: BLURtooth — Cross-Transport Key Overwrite (CVE-2020-15802)"
+    T_BLESA        = "Bluetooth Vulnerability: BLESA — BLE Reconnection Spoofing (CVE-2020-9770)"
     T_UNAUTH_READ  = "Unauthenticated GATT Characteristic Read"
     T_UNAUTH_WRITE = "Unauthenticated GATT Characteristic Write"
     T_UNAUTH_NOTIFY= "Unauthenticated GATT Notification/Indication Stream"

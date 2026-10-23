@@ -110,6 +110,25 @@ def detect_os() -> str:
             return "ubuntu"
     return "unknown"
 
+
+def _read_os_release() -> dict:
+    d = {}
+    try:
+        with open("/etc/os-release") as f:
+            for line in f:
+                line = line.strip()
+                if "=" not in line: continue
+                k, _, v = line.partition("=")
+                d[k.lower()] = v.strip('"').strip("'")
+    except FileNotFoundError:
+        pass
+    return d
+
+_OS_RELEASE = _read_os_release()
+
+def is_kali() -> bool:
+    return "kali" in _OS_RELEASE.get("id", "").lower()
+
 # ---------------------------------------------------------------------------
 # Command runner
 # ---------------------------------------------------------------------------
@@ -159,9 +178,14 @@ APT_PACKAGES = [
     "curl", "openssl", "sslscan", "tshark", "can-utils", "minicom",
     "usbutils", "cec-utils", "ddcutil", "read-edid", "edid-decode",
     "dnsmasq", "isc-dhcp-client", "iputils-ping",
-    "ssh-audit", "smbmap", "ubertooth", "dhcpcd5",
+    "ssh-audit", "smbmap", "dhcpcd5",
     # Build
     "python3-pip", "python3-dev", "git", "build-essential", "cmake", "automake",
+]
+
+# Kali-only packages — available in Kali repos but not standard Ubuntu/Debian
+APT_PACKAGES_KALI = [
+    "ubertooth",   # Ubertooth One Bluetooth sniffer tools
 ]
 
 DNF_PACKAGES = [
@@ -188,6 +212,26 @@ BREW_PACKAGES = [
     # Build
     "git", "cmake", "automake",
 ]
+
+_apt_updated = False
+
+
+def apt_install_optional(packages):
+    global _apt_updated
+    if not _apt_updated:
+        info("Running apt-get update ...")
+        run(["apt-get", "update", "-y"])
+        _apt_updated = True
+    for pkg in packages:
+        if _dpkg_installed(pkg):
+            info(f"  ✓ {pkg} already installed")
+            continue
+        r = subprocess.run(["apt-get", "install", "-y", pkg],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        if r.returncode == 0:
+            info(f"  ✓ {pkg} installed")
+        else:
+            warn(f"  {pkg} not available — skipping (install manually if needed)")
 
 PIP_PACKAGES = [
     "pyyaml>=6.0.1",
@@ -384,10 +428,12 @@ WIRELESS_GIT_REPOS = [
 # ---------------------------------------------------------------------------
 
 def phase_apt(dry_run: bool) -> None:
+    global _apt_updated
     phase_header("PHASE 1 — System Packages (apt)")
     require_root()
     info("Updating package lists…")
     run(["apt-get", "update", "-y"], check=True, dry_run=dry_run)
+    _apt_updated = True
     info("Upgrading installed packages…")
     run(["apt-get", "upgrade", "-y"], check=True, dry_run=dry_run)
     info(f"Installing packages…")
@@ -397,6 +443,13 @@ def phase_apt(dry_run: bool) -> None:
         info(f"  {_skip} APT package(s) already installed")
     if _needed:
         run(["apt-get", "install", "-y"] + _needed, check=True, dry_run=dry_run)
+    # Kali-only hardware packages
+    if is_kali():
+        info("Installing Kali-specific hardware packages…")
+        apt_install_optional(APT_PACKAGES_KALI)
+    else:
+        warn("Hardware-specific packages (ubertooth) are only available in Kali repos.")
+        note("On other distros, install from source or see tool documentation.")
     info("Note: ethtool will be installed from git source if not available via apt.")
 
 

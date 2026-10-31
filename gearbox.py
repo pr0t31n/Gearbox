@@ -3289,6 +3289,17 @@ class FindingManager:
         # Track the last-written JSON string per finding id so we can skip
         # identical writes (prevents exact duplicates accumulating on disk).
         self._written: dict[str, str] = {}
+        self._fdb = None
+        _db_path = os.environ.get("PR0T31N_FINDINGS_DB")
+        if _db_path:
+            try:
+                import sys as _s
+                if "/opt/pr0t31n/shared" not in _s.path:
+                    _s.path.insert(0, "/opt/pr0t31n/shared")
+                import pr0t31n_findings_db
+                self._fdb = pr0t31n_findings_db.FindingsDB(_db_path)
+            except Exception:
+                self._fdb = None
 
     def _append_jsonl(self, finding: Finding) -> None:
         """Append finding to findings.jsonl, skipping if content is unchanged."""
@@ -3674,6 +3685,15 @@ class FindingManager:
         if finding.title == "__FP_SKIP__":
             return
         self._append_jsonl(finding)
+        if self._fdb:
+            try:
+                _d = finding.to_dict()
+                _r = _d.get("risk", "")
+                if _r and _r != _r.upper():
+                    _d["risk"] = _r.upper()
+                self._fdb.insert_finding(_d)
+            except Exception:
+                pass
         console.emit_finding(finding.to_dict())
 
 

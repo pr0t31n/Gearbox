@@ -13036,7 +13036,7 @@ class BluetoothModule(BaseModule):
                     f"crackle cannot recover the key. Residual risk shifts to implementation "
                     f"flaws (static passkey, debug keys, downgrade acceptance).",
                     "Informational", tool="bluetooth", ip=mac, output_file=evidence)
-            # A.3 — static/reused passkey under LESC Passkey Entry (the static-passkey-class finding).
+            # A.3 — static/reused passkey under LESC Passkey Entry.
             ans = self._prompt(
                 f"{mac} uses LE Secure Connections. Is the 6-digit pairing passkey FIXED — "
                 f"printed on the enclosure, in the manual/firmware, or identical across units "

@@ -18,7 +18,7 @@ Gearbox automates security assessments of physical devices across Ethernet, USB,
 - **Nessus API integration** — launches, polls, and cleanly stops local Nessus scans; credentials stored encrypted via Fernet
 - **Network self-configuration** — writes a `192.168.4.x/24` DHCP server on the test interface using dnsmasq + netplan; reverts to original config on exit
 - **Graceful shutdown** — SIGINT/SIGTERM stops Responder, stops running Nessus scan via API, reverts interface, and saves checkpoint before exit
-- **Gauntlet integration** — `SPECTRE_MANAGED` / subprocess mode emits typed protocol tokens; TTY mode prints coloured human-readable output
+- **Gauntlet integration** — `__GB_*__` protocol tokens emitted in subprocess mode; TTY mode prints coloured human-readable output
 - **Tool auto-install** — detects missing tools and offers to install via apt/brew/go/git at startup; Go toolchain bootstrapped automatically if absent
 
 ---

@@ -188,6 +188,7 @@ sudo python3 gearbox.py project.yaml --risk-map overrides.csv
 | `--nessus-user USER` | from `~/.config/gearbox/config.yaml` | Nessus username |
 | `--nessus-pass PASS` | from `~/.config/gearbox/config.yaml` | Nessus password |
 | `--risk-map FILE` | none | CSV mapping finding titles to risk levels |
+| `--join-url URL` | none | (legacy) Single LAN join URL -- use `--join-interfaces` instead |
 | `--join-interfaces JSON` | none | JSON array of `{name, ip, url}` objects for photo QR codes (set by Gauntlet) |
 
 ---

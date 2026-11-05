@@ -6,6 +6,9 @@ Gearbox automates security assessments of physical devices across Ethernet, USB,
 
 ---
 
+
+> **[View full documentation on the Codex Wiki](https://wiki.pr0t31n.com/tools/gearbox)** — detailed features, CLI reference, findings catalogue, and integration guides.
+
 ## Features
 
 - **Multi-interface pipeline** — Ethernet, USB, HDMI, Serial/CAN, RFID, Zigbee, Bluetooth (BR/EDR + BLE), Wi-Fi, Sub-GHz, UWB, SmartCard, Z-Wave, LoRa, and network tap interfaces each get their own module set

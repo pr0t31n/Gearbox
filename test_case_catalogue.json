@@ -1,6 +1,6 @@
 {
   "schema_version": "1.1",
-  "description": "Closed-box hardware/embedded device test case catalogue. Interface-organized test cases covering physical, network, USB, serial, display, RFID, CAN bus, Zigbee, Bluetooth, Wi-Fi, UWB, JTAG/debug, memory, OS/application, PCAP analysis, and cloud/vendor assessment of embedded devices.",
+  "description": "Closed-box hardware/embedded device test case catalogue. Interface-organized test cases covering physical, network, USB, serial, display, RFID, CAN bus, Zigbee, Bluetooth, Wi-Fi, UWB, Sub-GHz RF, Z-Wave, LoRa/LoRaWAN, smart card, SPI flash/firmware, JTAG/debug, memory, OS/application, PCAP analysis, and cloud/vendor assessment of embedded devices.",
   "categories": [
     {
       "name": "Physical Boot Controls",
@@ -94,8 +94,15 @@
       "test_cases": [
         {
           "title": "Service Discovery",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "nmap"
+          ],
+          "finding_mapping": [
+            "GB-DISC-001",
+            "GB-DISC-002",
+            "GB-DISC-003",
+            "GB-DISC-007"
+          ],
           "methodology": [
             "Identify TCP and UDP services reachable through exposed Ethernet interfaces from authorized test positions.",
             "Record reachable ports, service fingerprints, and protocol metadata.",
@@ -105,8 +112,24 @@
         },
         {
           "title": "Vulnerability Scan",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "nmap",
+            "nuclei",
+            "nikto"
+          ],
+          "finding_mapping": [
+            "GB-VULN-001",
+            "GB-VULN-002",
+            "GB-VULN-003",
+            "GB-VULN-004",
+            "GB-VULN-005",
+            "GB-VULN-006",
+            "GB-VULN-007",
+            "GB-VULN-008",
+            "GB-VULN-009",
+            "GB-VULN-010",
+            "GB-VULN-011"
+          ],
           "methodology": [
             "Perform authorized vulnerability and configuration scans against exposed device interfaces.",
             "Correlate scanner output with targeted service verification to distinguish actionable weaknesses from informational results.",
@@ -116,8 +139,13 @@
         },
         {
           "title": "VNC Exposure",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "nmap"
+          ],
+          "finding_mapping": [
+            "GB-DISC-002",
+            "GB-DISC-003"
+          ],
           "methodology": [
             "Identify VNC/RFB listener exposure and supported protocol and security options.",
             "Test authentication negotiation and unauthenticated connection behavior without accessing an unauthorized session.",
@@ -127,8 +155,14 @@
         },
         {
           "title": "VNC Session Confidentiality",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "wireshark",
+            "tcpdump"
+          ],
+          "finding_mapping": [
+            "GB-NET-011",
+            "GB-CRED-002"
+          ],
           "methodology": [
             "Capture and inspect VNC connection traffic during approved connection attempts.",
             "Evaluate protection of authentication exchange, screen content, keyboard input, clipboard data, and session traffic.",
@@ -138,8 +172,18 @@
         },
         {
           "title": "SMB Exposure",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "smbmap",
+            "netexec",
+            "smbclient",
+            "enum4linux",
+            "rpcclient"
+          ],
+          "finding_mapping": [
+            "GB-SMB-001",
+            "GB-SMB-002",
+            "GB-SMB-003"
+          ],
           "methodology": [
             "Identify SMB service exposure and supported protocol dialects.",
             "Assess signing, guest or null-session behavior, authentication requirements, and information available through unauthenticated negotiation.",
@@ -149,8 +193,14 @@
         },
         {
           "title": "WinRM/RPC Exposure",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "nmap",
+            "rpcclient"
+          ],
+          "finding_mapping": [
+            "GB-DISC-002",
+            "GB-DISC-003"
+          ],
           "methodology": [
             "Identify Windows RPC, endpoint-mapper, dynamic RPC, and WinRM or WS-Management services exposed through Ethernet.",
             "Assess unauthenticated reachability and service metadata.",
@@ -160,8 +210,26 @@
         },
         {
           "title": "Legacy Web/VNC Viewer Exposure",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "gobuster",
+            "nikto",
+            "whatweb",
+            "webanalyze"
+          ],
+          "finding_mapping": [
+            "GB-WEB-001",
+            "GB-WEB-002",
+            "GB-WEB-003",
+            "GB-WEB-004",
+            "GB-WEB-005",
+            "GB-WEB-006",
+            "GB-WEB-007",
+            "GB-WEB-008",
+            "GB-WEB-009",
+            "GB-WEB-010",
+            "GB-009",
+            "GB-010"
+          ],
           "methodology": [
             "Review web-accessible remote-viewer components and associated downloadable client artifacts.",
             "Inspect server responses, page metadata, and client-side resources for legacy technology, unsupported dependencies, and exposed service information.",
@@ -171,8 +239,13 @@
         },
         {
           "title": "VNC Credential Testing",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "hydra",
+            "nmap"
+          ],
+          "finding_mapping": [
+            "GB-CRED-003"
+          ],
           "methodology": [
             "Conduct authorized, rate-controlled password validation against exposed VNC services using approved account and password candidates.",
             "Monitor authentication behavior and agreed stop conditions throughout testing.",
@@ -182,8 +255,16 @@
         },
         {
           "title": "SMB Credential Testing",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "hydra",
+            "netexec",
+            "smbmap"
+          ],
+          "finding_mapping": [
+            "GB-CRED-003",
+            "GB-SMB-002",
+            "GB-SMB-003"
+          ],
           "methodology": [
             "Conduct authorized, rate-controlled SMB authentication validation using approved account and password candidates.",
             "Apply agreed attempt limits and stop conditions consistent with observed or documented lockout controls.",
@@ -194,7 +275,9 @@
         {
           "title": "Local Session / Kiosk Escape Behavior",
           "testing_tools": [],
-          "finding_mapping": [],
+          "finding_mapping": [
+            "GB-026"
+          ],
           "methodology": [
             "Observe startup and intended application behavior after local physical access is obtained.",
             "Use approved keyboard, mouse, and HID interactions to test application boundaries, accessibility surfaces, and standard operating-system escape sequences.",
@@ -209,8 +292,13 @@
       "test_cases": [
         {
           "title": "Ethernet Drop Abuse",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "tcpdump",
+            "wireshark"
+          ],
+          "finding_mapping": [
+            "GB-016"
+          ],
           "methodology": [
             "Disconnect and reconnect the exposed Ethernet link, or insert approved passive or intermediate network equipment.",
             "Observe device, application, and network behavior for operational or security alerts.",
@@ -220,8 +308,13 @@
         },
         {
           "title": "Pivot After Device Control",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "nmap"
+          ],
+          "finding_mapping": [
+            "GB-DISC-001",
+            "GB-DISC-002"
+          ],
           "methodology": [
             "If authorized device control is established, assess network reachability from the controlled device to adjacent in-scope systems.",
             "Limit discovery and validation to approved target ranges and protocols.",
@@ -231,7 +324,10 @@
         },
         {
           "title": "Egress / Call-Home Simulation",
-          "testing_tools": [],
+          "testing_tools": [
+            "tcpdump",
+            "curl"
+          ],
           "finding_mapping": [],
           "methodology": [
             "If an approved controlled-host path is established, initiate a benign outbound callback to tester-controlled infrastructure.",
@@ -247,8 +343,21 @@
       "test_cases": [
         {
           "title": "Passive Boot/Idle Capture",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "tcpdump",
+            "tshark",
+            "wireshark"
+          ],
+          "finding_mapping": [
+            "GB-CRED-002",
+            "GB-CRED-004",
+            "GB-NET-011",
+            "GB-CONF-001",
+            "GB-CONF-002",
+            "GB-052",
+            "GB-053",
+            "GB-054"
+          ],
           "methodology": [
             "Capture network traffic during device startup, normal operation, and idle periods from an authorized observation point.",
             "Inspect traffic for cleartext credentials, commands, tokens, hostnames, service metadata, and unencrypted application communication.",
@@ -263,8 +372,15 @@
       "test_cases": [
         {
           "title": "O.MG/HID Injection While Logged Out",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "omg-cable",
+            "rubber-ducky",
+            "bash-bunny"
+          ],
+          "finding_mapping": [
+            "GB-USB-001",
+            "GB-024"
+          ],
           "methodology": [
             "Connect an approved HID-emulation device while the system is at the lock screen, user chooser, or accessibility interface.",
             "Deliver benign, documented input sequences to assess focus behavior, accessibility interactions, and navigation controls.",
@@ -274,8 +390,16 @@
         },
         {
           "title": "O.MG/HID Injection During Active Session",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "omg-cable",
+            "rubber-ducky",
+            "bash-bunny"
+          ],
+          "finding_mapping": [
+            "GB-USB-001",
+            "GB-USB-002",
+            "GB-024"
+          ],
           "methodology": [
             "Connect an approved HID-emulation device during an active application session.",
             "Deliver benign, documented input sequences to assess whether the application or operating-system boundary can be exited.",
@@ -285,8 +409,14 @@
         },
         {
           "title": "Boot-Time USB Interaction",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "omg-cable",
+            "rubber-ducky"
+          ],
+          "finding_mapping": [
+            "GB-USB-001",
+            "GB-056"
+          ],
           "methodology": [
             "Connect approved keyboard or HID-emulation devices during startup.",
             "Use benign input sequences to assist standard boot-key interaction.",
@@ -296,8 +426,13 @@
         },
         {
           "title": "USB Network Interface / Traffic Exposure",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "lan-turtle",
+            "usb-ethernet-adapter"
+          ],
+          "finding_mapping": [
+            "GB-USB-003"
+          ],
           "methodology": [
             "Connect an approved USB network-interface device to each exposed USB port.",
             "Establish an isolated, tester-controlled network path and observe interface enumeration, address assignment, and device behavior.",
@@ -312,8 +447,16 @@
       "test_cases": [
         {
           "title": "Azure IoT Call-Home",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "tcpdump",
+            "tshark",
+            "wireshark"
+          ],
+          "finding_mapping": [
+            "GB-NET-011",
+            "GB-CONF-001",
+            "GB-025"
+          ],
           "methodology": [
             "Capture network traffic during startup and idle operation to identify device-initiated cloud or management communications.",
             "Inspect transport security, endpoint metadata, certificate behavior, payload handling, and sensitive-data exposure.",
@@ -323,8 +466,22 @@
         },
         {
           "title": "Local Name / Service Disclosure",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "tcpdump",
+            "tshark",
+            "wireshark",
+            "responder"
+          ],
+          "finding_mapping": [
+            "GB-NET-006",
+            "GB-DISC-005",
+            "GB-DISC-006",
+            "GB-CRED-001",
+            "GB-011",
+            "GB-036",
+            "GB-067",
+            "GB-069"
+          ],
           "methodology": [
             "Passively capture local network traffic from an authorized network observation point.",
             "Identify local discovery, name-resolution, SMB or browser-service, and host-identification traffic.",
@@ -340,7 +497,9 @@
         {
           "title": "Physical Interface Inventory and Port Mapping",
           "testing_tools": [],
-          "finding_mapping": [],
+          "finding_mapping": [
+            "GB-DISC-001"
+          ],
           "methodology": [
             "Visually inspect all exposed physical interfaces on the device.",
             "Document interface types, connectors, physical controls, indicators, and labels.",
@@ -351,8 +510,19 @@
         },
         {
           "title": "Passive Traffic Baseline and Active-Interface Discovery",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "tcpdump",
+            "tshark",
+            "wireshark",
+            "nmap"
+          ],
+          "finding_mapping": [
+            "GB-DISC-001",
+            "GB-DISC-002",
+            "GB-DISC-003",
+            "GB-DISC-004",
+            "GB-CONF-001"
+          ],
           "methodology": [
             "Mirror all Ethernet interfaces using a port-mirroring switch or passive tap.",
             "Capture traffic with Wireshark or tcpdump during startup, idle, normal operation, and shutdown phases.",
@@ -386,8 +556,17 @@
       "test_cases": [
         {
           "title": "Interactive Serial Session Attempt",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "minicom",
+            "screen",
+            "picocom"
+          ],
+          "finding_mapping": [
+            "GB-SERIAL-001",
+            "GB-SERIAL-002",
+            "GB-SERIAL-003",
+            "GB-071"
+          ],
           "methodology": [
             "Connect a USB-to-serial adapter to exposed serial interfaces.",
             "Configure the terminal emulator for common baud rates (115200, 57600, 19200, 9600) and bit parameters (8-N-1, 7-E-1).",
@@ -398,8 +577,16 @@
         },
         {
           "title": "Serial Port Snooping",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "minicom",
+            "screen",
+            "picocom",
+            "logic-analyzer"
+          ],
+          "finding_mapping": [
+            "GB-SERIAL-002",
+            "GB-065"
+          ],
           "methodology": [
             "Connect a USB-to-serial adapter or passive serial splitter to the exposed serial port.",
             "Configure the terminal emulator for expected baud rates and parameters.",
@@ -411,8 +598,18 @@
         },
         {
           "title": "Serial Traffic Sensitive-Content Analysis",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "minicom",
+            "screen",
+            "hexdump"
+          ],
+          "finding_mapping": [
+            "GB-SERIAL-001",
+            "GB-SERIAL-003",
+            "GB-CRED-002",
+            "GB-CRED-004",
+            "GB-065"
+          ],
           "methodology": [
             "Decode framed messages from serial captures using protocol-appropriate tools.",
             "Search decoded data for device identifiers, credentials, patient data, configuration secrets, and authentication tokens.",
@@ -427,8 +624,22 @@
       "test_cases": [
         {
           "title": "Unauthenticated Vulnerability Scanning",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "nmap",
+            "nuclei",
+            "nikto"
+          ],
+          "finding_mapping": [
+            "GB-DISC-001",
+            "GB-DISC-002",
+            "GB-VULN-001",
+            "GB-VULN-002",
+            "GB-VULN-003",
+            "GB-VULN-004",
+            "GB-VULN-008",
+            "GB-VULN-009",
+            "GB-VULN-010"
+          ],
           "methodology": [
             "Connect to the device network segment from the authorized test position.",
             "Determine the device IP address through passive observation or approved active discovery.",
@@ -439,8 +650,19 @@
         },
         {
           "title": "Authenticated Vulnerability Scanning",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "nmap",
+            "nuclei"
+          ],
+          "finding_mapping": [
+            "GB-VULN-001",
+            "GB-VULN-002",
+            "GB-VULN-003",
+            "GB-VULN-004",
+            "GB-VULN-008",
+            "GB-VULN-009",
+            "GB-VULN-010"
+          ],
           "methodology": [
             "Obtain valid device credentials through approved channels.",
             "Configure vulnerability scanners for authenticated scanning using the provided credentials.",
@@ -451,8 +673,22 @@
         },
         {
           "title": "Vulnerability Validation",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "nmap",
+            "nuclei",
+            "curl",
+            "netexec"
+          ],
+          "finding_mapping": [
+            "GB-VULN-001",
+            "GB-VULN-002",
+            "GB-VULN-003",
+            "GB-VULN-005",
+            "GB-VULN-006",
+            "GB-VULN-007",
+            "GB-VULN-008",
+            "GB-VULN-011"
+          ],
           "methodology": [
             "Review vulnerability scan results from both authenticated and unauthenticated scans.",
             "Confirm true positive findings through manual validation and evidence collection.",
@@ -463,8 +699,27 @@
         },
         {
           "title": "Network Protocol Cryptographic Analysis",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "sslscan",
+            "testssl",
+            "nmap"
+          ],
+          "finding_mapping": [
+            "GB-TLS-001",
+            "GB-TLS-002",
+            "GB-TLS-003",
+            "GB-TLS-004",
+            "GB-TLS-005",
+            "GB-TLS-006",
+            "GB-TLS-007",
+            "GB-TLS-008",
+            "GB-TLS-009",
+            "GB-TLS-010",
+            "GB-TLS-011",
+            "GB-TLS-012",
+            "GB-TLS-013",
+            "GB-064"
+          ],
           "methodology": [
             "Identify encrypted protocols in use from captured network traffic.",
             "Run sslscan or equivalent tools against all TLS-enabled endpoints on the device.",
@@ -479,8 +734,16 @@
         },
         {
           "title": "Verify Ethernet Security Controls Cannot be Downgraded",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "sslscan",
+            "testssl",
+            "nmap"
+          ],
+          "finding_mapping": [
+            "GB-TLS-003",
+            "GB-NET-011",
+            "GB-049"
+          ],
           "methodology": [
             "Attempt to bypass or downgrade network security controls through protocol manipulation.",
             "Evaluate whether physical access enables circumvention of network-level protections.",
@@ -497,7 +760,10 @@
         {
           "title": "Sensitive Data Leaked Over Display",
           "testing_tools": [],
-          "finding_mapping": [],
+          "finding_mapping": [
+            "GB-013",
+            "GB-014"
+          ],
           "methodology": [
             "Connect an external monitor via HDMI, DVI, SDI, or DisplayPort to exposed display outputs.",
             "Observe display output during device boot, normal operation, and shutdown phases.",
@@ -509,7 +775,10 @@
         {
           "title": "Device Display Disruption via External Input",
           "testing_tools": [],
-          "finding_mapping": [],
+          "finding_mapping": [
+            "GB-007",
+            "GB-008"
+          ],
           "methodology": [
             "Connect a tester-controlled laptop to the device display port.",
             "Configure the laptop to duplicate or extend the display.",
@@ -520,8 +789,18 @@
         },
         {
           "title": "CEC Protocol Detection",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "cec-client",
+            "libcec"
+          ],
+          "finding_mapping": [
+            "GB-HW-001",
+            "GB-HW-005",
+            "GB-001",
+            "GB-002",
+            "GB-003",
+            "GB-004"
+          ],
           "methodology": [
             "Connect a USB-CEC adapter with appropriate cables to the device HDMI interface.",
             "Scan for CEC-enabled devices on the HDMI bus.",
@@ -537,8 +816,15 @@
       "test_cases": [
         {
           "title": "Read RFID Tag",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "proxmark3",
+            "chameleon-ultra"
+          ],
+          "finding_mapping": [
+            "GB-RFID-001",
+            "GB-RFID-002",
+            "GB-038"
+          ],
           "methodology": [
             "Install RFID interaction tools (Proxmark3, Chameleon, or equivalent).",
             "Perform tag identification using low-frequency and high-frequency searches (lf search, hf search, GETUID).",
@@ -549,8 +835,16 @@
         },
         {
           "title": "Snoop RFID Pairing",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "proxmark3",
+            "chameleon-ultra"
+          ],
+          "finding_mapping": [
+            "GB-RFID-001",
+            "GB-RFID-002",
+            "GB-RFID-003",
+            "GB-037"
+          ],
           "methodology": [
             "Position the RFID sniffing device near the target reader during normal tag interaction.",
             "Perform passive sniffing of RFID communication (iso14443a_sniff, iso14443b_sniff, or equivalent).",
@@ -566,8 +860,16 @@
       "test_cases": [
         {
           "title": "CAN Bus Traffic Capture",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "candump",
+            "cansniffer",
+            "socketcan",
+            "oscilloscope"
+          ],
+          "finding_mapping": [
+            "GB-CAN-001",
+            "GB-068"
+          ],
           "methodology": [
             "Add a CAN USB adapter to the bus via a passive splitter or unused connector.",
             "Use an oscilloscope to determine the CAN bus bitrate if unknown.",
@@ -580,8 +882,16 @@
         },
         {
           "title": "CAN Bus Traffic Replay / Injection / Fuzzing",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "cansend",
+            "canplayer",
+            "caninject",
+            "scapy"
+          ],
+          "finding_mapping": [
+            "GB-CAN-002",
+            "GB-CAN-003"
+          ],
           "methodology": [
             "Connect a CAN adapter at the determined baud rate.",
             "Send well-known CAN messages, previously captured frames, or fuzzed data onto the bus.",
@@ -597,8 +907,18 @@
       "test_cases": [
         {
           "title": "Zigbee Packet Sniffing and Interception",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "wireshark",
+            "killerbee",
+            "zbstumbler",
+            "zbdump",
+            "cc2531-sniffer"
+          ],
+          "finding_mapping": [
+            "GB-ZIGBEE-001",
+            "GB-ZIGBEE-002",
+            "GB-062"
+          ],
           "methodology": [
             "Install Zigbee sniffing software on the tester workstation.",
             "Connect a compatible Zigbee sniffer dongle (CatSniffer, SONOFF, CC2531, or equivalent).",
@@ -615,8 +935,21 @@
       "test_cases": [
         {
           "title": "Passive Pairing Interception and PIN Recovery",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "crackle",
+            "ubertooth",
+            "nrf-sniffer",
+            "btlejack",
+            "wireshark"
+          ],
+          "finding_mapping": [
+            "GB-BT-006",
+            "GB-BT-007",
+            "GB-BT-008",
+            "GB-BT-010",
+            "GB-BT-011",
+            "GB-BT-030"
+          ],
           "methodology": [
             "Flash sniffer firmware to a compatible radio dongle.",
             "Follow the target device by BD_ADDR to capture active advertising and connection traffic.",
@@ -628,8 +961,18 @@
         },
         {
           "title": "LE Secure Connections and Association-Model Verification",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "wireshark",
+            "nrf-sniffer",
+            "btlejack"
+          ],
+          "finding_mapping": [
+            "GB-BT-006",
+            "GB-BT-007",
+            "GB-BT-009",
+            "GB-BT-010",
+            "GB-BT-025"
+          ],
           "methodology": [
             "Isolate the SMP pairing exchange from captured BLE traffic.",
             "Inspect the AuthReq field for SC (Secure Connections) and MITM protection flags.",
@@ -640,9 +983,15 @@
           "result": ""
         },
         {
-          "title": "Persistent Bonding \u2014 Reconnection Without Re-Pairing",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "title": "Persistent Bonding — Reconnection Without Re-Pairing",
+          "testing_tools": [
+            "wireshark",
+            "nrf-sniffer",
+            "btlejack"
+          ],
+          "finding_mapping": [
+            "GB-BT-017"
+          ],
           "methodology": [
             "Capture the initial pairing and bonding exchange between the device and its companion.",
             "Disconnect without forgetting the bond on either side.",
@@ -654,8 +1003,19 @@
         },
         {
           "title": "Active Man-in-the-Middle Relay",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "gattacker",
+            "btlejack",
+            "whad",
+            "mirage"
+          ],
+          "finding_mapping": [
+            "GB-BT-006",
+            "GB-BT-008",
+            "GB-BT-018",
+            "GB-BT-019",
+            "GB-BT-020"
+          ],
           "methodology": [
             "Stand up a dual-role BLE relay with a central role paired to the real device and a peripheral role impersonating the device to the companion.",
             "Bridge GATT operations between the companion and the real device through the relay.",
@@ -672,8 +1032,17 @@
       "test_cases": [
         {
           "title": "Rogue AP / Evil Twin with Captive Portal",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "hostapd",
+            "dnsmasq",
+            "aircrack-ng",
+            "wifiphisher"
+          ],
+          "finding_mapping": [
+            "GB-WIFI-002",
+            "GB-WIFI-010",
+            "GB-WIFI-011"
+          ],
           "methodology": [
             "Bring up an access point broadcasting the target SSID configured as OPEN.",
             "Run a DHCP server to assign addresses to connecting clients.",
@@ -685,8 +1054,13 @@
         },
         {
           "title": "KARMA / MANA Probe-Response Attack",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "hostapd-mana",
+            "aircrack-ng"
+          ],
+          "finding_mapping": [
+            "GB-WIFI-010"
+          ],
           "methodology": [
             "Configure a MANA-patched hostapd instance on the tester wireless interface.",
             "Enable probe-response to all client probe requests regardless of ESSID.",
@@ -698,8 +1072,14 @@
         },
         {
           "title": "BSS Transition Management Hijacking (802.11v)",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "scapy",
+            "aircrack-ng"
+          ],
+          "finding_mapping": [
+            "GB-WIFI-008",
+            "GB-WIFI-010"
+          ],
           "methodology": [
             "Identify clients associated with the target access point.",
             "Craft an 802.11v BSS Transition Management Request frame pointing to the attacker BSSID.",
@@ -710,8 +1090,14 @@
         },
         {
           "title": "Client Probe-Request Harvest",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "airodump-ng",
+            "aircrack-ng",
+            "wireshark"
+          ],
+          "finding_mapping": [
+            "GB-WIFI-001"
+          ],
           "methodology": [
             "Perform a passive airodump-ng scan on all channels.",
             "Extract probe-request frames with associated MAC addresses and probed ESSIDs.",
@@ -723,8 +1109,16 @@
         },
         {
           "title": "WPA3 SAE Transition-Mode Downgrade",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "hostapd",
+            "aircrack-ng",
+            "hashcat"
+          ],
+          "finding_mapping": [
+            "GB-WIFI-004",
+            "GB-WIFI-005",
+            "GB-WIFI-009"
+          ],
           "methodology": [
             "Configure a rogue access point as WPA2-only broadcasting the target SSID.",
             "Deauthenticate target clients from the legitimate WPA3 access point.",
@@ -736,8 +1130,16 @@
         },
         {
           "title": "Wi-Fi Direct / P2P WPS Scanning",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "wash",
+            "reaver",
+            "bully",
+            "aircrack-ng"
+          ],
+          "finding_mapping": [
+            "GB-WIFI-006",
+            "GB-WIFI-007"
+          ],
           "methodology": [
             "Run wash or equivalent tools to enumerate WPS-enabled and P2P devices in range.",
             "Identify the target device among discovered WPS/P2P endpoints.",
@@ -753,8 +1155,14 @@
       "test_cases": [
         {
           "title": "Active Debug Interface Detection",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "openocd",
+            "jlink",
+            "multimeter"
+          ],
+          "finding_mapping": [
+            "GB-HW-002"
+          ],
           "methodology": [
             "Inspect integrated circuits for MCU type and debug interface indicators.",
             "Locate JTAG or debug connector footprints on the circuit board.",
@@ -767,8 +1175,14 @@
         },
         {
           "title": "Firmware Exfiltration via Debug Interface",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "openocd",
+            "gdb",
+            "jlink"
+          ],
+          "finding_mapping": [
+            "GB-HW-002"
+          ],
           "methodology": [
             "Use OpenOCD to display available memory banks and regions.",
             "Attempt read_memory and dump_image operations to extract firmware contents.",
@@ -780,8 +1194,14 @@
         },
         {
           "title": "SWD Debug Port Probing",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "openocd",
+            "jlink",
+            "multimeter"
+          ],
+          "finding_mapping": [
+            "GB-HW-002"
+          ],
           "methodology": [
             "Identify SWD (Serial Wire Debug) footprint or test pads on the circuit board.",
             "Probe suspected pads with a multimeter for the idle SWD clock and data signature.",
@@ -799,8 +1219,16 @@
       "test_cases": [
         {
           "title": "UWB Channel Identification and Traffic Interception",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "qorvo-sniffer",
+            "dw1000-sniffer",
+            "wireshark"
+          ],
+          "finding_mapping": [
+            "GB-UWB-001",
+            "GB-UWB-008",
+            "GB-UWB-012"
+          ],
           "methodology": [
             "Connect a UWB sniffer to the tester workstation.",
             "Perform a quick scan to identify the active UWB channel configuration.",
@@ -811,8 +1239,15 @@
         },
         {
           "title": "UWB Packet Injection",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "qorvo-sniffer",
+            "dw1000-sniffer",
+            "scapy"
+          ],
+          "finding_mapping": [
+            "GB-UWB-003",
+            "GB-UWB-004"
+          ],
           "methodology": [
             "Prepare a transmit script with the identified UWB channel parameters.",
             "Transmit extraneous UWB data packets on the active channel.",
@@ -823,8 +1258,14 @@
         },
         {
           "title": "UWB Replay Attack",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "qorvo-sniffer",
+            "dw1000-sniffer",
+            "scapy"
+          ],
+          "finding_mapping": [
+            "GB-UWB-007"
+          ],
           "methodology": [
             "Sniff and select a representative UWB packet from captured traffic.",
             "Configure the replay with matching channel and timing parameters.",
@@ -835,8 +1276,13 @@
         },
         {
           "title": "UWB Service Disruption",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "qorvo-sniffer",
+            "dw1000-sniffer"
+          ],
+          "finding_mapping": [
+            "GB-UWB-010"
+          ],
           "methodology": [
             "Transmit UWB packets at a high rate on the active channel.",
             "Monitor the target system for degradation in performance, accuracy, or availability.",
@@ -847,8 +1293,16 @@
         },
         {
           "title": "UWB Practical Distance Reduction Attack",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "qorvo-sniffer",
+            "dw1000-sniffer",
+            "scapy"
+          ],
+          "finding_mapping": [
+            "GB-UWB-005",
+            "GB-UWB-006",
+            "GB-UWB-009"
+          ],
           "methodology": [
             "Configure a UWB injection triggered on the synchronization field of legitimate transmissions.",
             "Run the injection over an extended observation period.",
@@ -864,8 +1318,16 @@
       "test_cases": [
         {
           "title": "Data at Rest Analysis",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "binwalk",
+            "strings",
+            "hexdump",
+            "fdisk"
+          ],
+          "finding_mapping": [
+            "GB-005",
+            "GB-006"
+          ],
           "methodology": [
             "Remove or interface with internal storage media (SD card, eMMC, flash chip) following approved disassembly procedures.",
             "Mount the storage on a forensic workstation in read-only mode.",
@@ -882,8 +1344,13 @@
       "test_cases": [
         {
           "title": "Brute-Force Authentication",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "hydra",
+            "nmap"
+          ],
+          "finding_mapping": [
+            "GB-CRED-003"
+          ],
           "methodology": [
             "Identify all authentication entry points on the device (login screens, PINs, biometric readers).",
             "Enumerate user accounts through approved discovery methods.",
@@ -909,11 +1376,13 @@
       ]
     },
     {
-      "name": "USB Port Exposure \u2014 Granular",
+      "name": "USB Port Exposure — Granular",
       "test_cases": [
         {
           "title": "USB Bus-Power Verification",
-          "testing_tools": [],
+          "testing_tools": [
+            "usb-power-meter"
+          ],
           "finding_mapping": [],
           "methodology": [
             "Insert a USB power meter into each exposed USB port.",
@@ -926,7 +1395,9 @@
         {
           "title": "USB HID Mouse Acceptance",
           "testing_tools": [],
-          "finding_mapping": [],
+          "finding_mapping": [
+            "GB-056"
+          ],
           "methodology": [
             "Insert a standard USB mouse into each exposed USB port.",
             "Observe the device display for cursor or pointer appearance.",
@@ -937,7 +1408,11 @@
         {
           "title": "USB HID Key-Combination Probe",
           "testing_tools": [],
-          "finding_mapping": [],
+          "finding_mapping": [
+            "GB-USB-001",
+            "GB-056",
+            "GB-026"
+          ],
           "methodology": [
             "Connect a USB keyboard to each exposed USB port.",
             "Attempt standard key combinations: Ctrl+Alt+Del, Ctrl+Alt+F1/F2, Ctrl+Alt+T, Alt+Tab, Super.",
@@ -948,8 +1423,16 @@
         },
         {
           "title": "Rogue USB Credential/SSH Dump",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "omg-cable",
+            "rubber-ducky",
+            "bash-bunny"
+          ],
+          "finding_mapping": [
+            "GB-USB-001",
+            "GB-USB-002",
+            "GB-024"
+          ],
           "methodology": [
             "Configure an approved HID-attack device with an SSH credential dump payload.",
             "Connect the device to each exposed USB port and observe execution indicators.",
@@ -960,8 +1443,16 @@
         },
         {
           "title": "Rogue USB Reverse Shell",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "omg-cable",
+            "rubber-ducky",
+            "bash-bunny"
+          ],
+          "finding_mapping": [
+            "GB-USB-001",
+            "GB-USB-002",
+            "GB-024"
+          ],
           "methodology": [
             "Configure an approved HID-attack device with a reverse shell payload.",
             "Set up a listener on the tester workstation at the designated callback address.",
@@ -972,8 +1463,13 @@
         },
         {
           "title": "Rogue USB Network Device",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "lan-turtle",
+            "usb-ethernet-adapter"
+          ],
+          "finding_mapping": [
+            "GB-USB-003"
+          ],
           "methodology": [
             "Connect an approved HID-attack device configured as a network interface or a USB-to-Ethernet adapter.",
             "Check whether the device operating system enumerates the network interface.",
@@ -997,7 +1493,10 @@
         {
           "title": "External Removable Media Read/Write",
           "testing_tools": [],
-          "finding_mapping": [],
+          "finding_mapping": [
+            "GB-057",
+            "GB-058"
+          ],
           "methodology": [
             "Connect an approved USB storage device to each exposed USB port.",
             "Test read, write, and execute operations on the removable media.",
@@ -1008,7 +1507,11 @@
         },
         {
           "title": "Data Encryption on USB Storage",
-          "testing_tools": [],
+          "testing_tools": [
+            "binwalk",
+            "strings",
+            "hexdump"
+          ],
           "finding_mapping": [],
           "methodology": [
             "Perform the manufacturer-documented data export workflow to USB storage.",
@@ -1020,8 +1523,13 @@
         },
         {
           "title": "USB-to-Ethernet Adapter Behavior",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "usb-ethernet-adapter",
+            "tcpdump"
+          ],
+          "finding_mapping": [
+            "GB-USB-003"
+          ],
           "methodology": [
             "Insert a USB-to-Ethernet adapter into each exposed USB port.",
             "Connect the adapter to a tester-controlled bench network.",
@@ -1051,7 +1559,9 @@
         {
           "title": "Default Configuration Testing",
           "testing_tools": [],
-          "finding_mapping": [],
+          "finding_mapping": [
+            "GB-CRED-003"
+          ],
           "methodology": [
             "Examine the out-of-box device configuration before any customization.",
             "Confirm that default settings follow secure-by-default principles.",
@@ -1062,8 +1572,13 @@
         },
         {
           "title": "Authentication Testing",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "hydra",
+            "nmap"
+          ],
+          "finding_mapping": [
+            "GB-CRED-003"
+          ],
           "methodology": [
             "Review configured user accounts and authentication mechanisms.",
             "Attempt password guessing with common and default credential lists.",
@@ -1113,7 +1628,10 @@
         },
         {
           "title": "Denial of Service Testing",
-          "testing_tools": [],
+          "testing_tools": [
+            "hping3",
+            "nmap"
+          ],
           "finding_mapping": [],
           "methodology": [
             "Identify potential denial-of-service vectors including account lockouts, resource exhaustion, network flooding, application crashes, and data corruption.",
@@ -1125,8 +1643,14 @@
         },
         {
           "title": "Ensure Software is Supported by Vendor",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "nmap",
+            "whatweb"
+          ],
+          "finding_mapping": [
+            "GB-VULN-006",
+            "GB-VULN-007"
+          ],
           "methodology": [
             "Review all off-the-shelf software components and their versions.",
             "Confirm that each component is under active vendor support.",
@@ -1187,7 +1711,10 @@
         },
         {
           "title": "Encryption of Data at Rest",
-          "testing_tools": [],
+          "testing_tools": [
+            "binwalk",
+            "strings"
+          ],
           "finding_mapping": [],
           "methodology": [
             "Confirm whether whole-disk encryption is enabled and the algorithm in use.",
@@ -1200,8 +1727,15 @@
         },
         {
           "title": "Information Disclosure",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "strings",
+            "binwalk",
+            "grep"
+          ],
+          "finding_mapping": [
+            "GB-005",
+            "GB-006"
+          ],
           "methodology": [
             "Examine the filesystem and databases for development artifacts, debug logs, and temporary files.",
             "Search for exposed cryptographic keys, certificates, and credentials.",
@@ -1224,7 +1758,9 @@
         },
         {
           "title": "Anti-Malware Scanning of Removable Devices",
-          "testing_tools": [],
+          "testing_tools": [
+            "eicar-test-file"
+          ],
           "finding_mapping": [],
           "methodology": [
             "Test removable media scanning by introducing an EICAR test file on USB storage.",
@@ -1259,7 +1795,9 @@
         },
         {
           "title": "Host-Based Firewall and Port Filtering",
-          "testing_tools": [],
+          "testing_tools": [
+            "nmap"
+          ],
           "finding_mapping": [],
           "methodology": [
             "Run firewall status commands appropriate to the operating system.",
@@ -1271,7 +1809,10 @@
         },
         {
           "title": "Hardened OS Configuration Review",
-          "testing_tools": [],
+          "testing_tools": [
+            "cis-cat",
+            "openscap"
+          ],
           "finding_mapping": [],
           "methodology": [
             "Perform a manual review against applicable CIS benchmarks or STIG checklists.",
@@ -1301,8 +1842,17 @@
       "test_cases": [
         {
           "title": "DHCP Option Analysis",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "tshark",
+            "wireshark",
+            "scapy"
+          ],
+          "finding_mapping": [
+            "GB-DISC-004",
+            "GB-CONF-001",
+            "GB-011",
+            "GB-012"
+          ],
           "methodology": [
             "Filter captured traffic for DHCP frames (DISCOVER, OFFER, REQUEST, ACK).",
             "Extract DHCP options 12 (Hostname), 55 (Parameter Request List), and 60 (Vendor Class Identifier).",
@@ -1313,8 +1863,13 @@
         },
         {
           "title": "DNS Behaviour Analysis",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "tshark",
+            "wireshark"
+          ],
+          "finding_mapping": [
+            "GB-NET-011"
+          ],
           "methodology": [
             "Walk all DNS queries and responses in captured traffic.",
             "Classify DNS resolvers used by the device (local, external, custom).",
@@ -1327,8 +1882,13 @@
         },
         {
           "title": "External-Peer / SNI Map",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "tshark",
+            "wireshark"
+          ],
+          "finding_mapping": [
+            "GB-025"
+          ],
           "methodology": [
             "Enumerate all external destination IP addresses with associated ports, SNI values, and byte counts.",
             "Annotate each destination with its observed or inferred purpose.",
@@ -1344,8 +1904,18 @@
       "test_cases": [
         {
           "title": "Network Traffic Capture / Man-in-the-Middle",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "tcpdump",
+            "wireshark",
+            "ettercap",
+            "bettercap",
+            "arpspoof"
+          ],
+          "finding_mapping": [
+            "GB-CRED-002",
+            "GB-CRED-004",
+            "GB-NET-011"
+          ],
           "methodology": [
             "Set up a man-in-the-middle position using port mirroring, a passive tap, or ARP-based redirection.",
             "Capture traffic during file transfers, management sessions, and data exports.",
@@ -1356,8 +1926,17 @@
         },
         {
           "title": "Packet-Capture Analysis for Sensitive Data",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "wireshark",
+            "tshark",
+            "scapy",
+            "tcpdump"
+          ],
+          "finding_mapping": [
+            "GB-CRED-002",
+            "GB-CRED-004",
+            "GB-NET-011"
+          ],
           "methodology": [
             "Generate representative data through the device during active network capture.",
             "Analyze captures with Wireshark, Scapy, tcpdump, or equivalent tools.",
@@ -1368,8 +1947,20 @@
         },
         {
           "title": "SSH Service Configuration and Cryptographic Posture",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "ssh-audit",
+            "ssh2-enum-algos",
+            "nmap"
+          ],
+          "finding_mapping": [
+            "GB-SSH-001",
+            "GB-SSH-002",
+            "GB-SSH-003",
+            "GB-SSH-004",
+            "GB-SSH-005",
+            "GB-SSH-006",
+            "GB-SSH-007"
+          ],
           "methodology": [
             "Run ssh2-enum-algos and ssh-audit against exposed SSH services.",
             "Enumerate supported key exchange, cipher, MAC, and host-key algorithms.",
@@ -1382,8 +1973,13 @@
         },
         {
           "title": "SFTP Transmission Security",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "tcpdump",
+            "wireshark"
+          ],
+          "finding_mapping": [
+            "GB-NET-011"
+          ],
           "methodology": [
             "Capture network traffic during an SFTP file transfer operation.",
             "Confirm that the entire transfer is encrypted end-to-end.",
@@ -1394,8 +1990,17 @@
         },
         {
           "title": "SMB Transmission Security",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "tcpdump",
+            "wireshark",
+            "netexec",
+            "smbclient"
+          ],
+          "finding_mapping": [
+            "GB-SMB-001",
+            "GB-SMB-002",
+            "GB-SMB-003"
+          ],
           "methodology": [
             "Capture network traffic during SMB file access or share operations.",
             "Confirm that SMB encryption is active for the captured sessions.",
@@ -1406,13 +2011,400 @@
         },
         {
           "title": "ARP / Traffic Poisoning and MITM Resilience",
-          "testing_tools": [],
-          "finding_mapping": [],
+          "testing_tools": [
+            "arpspoof",
+            "ettercap",
+            "bettercap",
+            "tcpdump"
+          ],
+          "finding_mapping": [
+            "GB-CRED-001",
+            "GB-CRED-002",
+            "GB-036",
+            "GB-067",
+            "GB-069"
+          ],
           "methodology": [
             "Conduct ARP spoofing and traffic redirection on internal network segments.",
             "Attempt to interpose between the device and its network peers.",
             "Observe for cleartext data capture, credential interception, or traffic injection opportunities.",
             "Document the device resilience to ARP poisoning and MITM attacks."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Sub-GHz RF Security",
+      "test_cases": [
+        {
+          "title": "Signal Capture and Replay",
+          "testing_tools": [
+            "hackrf",
+            "rtl-sdr",
+            "flipper-zero",
+            "gnuradio",
+            "urh"
+          ],
+          "finding_mapping": [
+            "GB-RF-001",
+            "GB-RF-002",
+            "GB-RF-003",
+            "GB-RF-005"
+          ],
+          "methodology": [
+            "Configure SDR to target frequency range (300–928 MHz).",
+            "Capture RF transmissions during normal device operations.",
+            "Attempt to replay captured signals to trigger device actions.",
+            "Document signal characteristics and replay success."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Protocol Analysis",
+          "testing_tools": [
+            "gnuradio",
+            "urh",
+            "inspectrum"
+          ],
+          "finding_mapping": [
+            "GB-RF-002",
+            "GB-RF-006",
+            "GB-RF-007"
+          ],
+          "methodology": [
+            "Demodulate captured RF signals using appropriate modulation scheme.",
+            "Analyze packet structure, preamble, sync words, and payload encoding.",
+            "Identify protocol type and assess encryption/authentication usage.",
+            "Document protocol weaknesses and attack feasibility."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Rolling Code Assessment",
+          "testing_tools": [
+            "hackrf",
+            "gnuradio",
+            "urh"
+          ],
+          "finding_mapping": [
+            "GB-RF-003",
+            "GB-RF-004",
+            "GB-RF-005"
+          ],
+          "methodology": [
+            "Capture multiple sequential transmissions from the target device.",
+            "Analyze code sequence patterns for predictability.",
+            "Assess rolling code implementation strength and synchronization behavior.",
+            "Document any weaknesses in the rolling code mechanism."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Jamming Resilience",
+          "testing_tools": [
+            "hackrf",
+            "gnuradio"
+          ],
+          "finding_mapping": [
+            "GB-RF-008"
+          ],
+          "methodology": [
+            "Transmit a continuous or pulsed signal on the target operating frequency.",
+            "Monitor target device behavior during jamming.",
+            "Assess whether the device detects or mitigates the interference.",
+            "Document device resilience and recovery behavior."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Frequency Hopping Analysis",
+          "testing_tools": [
+            "hackrf",
+            "rtl-sdr",
+            "gnuradio",
+            "inspectrum"
+          ],
+          "finding_mapping": [
+            "GB-RF-001",
+            "GB-RF-002"
+          ],
+          "methodology": [
+            "Perform wideband capture across the expected hopping range.",
+            "Analyze captured data for hopping pattern and dwell time.",
+            "Assess predictability of the frequency hopping sequence.",
+            "Document hopping characteristics and potential attack vectors."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Z-Wave Security",
+      "test_cases": [
+        {
+          "title": "Z-Wave Network Discovery and Sniffing",
+          "testing_tools": [
+            "z-wave-sniffer",
+            "scapy-radio",
+            "wireshark"
+          ],
+          "finding_mapping": [
+            "GB-ZW-001",
+            "GB-ZW-002",
+            "GB-ZW-003"
+          ],
+          "methodology": [
+            "Configure Z-Wave sniffer for the target frequency (868.42 MHz EU / 908.42 MHz US).",
+            "Capture Z-Wave network traffic during normal operations.",
+            "Identify network topology, node IDs, and device roles.",
+            "Document observed network structure and communication patterns."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Z-Wave Encryption Analysis",
+          "testing_tools": [
+            "z-wave-sniffer",
+            "scapy-radio"
+          ],
+          "finding_mapping": [
+            "GB-ZW-003",
+            "GB-ZW-004",
+            "GB-ZW-005",
+            "GB-ZW-006",
+            "GB-ZW-008"
+          ],
+          "methodology": [
+            "Capture Z-Wave S0 and S2 security handshakes.",
+            "Analyze encryption key exchange and frame encryption.",
+            "Assess for S0 key-exchange downgrade vulnerabilities.",
+            "Document encryption implementation and weaknesses."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Z-Wave Replay and Injection",
+          "testing_tools": [
+            "z-wave-sniffer",
+            "scapy-radio",
+            "hackrf"
+          ],
+          "finding_mapping": [
+            "GB-ZW-007",
+            "GB-ZW-009"
+          ],
+          "methodology": [
+            "Capture command frames from normal device operations.",
+            "Attempt to replay captured frames to trigger device actions.",
+            "Craft and inject modified Z-Wave frames.",
+            "Document replay and injection success and device response."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "LoRa/LoRaWAN Security",
+      "test_cases": [
+        {
+          "title": "LoRa Signal Capture and Analysis",
+          "testing_tools": [
+            "hackrf",
+            "rtl-sdr",
+            "gnuradio",
+            "gr-lora"
+          ],
+          "finding_mapping": [
+            "GB-LORA-001",
+            "GB-LORA-002",
+            "GB-LORA-003",
+            "GB-LORA-008"
+          ],
+          "methodology": [
+            "Configure SDR for the target LoRa frequency band (433/868/915 MHz).",
+            "Capture LoRa transmissions during normal device operations.",
+            "Demodulate and decode captured LoRa packets.",
+            "Document spreading factor, bandwidth, coding rate, and payload contents."
+          ],
+          "result": ""
+        },
+        {
+          "title": "LoRaWAN Join Procedure Security",
+          "testing_tools": [
+            "hackrf",
+            "gnuradio",
+            "gr-lora"
+          ],
+          "finding_mapping": [
+            "GB-LORA-004",
+            "GB-LORA-005",
+            "GB-LORA-006",
+            "GB-LORA-009"
+          ],
+          "methodology": [
+            "Capture LoRaWAN Join Request and Join Accept messages.",
+            "Analyze the join procedure for OTAA vs ABP activation.",
+            "Assess key derivation and session key management.",
+            "Document join security implementation and weaknesses."
+          ],
+          "result": ""
+        },
+        {
+          "title": "LoRa Replay and Injection",
+          "testing_tools": [
+            "hackrf",
+            "gnuradio",
+            "gr-lora"
+          ],
+          "finding_mapping": [
+            "GB-LORA-005",
+            "GB-LORA-007"
+          ],
+          "methodology": [
+            "Capture LoRa uplink and downlink frames.",
+            "Attempt replay of captured frames with original and modified counters.",
+            "Assess frame counter validation and anti-replay mechanisms.",
+            "Document replay/injection feasibility and device response."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Smart Card / PC-SC Security",
+      "test_cases": [
+        {
+          "title": "Smart Card ATR and Protocol Analysis",
+          "testing_tools": [
+            "pcsc-tools",
+            "opensc",
+            "pyresman"
+          ],
+          "finding_mapping": [
+            "GB-SC-001",
+            "GB-SC-002",
+            "GB-SC-003",
+            "GB-SC-004",
+            "GB-SC-011"
+          ],
+          "methodology": [
+            "Insert card into PC/SC reader and retrieve the Answer-to-Reset (ATR).",
+            "Parse ATR for card type, protocol, and capability indicators.",
+            "Select and query card applications via APDU commands.",
+            "Document card type, supported protocols, and application structure."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Smart Card Authentication Testing",
+          "testing_tools": [
+            "pcsc-tools",
+            "opensc",
+            "pyresman"
+          ],
+          "finding_mapping": [
+            "GB-SC-005",
+            "GB-SC-007",
+            "GB-SC-009",
+            "GB-SC-010"
+          ],
+          "methodology": [
+            "Identify PIN/password-protected areas on the smart card.",
+            "Attempt authentication with default and common PINs.",
+            "Assess PIN retry counters and lockout behavior.",
+            "Document authentication mechanisms and weaknesses."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Smart Card Data Extraction",
+          "testing_tools": [
+            "pcsc-tools",
+            "opensc",
+            "pyresman"
+          ],
+          "finding_mapping": [
+            "GB-SC-006",
+            "GB-SC-008"
+          ],
+          "methodology": [
+            "Read accessible data from card files and applications.",
+            "Attempt to access protected data areas after authentication.",
+            "Extract certificates, keys, and stored credentials if accessible.",
+            "Document all extracted data and access control effectiveness."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "SPI Flash / Firmware Extraction",
+      "test_cases": [
+        {
+          "title": "SPI Flash Dump",
+          "testing_tools": [
+            "flashrom",
+            "buspirate",
+            "ch341a-programmer"
+          ],
+          "finding_mapping": [
+            "GB-HW-002"
+          ],
+          "methodology": [
+            "Identify SPI flash chip on the circuit board.",
+            "Connect SPI programmer to the flash chip (in-circuit or desoldered).",
+            "Read and verify flash contents using flashrom or equivalent.",
+            "Document flash chip details and extraction results."
+          ],
+          "result": ""
+        },
+        {
+          "title": "Firmware Content Analysis",
+          "testing_tools": [
+            "binwalk",
+            "firmwalker",
+            "strings",
+            "entropy-analysis"
+          ],
+          "finding_mapping": [
+            "GB-005",
+            "GB-006",
+            "GB-CRED-003"
+          ],
+          "methodology": [
+            "Extract filesystem from firmware image using binwalk.",
+            "Search for hardcoded credentials, keys, and sensitive strings.",
+            "Analyze binary components for known vulnerabilities.",
+            "Review configuration files for insecure defaults.",
+            "Document all findings from firmware analysis."
+          ],
+          "result": ""
+        }
+      ]
+    },
+    {
+      "name": "Serial Console Authentication",
+      "test_cases": [
+        {
+          "title": "Serial Console Login Brute-Force",
+          "testing_tools": [
+            "minicom",
+            "screen",
+            "picocom",
+            "hydra"
+          ],
+          "finding_mapping": [
+            "GB-SERIAL-001",
+            "GB-SERIAL-003",
+            "GB-CRED-003"
+          ],
+          "methodology": [
+            "Establish serial console connection at the correct baud rate.",
+            "Identify login prompt format and authentication mechanism.",
+            "Attempt authentication with default and common credentials.",
+            "Assess account lockout and rate-limiting behavior.",
+            "Document authentication weaknesses and successful credentials."
           ],
           "result": ""
         }
